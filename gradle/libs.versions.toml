@@ -8,7 +8,7 @@ coroutines              = "1.10.1"
 serialization           = "1.8.1"
 datetime                = "0.6.1"
 multiplatform-settings  = "1.2.0"
-androidx-activity       = "1.10.1"
+androidx-activity       = "1.13.0"
 
 [libraries]
 # Ktor
