@@ -1,0 +1,40 @@
+# Gradle
+.gradle/
+build/
+*.hprof
+**/build/
+
+# Local machine config — never commit
+local.properties
+*.local.properties
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Android
+androidApp/release/
+*.apk
+*.aab
+
+# iOS / Xcode
+iosApp/iosApp.xcodeproj/xcuserdata/
+iosApp/iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+*.xcworkspace
+*.xcuserstate
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Kotlin compiler sessions
+.kotlin/
+
+# Generated / compiled
+*.class
