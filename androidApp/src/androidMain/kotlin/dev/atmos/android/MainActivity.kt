@@ -3,23 +3,18 @@ package dev.atmos.android
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.activity.enableEdgeToEdge
+import dev.atmos.shared.ui.home.HomeScreen
+import dev.atmos.shared.ui.theme.AtmosTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            MaterialTheme {
-                App()
+            AtmosTheme {
+                HomeScreen()
             }
         }
     }
-}
-
-@Composable
-fun App() {
-    Text("Atmos it is baby!!!!!")
-
 }
