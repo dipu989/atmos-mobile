@@ -8,8 +8,9 @@ build/
 local.properties
 *.local.properties
 
-# IDE
-.idea/
+# IDE — ignore everything except shared run configurations
+.idea/*
+!.idea/runConfigurations/
 *.iml
 *.ipr
 *.iws
@@ -38,3 +39,6 @@ DerivedData/
 
 # Generated / compiled
 *.class
+
+# Local design/product docs — not for source control
+PRODUCT_SPEC.md

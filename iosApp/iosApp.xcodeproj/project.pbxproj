@@ -17,6 +17,7 @@
 		A1B2C3D4E5F60011 /* iOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSApp.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60013 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A1B2C3D4E5F60014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,6 +45,7 @@
 				A1B2C3D4E5F60011 /* iOSApp.swift */,
 				A1B2C3D4E5F60012 /* ContentView.swift */,
 				A1B2C3D4E5F60013 /* Assets.xcassets */,
+				A1B2C3D4E5F60014 /* Info.plist */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";
@@ -64,10 +66,10 @@
 			buildConfigurationList = A1B2C3D4E5F60060 /* Build configuration list for PBXNativeTarget "iosApp" */;
 			buildPhases = (
 				A1B2C3D4E5F60050 /* KMP Framework Build */,
+				A1B2C3D4E5F60051 /* KMP Framework Embed */,
 				A1B2C3D4E5F60021 /* Sources */,
 				A1B2C3D4E5F60020 /* Frameworks */,
 				A1B2C3D4E5F60022 /* Resources */,
-				A1B2C3D4E5F60051 /* KMP Framework Embed */,
 			);
 			buildRules = (
 			);
@@ -299,18 +301,16 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = "${TEAM_ID}";
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
+					"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework",
+					"$(SRCROOT)/../shared/build/bin/iosArm64/debugFramework",
 					"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)",
 				);
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Atmos;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iosApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -335,15 +335,12 @@
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
+					"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/releaseFramework",
+					"$(SRCROOT)/../shared/build/bin/iosArm64/releaseFramework",
 					"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)",
 				);
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Atmos;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iosApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

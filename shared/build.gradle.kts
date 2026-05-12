@@ -24,7 +24,7 @@ kotlin {
     ).forEach { target ->
         target.binaries.framework {
             baseName = "shared"
-            isStatic = true
+            isStatic = false
         }
     }
 
@@ -34,6 +34,7 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
 
             // Networking
