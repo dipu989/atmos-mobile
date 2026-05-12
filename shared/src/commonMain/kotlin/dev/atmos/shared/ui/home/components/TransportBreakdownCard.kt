@@ -16,10 +16,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DirectionsBike
+import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
+import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.DirectionsBus
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.Eco
 import androidx.compose.material.icons.outlined.Flight
 import androidx.compose.material.icons.outlined.LocalTaxi
@@ -94,9 +94,9 @@ private val TransportModeType.icon: ImageVector
         TransportModeType.METRO,
         TransportModeType.TRAIN         -> Icons.Outlined.Train
         TransportModeType.CYCLING,
-        TransportModeType.AUTO_RICKSHAW -> Icons.Outlined.DirectionsBike
-        TransportModeType.WALKING       -> Icons.Outlined.DirectionsWalk
-        TransportModeType.TWO_WHEELER   -> Icons.Outlined.DirectionsBike
+        TransportModeType.AUTO_RICKSHAW -> Icons.AutoMirrored.Outlined.DirectionsBike
+        TransportModeType.WALKING       -> Icons.AutoMirrored.Outlined.DirectionsWalk
+        TransportModeType.TWO_WHEELER   -> Icons.AutoMirrored.Outlined.DirectionsBike
     }
 
 // ── Card ──────────────────────────────────────────────────────────────────────
