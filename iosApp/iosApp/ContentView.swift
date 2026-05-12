@@ -1,12 +1,17 @@
 import SwiftUI
+import shared
 
 struct ContentView: View {
     var body: some View {
-        Text("Atmos it is babyyy!")
-            .padding()
+        ComposeView()
+            .ignoresSafeArea(.keyboard)
     }
 }
 
-#Preview {
-    ContentView()
+struct ComposeView: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UIViewController {
+        MainViewControllerKt.MainViewController()
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }

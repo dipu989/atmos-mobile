@@ -1,8 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="iosApp" type="AppleRunConfiguration" factoryName="Apple Run Configuration">
-    <option name="xcodeProjectFilePath" value="$PROJECT_DIR$/iosApp/iosApp.xcodeproj" />
-    <option name="schemeName" value="iosApp" />
-    <option name="selectedSimulatorId" value="92B69AF2-9D91-405F-BF15-4DCC125EE9DC" />
-    <method v="2" />
-  </configuration>
-</component>
