@@ -1,11 +1,8 @@
 package dev.atmos.shared
 
 import androidx.compose.ui.window.ComposeUIViewController
-import dev.atmos.shared.ui.home.HomeScreen
-import dev.atmos.shared.ui.theme.AtmosTheme
+import dev.atmos.shared.ui.AtmosApp
 
 fun MainViewController() = ComposeUIViewController {
-    AtmosTheme {
-        HomeScreen()
-    }
+    AtmosApp()
 }
