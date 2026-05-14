@@ -1,6 +1,7 @@
 package dev.atmos.shared.ui.profile.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,59 +19,59 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.profile.CommuteLocation
-import dev.atmos.shared.ui.theme.TextPrimary
-import dev.atmos.shared.ui.theme.TextSecondary
+import dev.atmos.shared.ui.theme.LocalAtmosColors
 
 @Composable
 fun CommuteCard(
     home: CommuteLocation,
     work: CommuteLocation,
+    onEditHome: () -> Unit = {},
+    onEditWork: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    AtmosCard(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = 20.dp,
-    ) {
+    val colors = LocalAtmosColors.current
+
+    AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
         Text(
             text = "Commute",
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
-            color = TextPrimary,
+            color = colors.textPrimary,
         )
 
         Spacer(Modifier.height(12.dp))
 
-        CommuteRow(location = home)
+        CommuteRow(location = home, onClick = onEditHome)
         Spacer(Modifier.height(8.dp))
-        CommuteRow(location = work)
+        CommuteRow(location = work, onClick = onEditWork)
     }
 }
 
 @Composable
 private fun CommuteRow(
     location: CommuteLocation,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = LocalAtmosColors.current
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                color = Color(0xFFF5F7FA),
-                shape = RoundedCornerShape(12.dp),
-            )
+            .background(color = colors.background, shape = RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 12.dp),
     ) {
         Icon(
             imageVector = Icons.Outlined.LocationOn,
             contentDescription = null,
-            tint = TextSecondary,
+            tint = colors.textSecondary,
             modifier = Modifier.size(18.dp),
         )
 
@@ -81,14 +82,14 @@ private fun CommuteRow(
                 text = location.label,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary,
+                color = colors.textPrimary,
             )
             if (!location.address.isNullOrBlank()) {
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = location.address,
                     fontSize = 13.sp,
-                    color = TextSecondary,
+                    color = colors.textSecondary,
                 )
             }
         }
@@ -96,7 +97,7 @@ private fun CommuteRow(
         Icon(
             imageVector = Icons.Outlined.ChevronRight,
             contentDescription = null,
-            tint = TextSecondary,
+            tint = colors.textSecondary,
             modifier = Modifier.size(18.dp),
         )
     }

@@ -31,9 +31,8 @@ import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.home.InsightEntry
 import dev.atmos.shared.ui.home.InsightType
 import dev.atmos.shared.ui.theme.HorizonBlue
+import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Sage
-import dev.atmos.shared.ui.theme.TextPrimary
-import dev.atmos.shared.ui.theme.TextSecondary
 
 // ── Icon / color mappings ─────────────────────────────────────────────────────
 
@@ -48,20 +47,8 @@ private val InsightType.icon: ImageVector
 
 private val InsightType.iconTint: Color
     get() = when (this) {
-        InsightType.STREAK,
-        InsightType.MILESTONE,
-        InsightType.COMPARISON,
-        InsightType.ANOMALY -> HorizonBlue
-        InsightType.TIP     -> Sage
-    }
-
-private val InsightType.iconBackground: Color
-    get() = when (this) {
-        InsightType.STREAK,
-        InsightType.MILESTONE,
-        InsightType.COMPARISON,
-        InsightType.ANOMALY -> Color(0xFFE8F2FA)
-        InsightType.TIP     -> Color(0xFFE8F7F0)
+        InsightType.TIP -> Sage
+        else            -> HorizonBlue
     }
 
 // ── Section ───────────────────────────────────────────────────────────────────
@@ -72,11 +59,12 @@ fun InsightsSection(
     unreadCount: Int,
     modifier: Modifier = Modifier,
 ) {
+    val colors = LocalAtmosColors.current
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        // Section header
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 4.dp),
@@ -85,7 +73,7 @@ fun InsightsSection(
                 text = "Insights",
                 fontSize = 17.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary,
+                color = colors.textPrimary,
             )
             if (unreadCount > 0) {
                 Spacer(Modifier.width(6.dp))
@@ -98,34 +86,30 @@ fun InsightsSection(
             }
         }
 
-        // One card per insight
-        entries.forEach { entry ->
-            InsightCard(entry = entry)
-        }
+        entries.forEach { entry -> InsightCard(entry = entry) }
     }
 }
 
 // ── Single insight card ───────────────────────────────────────────────────────
 
 @Composable
-private fun InsightCard(
+fun InsightCard(
     entry: InsightEntry,
     modifier: Modifier = Modifier,
 ) {
-    AtmosCard(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = 16.dp,
-    ) {
+    val colors = LocalAtmosColors.current
+    val iconBg = if (entry.type == InsightType.TIP) colors.insightGreenBg else colors.insightBlueBg
+
+    AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 16.dp) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            // Icon circle
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(52.dp)
-                    .background(color = entry.type.iconBackground, shape = CircleShape),
+                    .background(color = iconBg, shape = CircleShape),
             ) {
                 Icon(
                     imageVector = entry.type.icon,
@@ -137,31 +121,29 @@ private fun InsightCard(
 
             Spacer(Modifier.width(14.dp))
 
-            // Title + body
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = entry.title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
+                    color = colors.textPrimary,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = entry.body,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Normal,
-                    color = TextSecondary,
+                    color = colors.textSecondary,
                     lineHeight = 18.sp,
                 )
             }
 
             Spacer(Modifier.width(8.dp))
 
-            // Chevron
             Icon(
                 imageVector = Icons.Outlined.ChevronRight,
                 contentDescription = null,
-                tint = TextSecondary,
+                tint = colors.textSecondary,
                 modifier = Modifier.size(20.dp),
             )
         }

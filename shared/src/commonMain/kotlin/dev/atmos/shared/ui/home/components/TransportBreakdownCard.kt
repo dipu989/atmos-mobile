@@ -45,10 +45,9 @@ import dev.atmos.shared.ui.home.TransportModeEntry
 import dev.atmos.shared.ui.home.TransportModeType
 import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
+import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
-import dev.atmos.shared.ui.theme.TextPrimary
-import dev.atmos.shared.ui.theme.TextSecondary
 
 // ── Color mappings ────────────────────────────────────────────────────────────
 
@@ -106,31 +105,28 @@ fun TransportBreakdownCard(
     entries: List<TransportModeEntry>,
     modifier: Modifier = Modifier,
 ) {
-    AtmosCard(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = 20.dp,
-    ) {
+    val colors = LocalAtmosColors.current
+
+    AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
         Text(
             text = "Transport Breakdown",
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
-            color = TextPrimary,
+            color = colors.textPrimary,
         )
         Spacer(Modifier.height(2.dp))
         Text(
             text = "Today's activity by mode",
             fontSize = 13.sp,
             fontWeight = FontWeight.Normal,
-            color = TextSecondary,
+            color = colors.textSecondary,
         )
 
         Spacer(Modifier.height(20.dp))
 
         entries.forEachIndexed { index, entry ->
             TransportModeRow(entry = entry)
-            if (index < entries.lastIndex) {
-                Spacer(Modifier.height(20.dp))
-            }
+            if (index < entries.lastIndex) Spacer(Modifier.height(20.dp))
         }
     }
 }
@@ -142,8 +138,8 @@ private fun TransportModeRow(
     entry: TransportModeEntry,
     modifier: Modifier = Modifier,
 ) {
-    val rowBg = if (entry.mode.isZeroEmission)
-        Color(0xFFF4FBF7) else Color.Transparent
+    val colors = LocalAtmosColors.current
+    val rowBg = if (entry.mode.isZeroEmission) colors.subtleGreenBg else Color.Transparent
 
     Column(
         modifier = modifier
@@ -153,24 +149,18 @@ private fun TransportModeRow(
             .then(
                 if (entry.mode.isZeroEmission)
                     Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-                else
-                    Modifier
+                else Modifier,
             ),
     ) {
-        // Top row: icon + name/distance + kg/%
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            // Mode icon circle
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(48.dp)
-                    .background(
-                        color = entry.mode.iconBackground,
-                        shape = CircleShape,
-                    ),
+                    .background(color = entry.mode.iconBackground, shape = CircleShape),
             ) {
                 Icon(
                     imageVector = entry.mode.icon,
@@ -182,31 +172,29 @@ private fun TransportModeRow(
 
             Spacer(Modifier.width(12.dp))
 
-            // Name + distance
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = entry.displayName,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
+                    color = colors.textPrimary,
                 )
                 Spacer(Modifier.height(1.dp))
                 Text(
                     text = "${entry.distanceKm.toDistanceString()} km",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Normal,
-                    color = TextSecondary,
+                    color = colors.textSecondary,
                 )
             }
 
-            // kg CO₂ + percentage
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "${entry.kgCO2.toKgString()} kg",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary,
+                        color = colors.textPrimary,
                     )
                     if (entry.mode.isZeroEmission) {
                         Spacer(Modifier.width(4.dp))
@@ -223,14 +211,13 @@ private fun TransportModeRow(
                     text = "${entry.percentage}%",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Normal,
-                    color = TextSecondary,
+                    color = colors.textSecondary,
                 )
             }
         }
 
         Spacer(Modifier.height(10.dp))
 
-        // Animated progress bar
         AnimatedProgressBar(
             fraction = entry.percentage / 100f,
             color = entry.mode.barColor,
@@ -247,9 +234,9 @@ private fun AnimatedProgressBar(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
-    val trackColor = Color(0xFFF0F2F5)
-    val barHeight  = 4.dp
-    val barShape   = RoundedCornerShape(50)
+    val colors  = LocalAtmosColors.current
+    val barHeight = 4.dp
+    val barShape  = RoundedCornerShape(50)
 
     var animTarget by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(fraction) { animTarget = fraction }
@@ -260,11 +247,7 @@ private fun AnimatedProgressBar(
         label = "progressBar",
     )
 
-    Box(
-        modifier = modifier
-            .height(barHeight)
-            .background(trackColor, barShape),
-    ) {
+    Box(modifier = modifier.height(barHeight).background(colors.divider, barShape)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth(animatedFraction)
@@ -280,13 +263,11 @@ private fun Float.toKgString(): String {
     if (this == 0f) return "0"
     if (this % 1f == 0f) return toInt().toString()
     val intPart = toInt()
-    val decPart = ((this - intPart) * 10).toInt()
-    return "$intPart.$decPart"
+    return "$intPart.${((this - intPart) * 10).toInt()}"
 }
 
 private fun Float.toDistanceString(): String {
     if (this % 1f == 0f) return toInt().toString()
     val intPart = toInt()
-    val decPart = ((this - intPart) * 10).toInt()
-    return "$intPart.$decPart"
+    return "$intPart.${((this - intPart) * 10).toInt()}"
 }

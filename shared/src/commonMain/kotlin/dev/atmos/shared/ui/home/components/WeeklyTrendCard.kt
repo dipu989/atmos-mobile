@@ -10,15 +10,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,27 +27,28 @@ import dev.atmos.shared.ui.theme.ChartFillBottom
 import dev.atmos.shared.ui.theme.ChartFillTop
 import dev.atmos.shared.ui.theme.ChartLine
 import dev.atmos.shared.ui.theme.HorizonBlue
-import dev.atmos.shared.ui.theme.TextPrimary
-import dev.atmos.shared.ui.theme.TextSecondary
+import dev.atmos.shared.ui.theme.LocalAtmosColors
 
 @Composable
 fun WeeklyTrendCard(
     data: List<WeeklyDataPoint>,
     modifier: Modifier = Modifier,
 ) {
+    val colors = LocalAtmosColors.current
+
     AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
         Text(
             text = "Weekly Trend",
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
-            color = TextPrimary,
+            color = colors.textPrimary,
         )
         Spacer(Modifier.height(2.dp))
         Text(
             text = "Last 7 days of activity",
             fontSize = 13.sp,
             fontWeight = FontWeight.Normal,
-            color = TextSecondary,
+            color = colors.textSecondary,
         )
 
         Spacer(Modifier.height(20.dp))
@@ -64,7 +62,6 @@ fun WeeklyTrendCard(
 
         Spacer(Modifier.height(12.dp))
 
-        // X-axis labels
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -74,7 +71,7 @@ fun WeeklyTrendCard(
                     text = point.dayLabel,
                     fontSize = 11.sp,
                     fontWeight = if (point.isToday) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (point.isToday) HorizonBlue else TextSecondary,
+                    color = if (point.isToday) HorizonBlue else colors.textSecondary,
                     modifier = Modifier.weight(1f),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
@@ -110,26 +107,19 @@ private fun TrendChart(
             if (values.size == 1) canvasW / 2f
             else i * (canvasW / (values.size - 1).toFloat())
 
-        val points = values.mapIndexed { i, v ->
-            Offset(indexToX(i), valueToY(v))
-        }
+        val points = values.mapIndexed { i, v -> Offset(indexToX(i), valueToY(v)) }
 
-        // Average dashed line
         val avgY = valueToY(average)
         drawLine(
             color = AverageDash,
             start = Offset(0f, avgY),
             end = Offset(canvasW, avgY),
             strokeWidth = 1.dp.toPx(),
-            pathEffect = PathEffect.dashPathEffect(
-                floatArrayOf(6.dp.toPx(), 5.dp.toPx()), 0f
-            ),
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx()), 0f),
         )
 
-        // Smooth line path
         val linePath = buildSmoothPath(points)
 
-        // Filled area under the curve
         val fillPath = Path().apply {
             addPath(linePath)
             lineTo(points.last().x, canvasH)
@@ -145,34 +135,19 @@ private fun TrendChart(
             ),
         )
 
-        // Line stroke
         drawPath(
             path = linePath,
             color = ChartLine,
-            style = Stroke(
-                width = 2.dp.toPx(),
-                cap = StrokeCap.Round,
-            ),
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
         )
 
-        // Today's highlight dot
         data.indexOfFirst { it.isToday }.takeIf { it >= 0 }?.let { todayIdx ->
             val todayPt = points[todayIdx]
-            drawCircle(
-                color = HorizonBlue,
-                radius = 4.dp.toPx(),
-                center = todayPt,
-            )
-            drawCircle(
-                color = androidx.compose.ui.graphics.Color.White,
-                radius = 2.dp.toPx(),
-                center = todayPt,
-            )
+            drawCircle(color = HorizonBlue, radius = 4.dp.toPx(), center = todayPt)
+            drawCircle(color = androidx.compose.ui.graphics.Color.White, radius = 2.dp.toPx(), center = todayPt)
         }
     }
 }
-
-// ── Catmull-Rom → Cubic Bézier smooth path ───────────────────────────────────
 
 private fun buildSmoothPath(points: List<Offset>): Path = Path().apply {
     if (points.isEmpty()) return@apply
@@ -185,14 +160,8 @@ private fun buildSmoothPath(points: List<Offset>): Path = Path().apply {
         val p2 = points[i + 1]
         val p3 = if (i + 2 < points.size) points[i + 2] else points[i + 1]
 
-        val cp1 = Offset(
-            x = p1.x + (p2.x - p0.x) / 6f,
-            y = p1.y + (p2.y - p0.y) / 6f,
-        )
-        val cp2 = Offset(
-            x = p2.x - (p3.x - p1.x) / 6f,
-            y = p2.y - (p3.y - p1.y) / 6f,
-        )
+        val cp1 = Offset(p1.x + (p2.x - p0.x) / 6f, p1.y + (p2.y - p0.y) / 6f)
+        val cp2 = Offset(p2.x - (p3.x - p1.x) / 6f, p2.y - (p3.y - p1.y) / 6f)
 
         cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y)
     }

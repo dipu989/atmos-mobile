@@ -1,6 +1,7 @@
 package dev.atmos.shared.ui.profile.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,8 +27,7 @@ import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.theme.AvatarBg
 import dev.atmos.shared.ui.theme.HorizonBlue
-import dev.atmos.shared.ui.theme.TextPrimary
-import dev.atmos.shared.ui.theme.TextSecondary
+import dev.atmos.shared.ui.theme.LocalAtmosColors
 
 @Composable
 fun ProfileHeaderCard(
@@ -38,11 +38,9 @@ fun ProfileHeaderCard(
     onEdit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AtmosCard(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = 0.dp,
-    ) {
-        // Top bar — back + edit
+    val colors = LocalAtmosColors.current
+
+    AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 0.dp) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -53,16 +51,14 @@ fun ProfileHeaderCard(
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = "Back",
-                    tint = TextSecondary,
+                    tint = colors.textSecondary,
                 )
             }
             Spacer(Modifier.weight(1f))
             Box(
                 modifier = Modifier
-                    .background(
-                        color = Color(0xFFF0F4F8),
-                        shape = RoundedCornerShape(50),
-                    )
+                    .background(color = colors.chipBg, shape = RoundedCornerShape(50))
+                    .clickable(onClick = onEdit)
                     .padding(horizontal = 16.dp, vertical = 6.dp),
             ) {
                 Text(
@@ -75,7 +71,6 @@ fun ProfileHeaderCard(
             Spacer(Modifier.size(8.dp))
         }
 
-        // Avatar + name + email
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -100,14 +95,14 @@ fun ProfileHeaderCard(
                 text = displayName,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = colors.textPrimary,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = email,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Normal,
-                color = TextSecondary,
+                color = colors.textSecondary,
             )
         }
     }

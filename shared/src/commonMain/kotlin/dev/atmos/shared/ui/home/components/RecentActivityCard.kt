@@ -37,10 +37,9 @@ import dev.atmos.shared.ui.home.RecentActivityEntry
 import dev.atmos.shared.ui.home.TransportModeType
 import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
+import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
-import dev.atmos.shared.ui.theme.TextPrimary
-import dev.atmos.shared.ui.theme.TextSecondary
 
 // ── Color / icon mappings ─────────────────────────────────────────────────────
 
@@ -96,22 +95,21 @@ fun RecentActivityCard(
     entries: List<RecentActivityEntry>,
     modifier: Modifier = Modifier,
 ) {
-    AtmosCard(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = 20.dp,
-    ) {
+    val colors = LocalAtmosColors.current
+
+    AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
         Text(
             text = "Recent Activity",
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
-            color = TextPrimary,
+            color = colors.textPrimary,
         )
         Spacer(Modifier.height(2.dp))
         Text(
             text = "Your latest journeys",
             fontSize = 13.sp,
             fontWeight = FontWeight.Normal,
-            color = TextSecondary,
+            color = colors.textSecondary,
         )
 
         Spacer(Modifier.height(16.dp))
@@ -122,7 +120,7 @@ fun RecentActivityCard(
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 12.dp),
                     thickness = 1.dp,
-                    color = Color(0xFFF0F2F5),
+                    color = colors.divider,
                 )
             }
         }
@@ -136,11 +134,12 @@ private fun ActivityRow(
     entry: RecentActivityEntry,
     modifier: Modifier = Modifier,
 ) {
+    val colors = LocalAtmosColors.current
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.fillMaxWidth(),
     ) {
-        // Mode icon circle
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -157,13 +156,12 @@ private fun ActivityRow(
 
         Spacer(Modifier.width(14.dp))
 
-        // Route + meta
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "${entry.origin} → ${entry.destination}",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary,
+                color = colors.textPrimary,
             )
             Spacer(Modifier.height(4.dp))
             Row(
@@ -173,37 +171,26 @@ private fun ActivityRow(
                 Icon(
                     imageVector = Icons.Outlined.Schedule,
                     contentDescription = null,
-                    tint = TextSecondary,
+                    tint = colors.textSecondary,
                     modifier = Modifier.size(12.dp),
                 )
-                Text(
-                    text = entry.timeLabel,
-                    fontSize = 12.sp,
-                    color = TextSecondary,
-                )
-                Text(text = "·", fontSize = 12.sp, color = TextSecondary)
-                Text(
-                    text = "${entry.durationMin} min",
-                    fontSize = 12.sp,
-                    color = TextSecondary,
-                )
-                Text(text = "·", fontSize = 12.sp, color = TextSecondary)
+                Text(text = entry.timeLabel, fontSize = 12.sp, color = colors.textSecondary)
+                Text(text = "·", fontSize = 12.sp, color = colors.textSecondary)
+                Text(text = "${entry.durationMin} min", fontSize = 12.sp, color = colors.textSecondary)
+                Text(text = "·", fontSize = 12.sp, color = colors.textSecondary)
                 Text(
                     text = "${entry.kgCO2.toKgString()} kg CO₂",
                     fontSize = 12.sp,
-                    color = TextSecondary,
+                    color = colors.textSecondary,
                 )
             }
         }
     }
 }
 
-// ── Formatting helper ─────────────────────────────────────────────────────────
-
 private fun Float.toKgString(): String {
     if (this == 0f) return "0"
     if (this % 1f == 0f) return toInt().toString()
     val intPart = toInt()
-    val decPart = ((this - intPart) * 10).toInt()
-    return "$intPart.$decPart"
+    return "$intPart.${((this - intPart) * 10).toInt()}"
 }
