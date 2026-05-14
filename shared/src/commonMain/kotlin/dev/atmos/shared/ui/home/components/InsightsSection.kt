@@ -1,0 +1,169 @@
+package dev.atmos.shared.ui.home.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.TrackChanges
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.atmos.shared.ui.common.AtmosCard
+import dev.atmos.shared.ui.home.InsightEntry
+import dev.atmos.shared.ui.home.InsightType
+import dev.atmos.shared.ui.theme.HorizonBlue
+import dev.atmos.shared.ui.theme.Sage
+import dev.atmos.shared.ui.theme.TextPrimary
+import dev.atmos.shared.ui.theme.TextSecondary
+
+// ── Icon / color mappings ─────────────────────────────────────────────────────
+
+private val InsightType.icon: ImageVector
+    get() = when (this) {
+        InsightType.STREAK      -> Icons.Outlined.AutoAwesome
+        InsightType.TIP         -> Icons.AutoMirrored.Outlined.TrendingDown
+        InsightType.MILESTONE,
+        InsightType.COMPARISON,
+        InsightType.ANOMALY     -> Icons.Outlined.TrackChanges
+    }
+
+private val InsightType.iconTint: Color
+    get() = when (this) {
+        InsightType.STREAK,
+        InsightType.MILESTONE,
+        InsightType.COMPARISON,
+        InsightType.ANOMALY -> HorizonBlue
+        InsightType.TIP     -> Sage
+    }
+
+private val InsightType.iconBackground: Color
+    get() = when (this) {
+        InsightType.STREAK,
+        InsightType.MILESTONE,
+        InsightType.COMPARISON,
+        InsightType.ANOMALY -> Color(0xFFE8F2FA)
+        InsightType.TIP     -> Color(0xFFE8F7F0)
+    }
+
+// ── Section ───────────────────────────────────────────────────────────────────
+
+@Composable
+fun InsightsSection(
+    entries: List<InsightEntry>,
+    unreadCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        // Section header
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        ) {
+            Text(
+                text = "Insights",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary,
+            )
+            if (unreadCount > 0) {
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "· $unreadCount",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = HorizonBlue,
+                )
+            }
+        }
+
+        // One card per insight
+        entries.forEach { entry ->
+            InsightCard(entry = entry)
+        }
+    }
+}
+
+// ── Single insight card ───────────────────────────────────────────────────────
+
+@Composable
+private fun InsightCard(
+    entry: InsightEntry,
+    modifier: Modifier = Modifier,
+) {
+    AtmosCard(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = 16.dp,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            // Icon circle
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(color = entry.type.iconBackground, shape = CircleShape),
+            ) {
+                Icon(
+                    imageVector = entry.type.icon,
+                    contentDescription = null,
+                    tint = entry.type.iconTint,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+
+            Spacer(Modifier.width(14.dp))
+
+            // Title + body
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = entry.body,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = TextSecondary,
+                    lineHeight = 18.sp,
+                )
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            // Chevron
+            Icon(
+                imageVector = Icons.Outlined.ChevronRight,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
