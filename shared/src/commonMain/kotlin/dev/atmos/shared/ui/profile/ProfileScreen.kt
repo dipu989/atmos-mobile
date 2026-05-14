@@ -8,11 +8,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.atmos.shared.ui.home.components.AtmosBottomBar
+import dev.atmos.shared.ui.home.components.AtmosTab
+import dev.atmos.shared.ui.profile.components.AccountCard
 import dev.atmos.shared.ui.profile.components.CommuteCard
 import dev.atmos.shared.ui.profile.components.DailyGoalCard
 import dev.atmos.shared.ui.profile.components.MyImpactCard
+import dev.atmos.shared.ui.profile.components.PreferencesCard
 import dev.atmos.shared.ui.profile.components.ProfileHeaderCard
 import dev.atmos.shared.ui.theme.SkyWhite
 
@@ -21,8 +29,24 @@ fun ProfileScreen(
     state: ProfileUiState = previewProfileUiState,
     onBack: () -> Unit = {},
     onEdit: () -> Unit = {},
+    onNavigateToHome: () -> Unit = {},
 ) {
-    Scaffold(containerColor = SkyWhite) { innerPadding ->
+    var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
+
+    Scaffold(
+        containerColor = SkyWhite,
+        bottomBar = {
+            AtmosBottomBar(
+                selectedTab = selectedTab,
+                unreadInsights = 0,
+                onTabSelected = { tab ->
+                    selectedTab = tab
+                    if (tab == AtmosTab.HOME) onNavigateToHome()
+                },
+                onFabClick = {},
+            )
+        },
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -32,7 +56,7 @@ fun ProfileScreen(
                 start = 16.dp,
                 end = 16.dp,
                 top = 16.dp,
-                bottom = 32.dp,
+                bottom = 24.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -64,6 +88,18 @@ fun ProfileScreen(
                 CommuteCard(
                     home = state.home,
                     work = state.work,
+                )
+            }
+
+            item {
+                PreferencesCard(preferences = state.preferences)
+            }
+
+            item {
+                AccountCard(
+                    onExportData = {},
+                    onSignOut = {},
+                    onDeleteAccount = {},
                 )
             }
         }

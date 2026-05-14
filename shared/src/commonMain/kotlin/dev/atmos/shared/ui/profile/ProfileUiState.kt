@@ -7,6 +7,15 @@ data class CommuteLocation(
     val address: String?,
 )
 
+enum class AppearanceMode { LIGHT, DARK, SYSTEM }
+
+data class ProfilePreferences(
+    val pushNotificationsEnabled: Boolean,
+    val appearanceMode: AppearanceMode,
+    val defaultTransportLabel: String,
+    val unitsLabel: String,
+)
+
 data class ProfileUiState(
     val displayName: String,
     val initials: String,
@@ -17,6 +26,7 @@ data class ProfileUiState(
     val dailyGoalKgCO2: Float,
     val home: CommuteLocation,
     val work: CommuteLocation,
+    val preferences: ProfilePreferences,
 )
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
@@ -31,4 +41,10 @@ val previewProfileUiState = ProfileUiState(
     dailyGoalKgCO2 = 5.0f,
     home = CommuteLocation("Home", "123 Main Street, Brooklyn NY"),
     work = CommuteLocation("Work", "456 Office Plaza, Manhattan NY"),
+    preferences = ProfilePreferences(
+        pushNotificationsEnabled = true,
+        appearanceMode = AppearanceMode.SYSTEM,
+        defaultTransportLabel = "Public Transit",
+        unitsLabel = "Metric",
+    ),
 )

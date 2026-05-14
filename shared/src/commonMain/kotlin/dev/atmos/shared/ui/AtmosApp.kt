@@ -29,6 +29,7 @@ fun AtmosApp() {
             Screen.Profile -> ProfileScreen(
                 state = previewProfileUiState,
                 onBack = { screen = Screen.Home },
+                onNavigateToHome = { screen = Screen.Home },
             )
         }
     }
