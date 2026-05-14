@@ -22,11 +22,9 @@ import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.common.CircularProgressRing
 import dev.atmos.shared.ui.home.TodayImpact
-import dev.atmos.shared.ui.theme.BadgeBg
 import dev.atmos.shared.ui.theme.ChipShape
+import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Sage
-import dev.atmos.shared.ui.theme.TextPrimary
-import dev.atmos.shared.ui.theme.TextSecondary
 import kotlin.math.abs
 
 @Composable
@@ -36,9 +34,9 @@ fun TodayImpactCard(
 ) {
     val progress = (impact.kgCO2 / impact.dailyGoalKgCO2).coerceIn(0f, 1f)
     val isBelow  = impact.percentVsWeeklyAvg < 0
+    val colors   = LocalAtmosColors.current
 
     AtmosCard(modifier = modifier.fillMaxWidth()) {
-        // Row: title + badge
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -48,9 +46,8 @@ fun TodayImpactCard(
                 text = "Today's Impact",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
-                color = TextSecondary,
+                color = colors.textSecondary,
             )
-
             PercentageBadge(
                 percent = abs(impact.percentVsWeeklyAvg),
                 isBelow = isBelow,
@@ -59,7 +56,6 @@ fun TodayImpactCard(
 
         Spacer(Modifier.height(24.dp))
 
-        // Circular progress ring
         CircularProgressRing(
             progress = progress,
             size = 176.dp,
@@ -71,15 +67,11 @@ fun TodayImpactCard(
 
         Spacer(Modifier.height(20.dp))
 
-        // Subtitle
         Text(
-            text = buildComparisonText(
-                percent = abs(impact.percentVsWeeklyAvg),
-                isBelow = isBelow,
-            ),
+            text = buildComparisonText(abs(impact.percentVsWeeklyAvg), isBelow),
             fontSize = 13.sp,
             fontWeight = FontWeight.Normal,
-            color = TextSecondary,
+            color = colors.textSecondary,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
     }
@@ -87,6 +79,7 @@ fun TodayImpactCard(
 
 @Composable
 private fun ImpactNumber(kgCO2: Float) {
+    val colors = LocalAtmosColors.current
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -98,7 +91,7 @@ private fun ImpactNumber(kgCO2: Float) {
                     SpanStyle(
                         fontSize = 52.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
+                        color = colors.textPrimary,
                     )
                 ) { append(kgCO2.toDisplayString()) }
             },
@@ -111,18 +104,19 @@ private fun ImpactNumber(kgCO2: Float) {
             },
             fontSize = 13.sp,
             fontWeight = FontWeight.Normal,
-            color = TextSecondary,
+            color = colors.textSecondary,
         )
     }
 }
 
 @Composable
 private fun PercentageBadge(percent: Int, isBelow: Boolean) {
+    val colors = LocalAtmosColors.current
     val arrow = if (isBelow) "↓" else "↑"
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .background(color = BadgeBg, shape = ChipShape)
+            .background(color = colors.badgeBg, shape = ChipShape)
             .padding(horizontal = 10.dp, vertical = 5.dp),
     ) {
         Text(

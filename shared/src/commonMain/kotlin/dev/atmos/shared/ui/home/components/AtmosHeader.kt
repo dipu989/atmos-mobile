@@ -14,14 +14,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.home.UserProfile
 import dev.atmos.shared.ui.theme.AvatarBg
-import dev.atmos.shared.ui.theme.CardSurface
-import dev.atmos.shared.ui.theme.TextPrimary
-import dev.atmos.shared.ui.theme.TextSecondary
+import dev.atmos.shared.ui.theme.LocalAtmosColors
 
 @Composable
 fun AtmosHeader(
@@ -31,6 +30,8 @@ fun AtmosHeader(
     modifier: Modifier = Modifier,
     onAvatarClick: () -> Unit = {},
 ) {
+    val colors = LocalAtmosColors.current
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -43,13 +44,13 @@ fun AtmosHeader(
                 text = "$greeting, ${user.displayName.split(" ").first()}",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Normal,
-                color = TextSecondary,
+                color = colors.textSecondary,
             )
             Text(
                 text = dateLabel,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary,
+                color = colors.textPrimary,
             )
         }
 
@@ -74,7 +75,7 @@ private fun UserAvatar(
             text = initials,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
-            color = CardSurface,
+            color = Color.White,
         )
     }
 }

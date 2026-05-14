@@ -18,13 +18,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Sage
-import dev.atmos.shared.ui.theme.TextPrimary
-import dev.atmos.shared.ui.theme.TextSecondary
 
 @Composable
 fun MyImpactCard(
@@ -32,14 +30,15 @@ fun MyImpactCard(
     daysTracked: Int,
     modifier: Modifier = Modifier,
 ) {
+    val colors = LocalAtmosColors.current
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF4FBF7)),
+        colors = CardDefaults.cardColors(containerColor = colors.subtleGreenBg),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-            // Header
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Outlined.Eco,
@@ -58,17 +57,12 @@ fun MyImpactCard(
 
             Spacer(Modifier.height(16.dp))
 
-            // Stats row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column {
-                    Text(
-                        text = "Total CO₂ Saved",
-                        fontSize = 12.sp,
-                        color = TextSecondary,
-                    )
+                    Text(text = "Total CO₂ Saved", fontSize = 12.sp, color = colors.textSecondary)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "${totalCO2SavedKg.toStatString()} kg",
@@ -78,17 +72,13 @@ fun MyImpactCard(
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Days Tracked",
-                        fontSize = 12.sp,
-                        color = TextSecondary,
-                    )
+                    Text(text = "Days Tracked", fontSize = 12.sp, color = colors.textSecondary)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "$daysTracked days",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
+                        color = colors.textPrimary,
                     )
                 }
             }
@@ -99,6 +89,5 @@ fun MyImpactCard(
 private fun Float.toStatString(): String {
     if (this % 1f == 0f) return toInt().toString()
     val intPart = toInt()
-    val decPart = ((this - intPart) * 10).toInt()
-    return "$intPart.$decPart"
+    return "$intPart.${((this - intPart) * 10).toInt()}"
 }

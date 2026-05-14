@@ -32,11 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.theme.AlertRed
-import dev.atmos.shared.ui.theme.CardSurface
 import dev.atmos.shared.ui.theme.HorizonBlue
+import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.NavActive
 import dev.atmos.shared.ui.theme.NavInactive
-import dev.atmos.shared.ui.theme.NavSurface
 
 enum class AtmosTab { HOME, INSIGHTS }
 
@@ -48,18 +47,18 @@ fun AtmosBottomBar(
     onFabClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = LocalAtmosColors.current
+
     Box(modifier = modifier.fillMaxWidth()) {
-        // Nav surface
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(elevation = 8.dp, spotColor = Color(0x1A000000))
-                .background(NavSurface)
+                .background(colors.navSurface)
                 .padding(top = 8.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Home tab (left half)
             NavTab(
                 icon = Icons.Outlined.Home,
                 label = "Home",
@@ -68,10 +67,8 @@ fun AtmosBottomBar(
                 modifier = Modifier.weight(1f),
             )
 
-            // Center spacer for FAB
             Spacer(Modifier.weight(1f))
 
-            // Insights tab (right half)
             NavTabWithBadge(
                 icon = Icons.Outlined.Lightbulb,
                 label = "Insights",
@@ -82,7 +79,6 @@ fun AtmosBottomBar(
             )
         }
 
-        // FAB — floats centered above nav bar
         FloatingActionButton(
             onClick = onFabClick,
             modifier = Modifier
@@ -100,7 +96,7 @@ fun AtmosBottomBar(
                 text = "+",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Light,
-                color = CardSurface,
+                color = colors.surface,
             )
         }
     }
@@ -117,12 +113,11 @@ private fun NavTab(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = modifier
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
+        modifier = modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = onClick,
+        ),
     ) {
         Icon(
             imageVector = icon,
@@ -149,15 +144,16 @@ private fun NavTabWithBadge(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = LocalAtmosColors.current
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = modifier
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
+        modifier = modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = onClick,
+        ),
     ) {
         Box {
             Icon(
@@ -179,7 +175,7 @@ private fun NavTabWithBadge(
                         text = badgeCount.coerceAtMost(99).toString(),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        color = CardSurface,
+                        color = colors.surface,
                     )
                 }
             }

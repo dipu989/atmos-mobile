@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.atmos.shared.ui.theme.CardShape
-import dev.atmos.shared.ui.theme.CardSurface
+import dev.atmos.shared.ui.theme.LocalAtmosColors
 
 @Composable
 fun AtmosCard(
@@ -20,12 +20,8 @@ fun AtmosCard(
     Card(
         modifier = modifier,
         shape = CardShape,
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 0.dp,
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = CardSurface,
-        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = LocalAtmosColors.current.surface),
     ) {
         androidx.compose.foundation.layout.Column(
             modifier = Modifier.padding(contentPadding),
