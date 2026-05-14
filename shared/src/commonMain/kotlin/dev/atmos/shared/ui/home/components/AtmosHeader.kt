@@ -1,6 +1,7 @@
 package dev.atmos.shared.ui.home.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ fun AtmosHeader(
     dateLabel: String,
     user: UserProfile,
     modifier: Modifier = Modifier,
+    onAvatarClick: () -> Unit = {},
 ) {
     Row(
         modifier = modifier
@@ -51,20 +53,22 @@ fun AtmosHeader(
             )
         }
 
-        UserAvatar(initials = user.initials)
+        UserAvatar(initials = user.initials, onClick = onAvatarClick)
     }
 }
 
 @Composable
 private fun UserAvatar(
     initials: String,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(44.dp)
-            .background(color = AvatarBg, shape = CircleShape),
+            .background(color = AvatarBg, shape = CircleShape)
+            .clickable(onClick = onClick),
     ) {
         Text(
             text = initials,

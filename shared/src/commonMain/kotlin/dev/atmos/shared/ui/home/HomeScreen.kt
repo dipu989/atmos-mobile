@@ -29,6 +29,7 @@ import dev.atmos.shared.ui.theme.SkyWhite
 @Composable
 fun HomeScreen(
     state: HomeUiState = previewHomeUiState,
+    onNavigateToProfile: () -> Unit = {},
 ) {
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
 
@@ -61,6 +62,7 @@ fun HomeScreen(
                     dateLabel = state.dateLabel,
                     user = state.user,
                     modifier = Modifier.padding(horizontal = 4.dp),
+                    onAvatarClick = onNavigateToProfile,
                 )
             }
 
