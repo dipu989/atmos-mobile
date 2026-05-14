@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import dev.atmos.shared.ui.home.components.AtmosBottomBar
 import dev.atmos.shared.ui.home.components.AtmosHeader
 import dev.atmos.shared.ui.home.components.AtmosTab
+import dev.atmos.shared.ui.home.components.RecentActivityCard
 import dev.atmos.shared.ui.home.components.TodayImpactCard
 import dev.atmos.shared.ui.home.components.TransportBreakdownCard
 import dev.atmos.shared.ui.home.components.WeeklyTrendCard
@@ -74,7 +75,10 @@ fun HomeScreen(
                 TransportBreakdownCard(entries = state.transportBreakdown)
             }
 
-            // Recent Activity and Insights cards added in subsequent screens
+            item {
+                RecentActivityCard(entries = state.recentActivity)
+            }
+
             item { Spacer(Modifier.height(8.dp)) }
         }
     }
