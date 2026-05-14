@@ -48,15 +48,12 @@ fun AtmosBottomBar(
     onFabClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(elevation = 8.dp, spotColor = Color(0x1A000000)),
-    ) {
+    Box(modifier = modifier.fillMaxWidth()) {
         // Nav surface
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .shadow(elevation = 8.dp, spotColor = Color(0x1A000000))
                 .background(NavSurface)
                 .padding(top = 8.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
                 .height(56.dp),
