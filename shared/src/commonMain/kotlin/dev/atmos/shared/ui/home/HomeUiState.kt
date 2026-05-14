@@ -38,6 +38,16 @@ data class TransportModeEntry(
     val percentage: Int,           // share of today's total emissions
 )
 
+enum class InsightType {
+    STREAK, MILESTONE, TIP, COMPARISON, ANOMALY
+}
+
+data class InsightEntry(
+    val type: InsightType,
+    val title: String,
+    val body: String,
+)
+
 data class RecentActivityEntry(
     val mode: TransportModeType,
     val origin: String,
@@ -55,6 +65,7 @@ data class HomeUiState(
     val weeklyTrend: List<WeeklyDataPoint>,
     val transportBreakdown: List<TransportModeEntry>,
     val recentActivity: List<RecentActivityEntry>,
+    val insights: List<InsightEntry>,
     val unreadInsightsCount: Int,
 )
 
@@ -132,6 +143,23 @@ val previewHomeUiState = HomeUiState(
             timeLabel = "2:15 PM",
             durationMin = 15,
             kgCO2 = 0.5f,
+        ),
+    ),
+    insights = listOf(
+        InsightEntry(
+            type = InsightType.STREAK,
+            title = "3-Day Streak",
+            body = "You've logged your environmental impact for 3 days in a row.",
+        ),
+        InsightEntry(
+            type = InsightType.TIP,
+            title = "Optimize Morning Commute",
+            body = "Taking public transit could reduce your morning emissions by 68%.",
+        ),
+        InsightEntry(
+            type = InsightType.MILESTONE,
+            title = "Monthly Goal: 82% Complete",
+            body = "You're on track to meet your monthly emissions target.",
         ),
     ),
     unreadInsightsCount = 3,

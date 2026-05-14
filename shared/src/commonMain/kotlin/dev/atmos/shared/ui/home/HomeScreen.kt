@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import dev.atmos.shared.ui.home.components.AtmosBottomBar
 import dev.atmos.shared.ui.home.components.AtmosHeader
 import dev.atmos.shared.ui.home.components.AtmosTab
+import dev.atmos.shared.ui.home.components.InsightsSection
 import dev.atmos.shared.ui.home.components.RecentActivityCard
 import dev.atmos.shared.ui.home.components.TodayImpactCard
 import dev.atmos.shared.ui.home.components.TransportBreakdownCard
@@ -77,6 +78,13 @@ fun HomeScreen(
 
             item {
                 RecentActivityCard(entries = state.recentActivity)
+            }
+
+            item {
+                InsightsSection(
+                    entries = state.insights,
+                    unreadCount = state.unreadInsightsCount,
+                )
             }
 
             item { Spacer(Modifier.height(8.dp)) }
