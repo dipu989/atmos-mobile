@@ -38,6 +38,15 @@ data class TransportModeEntry(
     val percentage: Int,           // share of today's total emissions
 )
 
+data class RecentActivityEntry(
+    val mode: TransportModeType,
+    val origin: String,
+    val destination: String,
+    val timeLabel: String,
+    val durationMin: Int,
+    val kgCO2: Float,
+)
+
 data class HomeUiState(
     val greeting: String,
     val dateLabel: String,
@@ -45,6 +54,7 @@ data class HomeUiState(
     val todayImpact: TodayImpact,
     val weeklyTrend: List<WeeklyDataPoint>,
     val transportBreakdown: List<TransportModeEntry>,
+    val recentActivity: List<RecentActivityEntry>,
     val unreadInsightsCount: Int,
 )
 
@@ -96,6 +106,32 @@ val previewHomeUiState = HomeUiState(
             distanceKm = 1.8f,
             kgCO2 = 0f,
             percentage = 6,
+        ),
+    ),
+    recentActivity = listOf(
+        RecentActivityEntry(
+            mode = TransportModeType.DRIVING,
+            origin = "Home",
+            destination = "Office",
+            timeLabel = "8:45 AM",
+            durationMin = 22,
+            kgCO2 = 1.8f,
+        ),
+        RecentActivityEntry(
+            mode = TransportModeType.WALKING,
+            origin = "Office",
+            destination = "Café",
+            timeLabel = "12:30 PM",
+            durationMin = 8,
+            kgCO2 = 0f,
+        ),
+        RecentActivityEntry(
+            mode = TransportModeType.BUS,
+            origin = "Café",
+            destination = "Downtown",
+            timeLabel = "2:15 PM",
+            durationMin = 15,
+            kgCO2 = 0.5f,
         ),
     ),
     unreadInsightsCount = 3,
