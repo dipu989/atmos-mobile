@@ -157,12 +157,27 @@ private fun ActivityRow(
         Spacer(Modifier.width(14.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "${entry.origin} → ${entry.destination}",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.textPrimary,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${entry.origin} → ${entry.destination}",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.textPrimary,
+                    modifier = Modifier.weight(1f),
+                )
+                if (!entry.isAutoDetected) {
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "Manual",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.textSecondary,
+                        modifier = Modifier
+                            .background(colors.chipBg, androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                            .padding(horizontal = 5.dp, vertical = 2.dp),
+                    )
+                }
+            }
             Spacer(Modifier.height(4.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,

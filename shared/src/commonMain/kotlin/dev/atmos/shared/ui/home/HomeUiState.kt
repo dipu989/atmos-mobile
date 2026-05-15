@@ -35,7 +35,7 @@ data class TransportModeEntry(
     val displayName: String,
     val distanceKm: Float,
     val kgCO2: Float,
-    val percentage: Int,           // share of today's total emissions
+    val percentage: Int,
 )
 
 enum class InsightType {
@@ -55,6 +55,18 @@ data class RecentActivityEntry(
     val timeLabel: String,
     val durationMin: Int,
     val kgCO2: Float,
+    val isAutoDetected: Boolean = true,   // false = manually logged
+)
+
+// ── Pending trip (auto-detected, awaiting user confirmation) ──────────────────
+
+data class PendingTripEntry(
+    val mode: TransportModeType,
+    val origin: String,
+    val destination: String,
+    val distanceKm: Float,
+    val durationMin: Int,
+    val estimatedKgCO2: Float,
 )
 
 data class HomeUiState(
@@ -67,17 +79,18 @@ data class HomeUiState(
     val recentActivity: List<RecentActivityEntry>,
     val insights: List<InsightEntry>,
     val unreadInsightsCount: Int,
+    val pendingTrip: PendingTripEntry? = null,
 )
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
 val previewHomeUiState = HomeUiState(
-    greeting = "Good morning",
+    greeting  = "Good morning",
     dateLabel = "Sunday, May 10",
-    user = UserProfile(displayName = "John Doe", initials = "JD"),
+    user      = UserProfile(displayName = "Shantnu Kumar", initials = "SK"),
     todayImpact = TodayImpact(
-        kgCO2 = 3.4f,
-        dailyGoalKgCO2 = 5.0f,
+        kgCO2            = 3.4f,
+        dailyGoalKgCO2   = 5.0f,
         percentVsWeeklyAvg = -12,
     ),
     weeklyTrend = listOf(
@@ -90,77 +103,55 @@ val previewHomeUiState = HomeUiState(
         WeeklyDataPoint("Sun", 3.4f, isToday = true),
     ),
     transportBreakdown = listOf(
-        TransportModeEntry(
-            mode = TransportModeType.DRIVING,
-            displayName = "Driving",
-            distanceKm = 12.3f,
-            kgCO2 = 2.8f,
-            percentage = 65,
-        ),
-        TransportModeEntry(
-            mode = TransportModeType.PUBLIC_TRANSIT,
-            displayName = "Public Transit",
-            distanceKm = 8.5f,
-            kgCO2 = 0.9f,
-            percentage = 21,
-        ),
-        TransportModeEntry(
-            mode = TransportModeType.CYCLING,
-            displayName = "Cycling",
-            distanceKm = 3.2f,
-            kgCO2 = 0f,
-            percentage = 8,
-        ),
-        TransportModeEntry(
-            mode = TransportModeType.WALKING,
-            displayName = "Walking",
-            distanceKm = 1.8f,
-            kgCO2 = 0f,
-            percentage = 6,
-        ),
+        TransportModeEntry(TransportModeType.DRIVING,        "Driving",        12.3f, 2.8f, 65),
+        TransportModeEntry(TransportModeType.PUBLIC_TRANSIT, "Public Transit",  8.5f, 0.9f, 21),
+        TransportModeEntry(TransportModeType.CYCLING,        "Cycling",         3.2f, 0.0f,  8),
+        TransportModeEntry(TransportModeType.WALKING,        "Walking",         1.8f, 0.0f,  6),
     ),
     recentActivity = listOf(
         RecentActivityEntry(
             mode = TransportModeType.DRIVING,
-            origin = "Home",
-            destination = "Office",
-            timeLabel = "8:45 AM",
-            durationMin = 22,
-            kgCO2 = 1.8f,
+            origin = "Home", destination = "Office",
+            timeLabel = "8:45 AM", durationMin = 22, kgCO2 = 1.8f,
+            isAutoDetected = true,
         ),
         RecentActivityEntry(
             mode = TransportModeType.WALKING,
-            origin = "Office",
-            destination = "Café",
-            timeLabel = "12:30 PM",
-            durationMin = 8,
-            kgCO2 = 0f,
+            origin = "Office", destination = "Café",
+            timeLabel = "12:30 PM", durationMin = 8, kgCO2 = 0f,
+            isAutoDetected = true,
         ),
         RecentActivityEntry(
             mode = TransportModeType.BUS,
-            origin = "Café",
-            destination = "Downtown",
-            timeLabel = "2:15 PM",
-            durationMin = 15,
-            kgCO2 = 0.5f,
+            origin = "Café", destination = "Downtown",
+            timeLabel = "2:15 PM", durationMin = 15, kgCO2 = 0.5f,
+            isAutoDetected = false,   // manually logged
         ),
     ),
     insights = listOf(
         InsightEntry(
-            type = InsightType.STREAK,
+            type  = InsightType.STREAK,
             title = "3-Day Streak",
-            body = "You've logged your environmental impact for 3 days in a row.",
+            body  = "You've logged your environmental impact for 3 days in a row.",
         ),
         InsightEntry(
-            type = InsightType.TIP,
+            type  = InsightType.TIP,
             title = "Optimize Morning Commute",
-            body = "Taking public transit could reduce your morning emissions by 68%.",
+            body  = "Taking public transit could reduce your morning emissions by 68%.",
         ),
         InsightEntry(
-            type = InsightType.MILESTONE,
+            type  = InsightType.MILESTONE,
             title = "Monthly Goal: 82% Complete",
-            body = "You're on track to meet your monthly emissions target.",
+            body  = "You're on track to meet your monthly emissions target.",
         ),
     ),
     unreadInsightsCount = 3,
+    pendingTrip = PendingTripEntry(
+        mode             = TransportModeType.DRIVING,
+        origin           = "Office",
+        destination      = "Home",
+        distanceKm       = 11.8f,
+        durationMin      = 24,
+        estimatedKgCO2   = 1.7f,
+    ),
 )

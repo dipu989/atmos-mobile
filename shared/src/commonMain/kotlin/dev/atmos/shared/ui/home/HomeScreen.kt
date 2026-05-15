@@ -9,10 +9,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -20,11 +24,14 @@ import dev.atmos.shared.ui.home.components.AtmosBottomBar
 import dev.atmos.shared.ui.home.components.AtmosHeader
 import dev.atmos.shared.ui.home.components.AtmosTab
 import dev.atmos.shared.ui.home.components.InsightsSection
+import dev.atmos.shared.ui.home.components.PendingTripCard
 import dev.atmos.shared.ui.home.components.RecentActivityCard
 import dev.atmos.shared.ui.home.components.TodayImpactCard
 import dev.atmos.shared.ui.home.components.TransportBreakdownCard
 import dev.atmos.shared.ui.home.components.WeeklyTrendCard
+import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -35,9 +42,22 @@ fun HomeScreen(
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
+    var pendingTrip by remember { mutableStateOf(state.pendingTrip) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         containerColor = colors.background,
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = colors.surface,
+                    contentColor = colors.textPrimary,
+                    actionColor = HorizonBlue,
+                )
+            }
+        },
         bottomBar = {
             AtmosBottomBar(
                 selectedTab = selectedTab,
@@ -70,6 +90,24 @@ fun HomeScreen(
                     modifier = Modifier.padding(horizontal = 4.dp),
                     onAvatarClick = onNavigateToProfile,
                 )
+            }
+
+            // Pending trip confirmation — shown at the top when auto-detection fires
+            pendingTrip?.let { trip ->
+                item {
+                    PendingTripCard(
+                        trip = trip,
+                        onConfirm = {
+                            pendingTrip = null
+                            scope.launch { snackbarHostState.showSnackbar("Trip confirmed — nice work!") }
+                        },
+                        onEdit = {
+                            // Will open log activity sheet pre-filled with detected data
+                            scope.launch { snackbarHostState.showSnackbar("Edit trip — coming soon") }
+                        },
+                        onDismiss = { pendingTrip = null },
+                    )
+                }
             }
 
             item { TodayImpactCard(impact = state.todayImpact) }

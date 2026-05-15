@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import dev.atmos.shared.ui.home.HomeScreen
 import dev.atmos.shared.ui.home.previewHomeUiState
 import dev.atmos.shared.ui.insights.InsightsScreen
+import dev.atmos.shared.ui.onboarding.OnboardingScreen
 import dev.atmos.shared.ui.profile.AppearanceMode
 import dev.atmos.shared.ui.profile.ProfileScreen
 import dev.atmos.shared.ui.profile.previewProfileUiState
@@ -16,19 +17,25 @@ import dev.atmos.shared.util.currentDateLabel
 import dev.atmos.shared.util.currentGreeting
 
 private sealed class Screen {
-    data object Home     : Screen()
-    data object Profile  : Screen()
-    data object Insights : Screen()
+    data object Onboarding : Screen()
+    data object Home       : Screen()
+    data object Profile    : Screen()
+    data object Insights   : Screen()
 }
 
 @Composable
 fun AtmosApp() {
-    var screen by remember { mutableStateOf<Screen>(Screen.Home) }
+    var screen by remember { mutableStateOf<Screen>(Screen.Onboarding) }
     var appearanceMode by remember { mutableStateOf(AppearanceMode.SYSTEM) }
     var notificationsEnabled by remember { mutableStateOf(true) }
 
     AtmosTheme(appearanceMode = appearanceMode) {
         when (screen) {
+            Screen.Onboarding -> OnboardingScreen(
+                onGetStarted = { screen = Screen.Home },
+                onAlreadyHaveAccount = { screen = Screen.Home },
+            )
+
             Screen.Home -> HomeScreen(
                 state = previewHomeUiState.copy(
                     greeting = currentGreeting(),
