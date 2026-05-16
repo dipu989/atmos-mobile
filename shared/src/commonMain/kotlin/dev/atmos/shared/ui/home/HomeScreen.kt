@@ -40,6 +40,7 @@ fun HomeScreen(
     onNavigateToInsights: () -> Unit = {},
     onFabClick: () -> Unit = {},
     onEditPendingTrip: (PendingTripEntry) -> Unit = {},
+    onTripClick: (RecentActivityEntry) -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
@@ -111,7 +112,7 @@ fun HomeScreen(
             item { TodayImpactCard(impact = state.todayImpact) }
             item { WeeklyTrendCard(data = state.weeklyTrend) }
             item { TransportBreakdownCard(entries = state.transportBreakdown) }
-            item { RecentActivityCard(entries = state.recentActivity) }
+            item { RecentActivityCard(entries = state.recentActivity, onTripClick = onTripClick) }
 
             item {
                 InsightsSection(
