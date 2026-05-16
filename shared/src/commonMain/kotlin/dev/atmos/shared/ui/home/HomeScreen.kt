@@ -62,6 +62,7 @@ fun HomeScreen(
     state: HomeUiState = previewHomeUiState,
     onNavigateToProfile: () -> Unit = {},
     onNavigateToActivities: () -> Unit = {},
+    onNavigateToInsights: () -> Unit = {},
     onFabClick: () -> Unit = {},
     onEditPendingTrip: (PendingTripEntry) -> Unit = {},
     onTripClick: (RecentActivityEntry) -> Unit = {},
@@ -157,9 +158,10 @@ fun HomeScreen(
                 }
                 item {
                     InsightsSection(
-                        entries = state.insights,
-                        unreadCount = state.unreadInsightsCount,
+                        entries        = state.insights,
+                        unreadCount    = state.unreadInsightsCount,
                         onInsightClick = onInsightClick,
+                        onViewAll      = onNavigateToInsights,
                     )
                 }
             }
