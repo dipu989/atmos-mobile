@@ -5,11 +5,13 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import dev.atmos.shared.ui.activities.ActivitiesScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
 import dev.atmos.shared.ui.home.InsightEntry
@@ -59,6 +61,14 @@ fun AtmosApp() {
     var tripToEdit       by remember { mutableStateOf<PendingTripEntry?>(null) }
     var selectedTrip     by remember { mutableStateOf<RecentActivityEntry?>(null) }
     var selectedInsight  by remember { mutableStateOf<InsightEntry?>(null) }
+    var homeIsLoading    by remember { mutableStateOf(true) }
+
+    // Simulate a 2-second data load each time Home is first composed.
+    // Replace with real ViewModel state when backend is wired up.
+    LaunchedEffect(Unit) {
+        delay(2_000)
+        homeIsLoading = false
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -103,13 +113,9 @@ fun AtmosApp() {
 
                 Screen.Home -> HomeScreen(
                     state = previewHomeUiState.copy(
-                        greeting       = currentGreeting(),
-                        dateLabel      = currentDateLabel(),
-                        // ── EMPTY STATE SIMULATION ──────────────────────────────
-                        // Uncomment the two lines below to simulate empty state
-//                        recentActivity = emptyList(),
-//                        pendingTrip    = null,
-                        // ────────────────────────────────────────────────────────
+                        greeting  = currentGreeting(),
+                        dateLabel = currentDateLabel(),
+                        isLoading = homeIsLoading,
                     ),
                     onNavigateToProfile    = { screen = Screen.Profile },
                     onNavigateToActivities = { screen = Screen.Activities },
