@@ -119,10 +119,11 @@ fun AtmosApp() {
                     ),
                     onNavigateToProfile    = { screen = Screen.Profile },
                     onNavigateToActivities = { screen = Screen.Activities },
-                    onFabClick           = { tripToEdit = null; showLogActivity = true },
-                    onEditPendingTrip    = { trip -> tripToEdit = trip; showLogActivity = true },
-                    onTripClick          = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
-                    onInsightClick       = { entry -> selectedInsight = entry; screen = Screen.InsightDetail },
+                    onNavigateToInsights   = { screen = Screen.Insights },
+                    onFabClick             = { tripToEdit = null; showLogActivity = true },
+                    onEditPendingTrip      = { trip -> tripToEdit = trip; showLogActivity = true },
+                    onTripClick            = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
+                    onInsightClick         = { entry -> selectedInsight = entry; screen = Screen.InsightDetail },
                 )
 
                 Screen.Profile -> ProfileScreen(
@@ -162,13 +163,10 @@ fun AtmosApp() {
                 }
 
                 Screen.Activities -> ActivitiesScreen(
-                    // ── EMPTY STATE SIMULATION ──────────────────────────────────
-                    // Swap emptyList() for previewAllActivities to restore normal data.
-                    groupedEntries = emptyList(),
-                    // ────────────────────────────────────────────────────────────
+                    groupedEntries   = previewAllActivities,
                     onNavigateToHome = { screen = Screen.Home },
-                    onTripClick = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
-                    onFabClick = { showLogActivity = true },
+                    onTripClick      = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
+                    onFabClick       = { showLogActivity = true },
                 )
 
                 Screen.InsightDetail -> selectedInsight?.let { entry ->

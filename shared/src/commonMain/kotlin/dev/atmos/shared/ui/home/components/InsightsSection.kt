@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +62,7 @@ fun InsightsSection(
     unreadCount: Int,
     modifier: Modifier = Modifier,
     onInsightClick: (InsightEntry) -> Unit = {},
+    onViewAll: () -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
 
@@ -85,6 +87,28 @@ fun InsightsSection(
                     fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = HorizonBlue,
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            TextButton(
+                onClick      = onViewAll,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    horizontal = 4.dp,
+                    vertical   = 0.dp,
+                ),
+            ) {
+                Text(
+                    text       = "See all",
+                    fontSize   = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color      = HorizonBlue,
+                )
+                Spacer(Modifier.width(2.dp))
+                Icon(
+                    imageVector        = Icons.Outlined.ChevronRight,
+                    contentDescription = null,
+                    tint               = HorizonBlue,
+                    modifier           = Modifier.size(15.dp),
                 )
             }
         }
