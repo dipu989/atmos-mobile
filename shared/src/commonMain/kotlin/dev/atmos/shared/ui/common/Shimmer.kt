@@ -228,3 +228,4 @@ fun InsightsSkeleton(modifier: Modifier = Modifier) {
         }
     }
 }
+

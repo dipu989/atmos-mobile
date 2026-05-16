@@ -209,55 +209,55 @@ fun ProfileScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                ProfileHeaderCard(
-                    displayName = localDisplayName,
-                    initials    = localInitials,
-                    email       = state.email,
-                    onBack      = onBack,
-                    onEdit      = { showEditProfile = true },
-                )
-            }
+                    ProfileHeaderCard(
+                        displayName = localDisplayName,
+                        initials    = localInitials,
+                        email       = state.email,
+                        onBack      = onBack,
+                        onEdit      = { showEditProfile = true },
+                    )
+                }
 
-            item {
-                MyImpactCard(
-                    totalCO2SavedKg = state.totalCO2SavedKg,
-                    daysTracked     = state.daysTracked,
-                )
-            }
+                item {
+                    MyImpactCard(
+                        totalCO2SavedKg = state.totalCO2SavedKg,
+                        daysTracked     = state.daysTracked,
+                    )
+                }
 
-            item {
-                DailyGoalCard(
-                    todayKgCO2     = state.todayKgCO2,
-                    dailyGoalKgCO2 = state.dailyGoalKgCO2,
-                )
-            }
+                item {
+                    DailyGoalCard(
+                        todayKgCO2     = state.todayKgCO2,
+                        dailyGoalKgCO2 = state.dailyGoalKgCO2,
+                    )
+                }
 
-            item {
-                CommuteCard(
-                    home       = state.home.copy(address = homeAddress.takeIf { it.isNotBlank() }),
-                    work       = state.work.copy(address = workAddress.takeIf { it.isNotBlank() }),
-                    onEditHome = { editingCommute = "home" },
-                    onEditWork = { editingCommute = "work" },
-                )
-            }
+                item {
+                    CommuteCard(
+                        home       = state.home.copy(address = homeAddress.takeIf { it.isNotBlank() }),
+                        work       = state.work.copy(address = workAddress.takeIf { it.isNotBlank() }),
+                        onEditHome = { editingCommute = "home" },
+                        onEditWork = { editingCommute = "work" },
+                    )
+                }
 
-            item {
-                PreferencesCard(
-                    preferences           = effectivePreferences,
-                    onNotificationsToggle = onNotificationsToggle,
-                    onAppearanceChange    = onAppearanceChange,
-                    onTransportClick      = { showTransportSheet = true },
-                    onUnitsClick          = { showUnitsDialog = true },
-                )
-            }
+                item {
+                    PreferencesCard(
+                        preferences           = effectivePreferences,
+                        onNotificationsToggle = onNotificationsToggle,
+                        onAppearanceChange    = onAppearanceChange,
+                        onTransportClick      = { showTransportSheet = true },
+                        onUnitsClick          = { showUnitsDialog = true },
+                    )
+                }
 
-            item {
-                AccountCard(
-                    onExportData    = { showComingSoon() },
-                    onSignOut       = onSignOut,
-                    onDeleteAccount = onDeleteAccount,
-                )
-            }
+                item {
+                    AccountCard(
+                        onExportData    = { showComingSoon() },
+                        onSignOut       = onSignOut,
+                        onDeleteAccount = onDeleteAccount,
+                    )
+                }
         }
     }
 
@@ -296,15 +296,16 @@ fun ProfileScreen(
     // ── Edit profile sheet ────────────────────────────────────────────────────
     if (showEditProfile) {
         EditProfileSheet(
-            displayName = localDisplayName,
-            initials    = localInitials,
-            email       = state.email,
-            onSave      = { name ->
+            displayName   = localDisplayName,
+            initials      = localInitials,
+            email         = state.email,
+            onSave        = { name ->
                 localDisplayName = name
                 showEditProfile  = false
                 scope.launch { snackbarHostState.showSnackbar("Profile updated") }
             },
-            onDismiss   = { showEditProfile = false },
+            onDismiss     = { showEditProfile = false },
+            onChangePhoto = { scope.launch { snackbarHostState.showSnackbar("Photo upload coming soon") } },
         )
     }
 }
@@ -495,6 +496,7 @@ private fun EditProfileSheet(
     email: String,
     onSave: (String) -> Unit,
     onDismiss: () -> Unit,
+    onChangePhoto: () -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     var name      by remember { mutableStateOf(displayName) }
@@ -541,7 +543,7 @@ private fun EditProfileSheet(
             Spacer(Modifier.height(24.dp))
 
             // ── Avatar with camera badge ──────────────────────────────────────
-            Box(modifier = Modifier.padding(4.dp)) {
+            Box(modifier = Modifier.clickable(onClick = onChangePhoto).padding(4.dp)) {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier         = Modifier
@@ -577,6 +579,7 @@ private fun EditProfileSheet(
                 fontSize   = 12.sp,
                 color      = HorizonBlue,
                 fontWeight = FontWeight.Medium,
+                modifier   = Modifier.clickable(onClick = onChangePhoto),
             )
 
             Spacer(Modifier.height(24.dp))
