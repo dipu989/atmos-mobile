@@ -99,8 +99,13 @@ fun AtmosApp() {
 
                 Screen.Home -> HomeScreen(
                     state = previewHomeUiState.copy(
-                        greeting  = currentGreeting(),
-                        dateLabel = currentDateLabel(),
+                        greeting       = currentGreeting(),
+                        dateLabel      = currentDateLabel(),
+                        // ── EMPTY STATE SIMULATION ──────────────────────────────
+                        // Uncomment the two lines below to simulate empty state
+//                        recentActivity = emptyList(),
+//                        pendingTrip    = null,
+                        // ────────────────────────────────────────────────────────
                     ),
                     onNavigateToProfile    = { screen = Screen.Profile },
                     onNavigateToActivities = { screen = Screen.Activities },
@@ -146,7 +151,10 @@ fun AtmosApp() {
                 }
 
                 Screen.Activities -> ActivitiesScreen(
-                    groupedEntries = previewAllActivities,
+                    // ── EMPTY STATE SIMULATION ──────────────────────────────────
+                    // Swap emptyList() for previewAllActivities to restore normal data.
+                    groupedEntries = emptyList(),
+                    // ────────────────────────────────────────────────────────────
                     onNavigateToHome = { screen = Screen.Home },
                     onTripClick = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
                     onFabClick = { showLogActivity = true },

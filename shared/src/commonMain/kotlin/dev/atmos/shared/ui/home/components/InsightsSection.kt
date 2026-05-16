@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -86,7 +87,47 @@ fun InsightsSection(
             }
         }
 
-        entries.forEach { entry -> InsightCard(entry = entry) }
+        if (entries.isEmpty()) {
+            // ── Inline empty state ────────────────────────────────────────────
+            AtmosCard(modifier = Modifier.fillMaxWidth(), contentPadding = 16.dp) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(color = colors.insightBlueBg, shape = CircleShape),
+                    ) {
+                        Icon(
+                            imageVector        = Icons.Outlined.Lightbulb,
+                            contentDescription = null,
+                            tint               = HorizonBlue,
+                            modifier           = Modifier.size(22.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            text       = "Insights on the way",
+                            fontSize   = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = colors.textPrimary,
+                        )
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            text       = "Log a few trips and we'll surface personalised tips, streaks, and milestones",
+                            fontSize   = 13.sp,
+                            color      = colors.textSecondary,
+                            lineHeight = 18.sp,
+                        )
+                    }
+                }
+            }
+        } else {
+            entries.forEach { entry -> InsightCard(entry = entry) }
+        }
     }
 }
 
