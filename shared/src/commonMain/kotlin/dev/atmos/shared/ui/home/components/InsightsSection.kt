@@ -1,6 +1,7 @@
 package dev.atmos.shared.ui.home.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +60,7 @@ fun InsightsSection(
     entries: List<InsightEntry>,
     unreadCount: Int,
     modifier: Modifier = Modifier,
+    onInsightClick: (InsightEntry) -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
 
@@ -126,7 +128,9 @@ fun InsightsSection(
                 }
             }
         } else {
-            entries.forEach { entry -> InsightCard(entry = entry) }
+            entries.forEach { entry ->
+                InsightCard(entry = entry, onClick = { onInsightClick(entry) })
+            }
         }
     }
 }
@@ -137,11 +141,12 @@ fun InsightsSection(
 fun InsightCard(
     entry: InsightEntry,
     modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     val iconBg = if (entry.type == InsightType.TIP) colors.insightGreenBg else colors.insightBlueBg
 
-    AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 16.dp) {
+    AtmosCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick), contentPadding = 16.dp) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),

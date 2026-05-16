@@ -12,6 +12,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.atmos.shared.ui.activities.ActivitiesScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
+import dev.atmos.shared.ui.home.InsightEntry
+import dev.atmos.shared.ui.insightdetail.InsightDetailScreen
 import dev.atmos.shared.ui.auth.LoginScreen
 import dev.atmos.shared.ui.auth.SignUpScreen
 import dev.atmos.shared.ui.home.HomeScreen
@@ -42,6 +44,7 @@ private sealed class Screen {
     data object Home           : Screen()
     data object Activities     : Screen()
     data object TripDetail     : Screen()
+    data object InsightDetail  : Screen()
     data object Profile        : Screen()
     data object Insights       : Screen()
 }
@@ -53,8 +56,9 @@ fun AtmosApp() {
     var appearanceMode by remember { mutableStateOf(AppearanceMode.SYSTEM) }
     var notificationsEnabled by remember { mutableStateOf(true) }
     var showLogActivity by remember { mutableStateOf(false) }
-    var tripToEdit     by remember { mutableStateOf<PendingTripEntry?>(null) }
-    var selectedTrip   by remember { mutableStateOf<RecentActivityEntry?>(null) }
+    var tripToEdit       by remember { mutableStateOf<PendingTripEntry?>(null) }
+    var selectedTrip     by remember { mutableStateOf<RecentActivityEntry?>(null) }
+    var selectedInsight  by remember { mutableStateOf<InsightEntry?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -112,6 +116,7 @@ fun AtmosApp() {
                     onFabClick           = { tripToEdit = null; showLogActivity = true },
                     onEditPendingTrip    = { trip -> tripToEdit = trip; showLogActivity = true },
                     onTripClick          = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
+                    onInsightClick       = { entry -> selectedInsight = entry; screen = Screen.InsightDetail },
                 )
 
                 Screen.Profile -> ProfileScreen(
@@ -160,9 +165,18 @@ fun AtmosApp() {
                     onFabClick = { showLogActivity = true },
                 )
 
+                Screen.InsightDetail -> selectedInsight?.let { entry ->
+                    InsightDetailScreen(
+                        entry      = entry,
+                        onBack     = { screen = Screen.Home },
+                        onLogTrip  = { showLogActivity = true },
+                    )
+                }
+
                 Screen.Insights -> InsightsScreen(
-                    entries = previewHomeUiState.insights,
-                    onBack = { screen = Screen.Home },
+                    entries        = previewHomeUiState.insights,
+                    onBack         = { screen = Screen.Home },
+                    onInsightClick = { entry -> selectedInsight = entry; screen = Screen.InsightDetail },
                 )
             }
 
