@@ -46,6 +46,10 @@ data class InsightEntry(
     val type: InsightType,
     val title: String,
     val body: String,
+    val streakCount: Int = 0,       // STREAK — days/weeks in streak
+    val goalProgressPct: Int = 0,   // MILESTONE — 0-100
+    val savingsPct: Int = 0,        // TIP — % CO₂ reduction if followed
+    val comparisonPct: Int = 0,     // COMPARISON — % vs baseline (negative = below avg)
 )
 
 data class RecentActivityEntry(
@@ -135,19 +139,22 @@ val previewHomeUiState = HomeUiState(
     ),
     insights = listOf(
         InsightEntry(
-            type  = InsightType.STREAK,
-            title = "3-Day Streak",
-            body  = "You've logged your environmental impact for 3 days in a row.",
+            type        = InsightType.STREAK,
+            title       = "3-Day Streak",
+            body        = "You've logged your environmental impact for 3 days in a row. Consistency is key to building lasting habits.",
+            streakCount = 3,
         ),
         InsightEntry(
-            type  = InsightType.TIP,
-            title = "Optimize Morning Commute",
-            body  = "Taking public transit could reduce your morning emissions by 68%.",
+            type       = InsightType.TIP,
+            title      = "Optimize Morning Commute",
+            body       = "Taking public transit for your morning commute could reduce those trip emissions by 68%. That's a big impact compounded over a month.",
+            savingsPct = 68,
         ),
         InsightEntry(
-            type  = InsightType.MILESTONE,
-            title = "Monthly Goal: 82% Complete",
-            body  = "You're on track to meet your monthly emissions target.",
+            type             = InsightType.MILESTONE,
+            title            = "Monthly Goal: 82% Complete",
+            body             = "You're on track to meet your monthly emissions target. A few more low-emission trips and you'll hit it.",
+            goalProgressPct  = 82,
         ),
     ),
     unreadInsightsCount = 3,

@@ -35,6 +35,7 @@ import dev.atmos.shared.ui.theme.LocalAtmosColors
 fun InsightsScreen(
     entries: List<InsightEntry>,
     onBack: () -> Unit = {},
+    onInsightClick: (InsightEntry) -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
 
@@ -79,7 +80,7 @@ fun InsightsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(entries) { entry ->
-                InsightCard(entry = entry)
+                InsightCard(entry = entry, onClick = { onInsightClick(entry) })
             }
         }
     }

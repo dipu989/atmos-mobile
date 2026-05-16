@@ -60,6 +60,7 @@ fun HomeScreen(
     onFabClick: () -> Unit = {},
     onEditPendingTrip: (PendingTripEntry) -> Unit = {},
     onTripClick: (RecentActivityEntry) -> Unit = {},
+    onInsightClick: (InsightEntry) -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
@@ -146,6 +147,7 @@ fun HomeScreen(
                     InsightsSection(
                         entries = state.insights,
                         unreadCount = state.unreadInsightsCount,
+                        onInsightClick = onInsightClick,
                     )
                 }
             }
