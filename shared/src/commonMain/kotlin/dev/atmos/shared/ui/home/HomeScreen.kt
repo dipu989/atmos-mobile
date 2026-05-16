@@ -16,10 +16,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Eco
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -53,6 +55,7 @@ import dev.atmos.shared.ui.common.RecentActivitySkeleton
 import dev.atmos.shared.ui.common.TodayImpactSkeleton
 import dev.atmos.shared.ui.common.TransportBreakdownSkeleton
 import dev.atmos.shared.ui.common.WeeklyTrendSkeleton
+import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import kotlinx.coroutines.launch
@@ -63,6 +66,7 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToActivities: () -> Unit = {},
     onNavigateToInsights: () -> Unit = {},
+    onRetry: () -> Unit = {},
     onFabClick: () -> Unit = {},
     onEditPendingTrip: (PendingTripEntry) -> Unit = {},
     onTripClick: (RecentActivityEntry) -> Unit = {},
@@ -134,7 +138,10 @@ fun HomeScreen(
                 }
             }
 
-            if (state.isLoading) {
+            if (state.isError) {
+                // ── Error state ───────────────────────────────────────────────
+                item { HomeErrorState(onRetry = onRetry) }
+            } else if (state.isLoading) {
                 // ── Skeleton loading state ────────────────────────────────────
                 item { TodayImpactSkeleton() }
                 item { WeeklyTrendSkeleton() }
@@ -252,6 +259,94 @@ private fun HomeEmptyState(onLogTrip: () -> Unit) {
                     text       = "Log a trip",
                     fontSize   = 16.sp,
                     fontWeight = FontWeight.SemiBold,
+                    modifier   = Modifier.padding(vertical = 6.dp),
+                )
+            }
+        }
+    }
+}
+
+// ── Error state ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun HomeErrorState(onRetry: () -> Unit) {
+    val colors = LocalAtmosColors.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 48.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.matchParentSize()) {
+            drawCircle(
+                color  = AlertRed.copy(alpha = 0.05f),
+                radius = size.width * 0.55f,
+                center = Offset(size.width * 0.88f, size.height * 0.12f),
+            )
+            drawCircle(
+                color  = AlertRed.copy(alpha = 0.04f),
+                radius = size.width * 0.40f,
+                center = Offset(size.width * 0.08f, size.height * 0.85f),
+            )
+            drawCircle(
+                color  = AlertRed.copy(alpha = 0.03f),
+                radius = size.width * 0.20f,
+                center = Offset(size.width * 0.75f, size.height * 0.75f),
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 32.dp),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(AlertRed.copy(alpha = 0.10f)),
+            ) {
+                Icon(
+                    imageVector        = Icons.Outlined.CloudOff,
+                    contentDescription = null,
+                    tint               = AlertRed,
+                    modifier           = Modifier.size(32.dp),
+                )
+            }
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text       = "Couldn't load your data",
+                fontSize   = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color      = colors.textPrimary,
+                textAlign  = TextAlign.Center,
+            )
+
+            Text(
+                text       = "Check your connection and try again",
+                fontSize   = 14.sp,
+                color      = colors.textSecondary,
+                textAlign  = TextAlign.Center,
+                lineHeight = 20.sp,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick  = onRetry,
+                modifier = Modifier.fillMaxWidth(),
+                shape    = RoundedCornerShape(14.dp),
+                border   = androidx.compose.foundation.BorderStroke(1.5.dp, HorizonBlue),
+            ) {
+                Text(
+                    text       = "Try again",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = HorizonBlue,
                     modifier   = Modifier.padding(vertical = 6.dp),
                 )
             }

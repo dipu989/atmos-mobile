@@ -8,6 +8,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,8 +35,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -478,7 +477,7 @@ private fun PermissionsPage(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "Location is required for auto-detection.\nNotifications keep you informed after each trip.",
+            text = "We'll explain why we need each one\nbefore the system prompt appears.",
             fontSize = 15.sp,
             color = colors.textSecondary,
             textAlign = TextAlign.Center,
@@ -488,25 +487,27 @@ private fun PermissionsPage(
         Spacer(Modifier.height(36.dp))
 
         PermissionCard(
-            icon = Icons.Outlined.NotificationsNone,
-            iconBg = colors.insightBlueBg,
-            iconTint = HorizonBlue,
-            title = "Push Notifications",
-            subtitle = "Get notified when a trip is detected and ready to confirm.",
-            checked = notificationsEnabled,
-            onCheckedChange = onNotificationsToggle,
+            icon      = Icons.Outlined.NotificationsNone,
+            iconBg    = colors.insightBlueBg,
+            iconTint  = HorizonBlue,
+            accentColor = HorizonBlue,
+            title     = "Push Notifications",
+            subtitle  = "Get notified when a trip is detected and ready to confirm.",
+            granted   = notificationsEnabled,
+            onAllow   = { onNotificationsToggle(true) },
         )
 
         Spacer(Modifier.height(12.dp))
 
         PermissionCard(
-            icon = Icons.Outlined.LocationOn,
-            iconBg = colors.insightGreenBg,
-            iconTint = Sage,
-            title = "Location Access",
-            subtitle = "Always-on access so Atmos can detect trips even when the app is closed.",
-            checked = locationEnabled,
-            onCheckedChange = onLocationToggle,
+            icon      = Icons.Outlined.LocationOn,
+            iconBg    = colors.insightGreenBg,
+            iconTint  = Sage,
+            accentColor = Sage,
+            title     = "Location Access",
+            subtitle  = "Always-on access so Atmos can detect trips even when the app is closed.",
+            granted   = locationEnabled,
+            onAllow   = { onLocationToggle(true) },
         )
     }
 }
@@ -516,17 +517,18 @@ private fun PermissionCard(
     icon: ImageVector,
     iconBg: Color,
     iconTint: Color,
+    accentColor: Color,
     title: String,
     subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+    granted: Boolean,
+    onAllow: () -> Unit,
 ) {
     val colors = LocalAtmosColors.current
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surface),
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = colors.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
@@ -542,10 +544,10 @@ private fun PermissionCard(
                     .background(iconBg, CircleShape),
             ) {
                 Icon(
-                    imageVector = icon,
+                    imageVector        = icon,
                     contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(22.dp),
+                    tint               = iconTint,
+                    modifier           = Modifier.size(22.dp),
                 )
             }
 
@@ -553,32 +555,52 @@ private fun PermissionCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title,
-                    fontSize = 15.sp,
+                    text       = title,
+                    fontSize   = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = colors.textPrimary,
+                    color      = colors.textPrimary,
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = colors.textSecondary,
+                    text       = subtitle,
+                    fontSize   = 13.sp,
+                    color      = colors.textSecondary,
                     lineHeight = 18.sp,
                 )
             }
 
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(12.dp))
 
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = HorizonBlue,
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color(0xFFCDD5DE),
-                ),
-            )
+            if (granted) {
+                // ── Granted badge ─────────────────────────────────────────────
+                Box(
+                    modifier = Modifier
+                        .background(accentColor.copy(alpha = 0.12f), RoundedCornerShape(50))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        text       = "✓ On",
+                        fontSize   = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = accentColor,
+                    )
+                }
+            } else {
+                // ── Allow pill ────────────────────────────────────────────────
+                Box(
+                    modifier = Modifier
+                        .background(accentColor, RoundedCornerShape(50))
+                        .clickable(onClick = onAllow)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    Text(
+                        text       = "Allow",
+                        fontSize   = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = Color.White,
+                    )
+                }
+            }
         }
     }
 }
