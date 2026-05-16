@@ -40,6 +40,7 @@ fun ProfileScreen(
     onNotificationsToggle: (Boolean) -> Unit = {},
     onSignOut: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
+    onFabClick: () -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
@@ -70,7 +71,7 @@ fun ProfileScreen(
                     selectedTab = tab
                     if (tab == AtmosTab.HOME) onNavigateToHome()
                 },
-                onFabClick = { showComingSoon() },
+                onFabClick = onFabClick,
             )
         },
     ) { innerPadding ->

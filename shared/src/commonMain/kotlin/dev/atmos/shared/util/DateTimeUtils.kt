@@ -17,6 +17,19 @@ fun currentGreeting(): String {
     }
 }
 
+fun currentTimeLabel(): String {
+    val time = Clock.System.now()
+        .toLocalDateTime(TimeZone.currentSystemDefault())
+    val hour12 = when {
+        time.hour == 0  -> 12
+        time.hour > 12  -> time.hour - 12
+        else            -> time.hour
+    }
+    val minute = time.minute.toString().padStart(2, '0')
+    val amPm   = if (time.hour < 12) "AM" else "PM"
+    return "$hour12:$minute $amPm"
+}
+
 fun currentDateLabel(): String {
     val date = Clock.System.now()
         .toLocalDateTime(TimeZone.currentSystemDefault())
