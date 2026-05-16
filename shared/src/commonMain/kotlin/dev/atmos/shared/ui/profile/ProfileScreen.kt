@@ -115,6 +115,7 @@ fun ProfileScreen(
     onBack: () -> Unit = {},
     onEdit: () -> Unit = {},
     onNavigateToHome: () -> Unit = {},
+    onNavigateToActivities: () -> Unit = {},
     onAppearanceChange: (AppearanceMode) -> Unit = {},
     onNotificationsToggle: (Boolean) -> Unit = {},
     onSignOut: () -> Unit = {},
@@ -189,7 +190,10 @@ fun ProfileScreen(
                 selectedTab = selectedTab,
                 onTabSelected = { tab ->
                     selectedTab = tab
-                    if (tab == AtmosTab.HOME) onNavigateToHome()
+                    when (tab) {
+                        AtmosTab.HOME       -> onNavigateToHome()
+                        AtmosTab.ACTIVITIES -> onNavigateToActivities()
+                    }
                 },
                 onFabClick = onFabClick,
             )
