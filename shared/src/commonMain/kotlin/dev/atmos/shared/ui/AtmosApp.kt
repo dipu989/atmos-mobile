@@ -10,21 +10,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.atmos.shared.ui.activities.ActivitiesScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
-import dev.atmos.shared.ui.home.PendingTripEntry
-import dev.atmos.shared.ui.home.RecentActivityEntry
-import dev.atmos.shared.ui.logactivity.LogActivityPrefill
-import dev.atmos.shared.ui.tripdetail.TripDetailScreen
 import dev.atmos.shared.ui.auth.LoginScreen
 import dev.atmos.shared.ui.auth.SignUpScreen
 import dev.atmos.shared.ui.home.HomeScreen
+import dev.atmos.shared.ui.home.PendingTripEntry
+import dev.atmos.shared.ui.home.RecentActivityEntry
+import dev.atmos.shared.ui.home.previewAllActivities
 import dev.atmos.shared.ui.home.previewHomeUiState
 import dev.atmos.shared.ui.insights.InsightsScreen
+import dev.atmos.shared.ui.logactivity.LogActivityPrefill
 import dev.atmos.shared.ui.logactivity.LogActivitySheet
 import dev.atmos.shared.ui.onboarding.OnboardingScreen
 import dev.atmos.shared.ui.profile.AppearanceMode
 import dev.atmos.shared.ui.profile.ProfileScreen
 import dev.atmos.shared.ui.profile.previewProfileUiState
+import dev.atmos.shared.ui.tripdetail.TripDetailScreen
 import dev.atmos.shared.ui.theme.AtmosTheme
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
@@ -38,6 +40,7 @@ private sealed class Screen {
     data object SignUp         : Screen()
     data object ForgotPassword : Screen()
     data object Home           : Screen()
+    data object Activities     : Screen()
     data object TripDetail     : Screen()
     data object Profile        : Screen()
     data object Insights       : Screen()
@@ -99,8 +102,8 @@ fun AtmosApp() {
                         greeting  = currentGreeting(),
                         dateLabel = currentDateLabel(),
                     ),
-                    onNavigateToProfile  = { screen = Screen.Profile },
-                    onNavigateToInsights = { screen = Screen.Insights },
+                    onNavigateToProfile    = { screen = Screen.Profile },
+                    onNavigateToActivities = { screen = Screen.Activities },
                     onFabClick           = { tripToEdit = null; showLogActivity = true },
                     onEditPendingTrip    = { trip -> tripToEdit = trip; showLogActivity = true },
                     onTripClick          = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
@@ -142,10 +145,16 @@ fun AtmosApp() {
                     )
                 }
 
+                Screen.Activities -> ActivitiesScreen(
+                    groupedEntries = previewAllActivities,
+                    onNavigateToHome = { screen = Screen.Home },
+                    onTripClick = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
+                    onFabClick = { showLogActivity = true },
+                )
+
                 Screen.Insights -> InsightsScreen(
                     entries = previewHomeUiState.insights,
-                    onNavigateToHome = { screen = Screen.Home },
-                    onFabClick = { showLogActivity = true },
+                    onBack = { screen = Screen.Home },
                 )
             }
 

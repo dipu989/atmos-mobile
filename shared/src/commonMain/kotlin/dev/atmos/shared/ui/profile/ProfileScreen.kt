@@ -171,7 +171,6 @@ fun ProfileScreen(
         bottomBar = {
             AtmosBottomBar(
                 selectedTab = selectedTab,
-                unreadInsights = 0,
                 onTabSelected = { tab ->
                     selectedTab = tab
                     if (tab == AtmosTab.HOME) onNavigateToHome()

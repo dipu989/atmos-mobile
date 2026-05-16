@@ -10,45 +10,58 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.home.InsightEntry
-import dev.atmos.shared.ui.home.components.AtmosBottomBar
-import dev.atmos.shared.ui.home.components.AtmosTab
 import dev.atmos.shared.ui.home.components.InsightCard
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InsightsScreen(
     entries: List<InsightEntry>,
-    onNavigateToHome: () -> Unit = {},
-    onFabClick: () -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
-    var selectedTab by remember { mutableStateOf(AtmosTab.INSIGHTS) }
 
     Scaffold(
         containerColor = colors.background,
-        bottomBar = {
-            AtmosBottomBar(
-                selectedTab = selectedTab,
-                unreadInsights = 0,
-                onTabSelected = { tab ->
-                    selectedTab = tab
-                    if (tab == AtmosTab.HOME) onNavigateToHome()
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Insights",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textPrimary,
+                    )
                 },
-                onFabClick = onFabClick,
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = "Back",
+                            tint = colors.textSecondary,
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = colors.background,
+                ),
             )
         },
     ) { innerPadding ->
@@ -65,29 +78,6 @@ fun InsightsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
-                ) {
-                    Text(
-                        text = "Insights",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary,
-                    )
-                    if (entries.isNotEmpty()) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "· ${entries.size}",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = HorizonBlue,
-                        )
-                    }
-                }
-            }
-
             items(entries) { entry ->
                 InsightCard(entry = entry)
             }

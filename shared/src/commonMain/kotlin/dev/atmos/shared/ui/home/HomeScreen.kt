@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     state: HomeUiState = previewHomeUiState,
     onNavigateToProfile: () -> Unit = {},
-    onNavigateToInsights: () -> Unit = {},
+    onNavigateToActivities: () -> Unit = {},
     onFabClick: () -> Unit = {},
     onEditPendingTrip: (PendingTripEntry) -> Unit = {},
     onTripClick: (RecentActivityEntry) -> Unit = {},
@@ -63,10 +63,9 @@ fun HomeScreen(
         bottomBar = {
             AtmosBottomBar(
                 selectedTab = selectedTab,
-                unreadInsights = state.unreadInsightsCount,
                 onTabSelected = { tab ->
                     selectedTab = tab
-                    if (tab == AtmosTab.INSIGHTS) onNavigateToInsights()
+                    if (tab == AtmosTab.ACTIVITIES) onNavigateToActivities()
                 },
                 onFabClick = onFabClick,
             )
