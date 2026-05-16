@@ -10,6 +10,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.atmos.shared.ui.auth.ForgotPasswordScreen
+import dev.atmos.shared.ui.auth.LoginScreen
+import dev.atmos.shared.ui.auth.SignUpScreen
 import dev.atmos.shared.ui.home.HomeScreen
 import dev.atmos.shared.ui.home.previewHomeUiState
 import dev.atmos.shared.ui.insights.InsightsScreen
@@ -26,10 +29,13 @@ import dev.atmos.shared.util.currentGreeting
 import kotlinx.coroutines.launch
 
 private sealed class Screen {
-    data object Onboarding : Screen()
-    data object Home       : Screen()
-    data object Profile    : Screen()
-    data object Insights   : Screen()
+    data object Onboarding     : Screen()
+    data object Login          : Screen()
+    data object SignUp         : Screen()
+    data object ForgotPassword : Screen()
+    data object Home           : Screen()
+    data object Profile        : Screen()
+    data object Insights       : Screen()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,8 +67,24 @@ fun AtmosApp() {
         ) { _ ->
             when (screen) {
                 Screen.Onboarding -> OnboardingScreen(
-                    onGetStarted = { screen = Screen.Home },
-                    onAlreadyHaveAccount = { screen = Screen.Home },
+                    onGetStarted         = { screen = Screen.SignUp },
+                    onAlreadyHaveAccount = { screen = Screen.Login },
+                )
+
+                Screen.Login -> LoginScreen(
+                    onSignIn           = { screen = Screen.Home },
+                    onNavigateToSignUp = { screen = Screen.SignUp },
+                    onForgotPassword   = { screen = Screen.ForgotPassword },
+                )
+
+                Screen.SignUp -> SignUpScreen(
+                    onCreateAccount    = { screen = Screen.Home },
+                    onNavigateToSignIn = { screen = Screen.Login },
+                )
+
+                Screen.ForgotPassword -> ForgotPasswordScreen(
+                    onBack        = { screen = Screen.Login },
+                    onBackToSignIn = { screen = Screen.Login },
                 )
 
                 Screen.Home -> HomeScreen(
