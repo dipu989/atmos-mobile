@@ -25,11 +25,14 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.DirectionsBus
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Flight
 import androidx.compose.material.icons.outlined.LocalTaxi
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Train
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -73,6 +76,7 @@ import dev.atmos.shared.ui.profile.components.MyImpactCard
 import dev.atmos.shared.ui.profile.components.PreferencesCard
 import dev.atmos.shared.ui.profile.components.ProfileHeaderCard
 import dev.atmos.shared.ui.theme.AlertRed
+import dev.atmos.shared.ui.theme.AvatarBg
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Peach
@@ -143,6 +147,18 @@ fun ProfileScreen(
     var editingCommute     by remember { mutableStateOf<String?>(null) } // "home" | "work"
     var showTransportSheet by remember { mutableStateOf(false) }
     var showUnitsDialog    by remember { mutableStateOf(false) }
+    var showEditProfile    by remember { mutableStateOf(false) }
+
+    // Local profile state (updated on save)
+    var localDisplayName by remember { mutableStateOf(state.displayName) }
+    val localInitials = remember(localDisplayName) {
+        localDisplayName
+            .trim().split(" ")
+            .filter { it.isNotEmpty() }
+            .take(2)
+            .joinToString("") { it.first().uppercase() }
+            .ifEmpty { state.initials }
+    }
 
     fun showComingSoon() {
         scope.launch { snackbarHostState.showSnackbar("Coming soon") }
@@ -194,11 +210,11 @@ fun ProfileScreen(
         ) {
             item {
                 ProfileHeaderCard(
-                    displayName = state.displayName,
-                    initials    = state.initials,
+                    displayName = localDisplayName,
+                    initials    = localInitials,
                     email       = state.email,
                     onBack      = onBack,
-                    onEdit      = { showComingSoon() },
+                    onEdit      = { showEditProfile = true },
                 )
             }
 
@@ -274,6 +290,21 @@ fun ProfileScreen(
             current   = selectedUnits,
             onSelect  = { units -> selectedUnits = units; showUnitsDialog = false },
             onDismiss = { showUnitsDialog = false },
+        )
+    }
+
+    // ── Edit profile sheet ────────────────────────────────────────────────────
+    if (showEditProfile) {
+        EditProfileSheet(
+            displayName = localDisplayName,
+            initials    = localInitials,
+            email       = state.email,
+            onSave      = { name ->
+                localDisplayName = name
+                showEditProfile  = false
+                scope.launch { snackbarHostState.showSnackbar("Profile updated") }
+            },
+            onDismiss   = { showEditProfile = false },
         )
     }
 }
@@ -449,6 +480,229 @@ private fun TransportSelectionSheet(
                     }
                 }
                 HorizontalDivider(color = colors.divider.copy(alpha = 0.5f))
+            }
+        }
+    }
+}
+
+// ── Edit profile sheet ────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditProfileSheet(
+    displayName: String,
+    initials: String,
+    email: String,
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = LocalAtmosColors.current
+    var name      by remember { mutableStateOf(displayName) }
+    var hasFocus  by remember { mutableStateOf(false) }
+    var showError by remember { mutableStateOf(false) }
+
+    // Derive live initials as the user edits the name field
+    val liveInitials = name
+        .trim().split(" ")
+        .filter { it.isNotEmpty() }
+        .take(2)
+        .joinToString("") { it.first().uppercase() }
+        .ifEmpty { initials }
+
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            showError && name.isBlank() -> AlertRed
+            hasFocus                    -> HorizonBlue
+            else                        -> colors.divider
+        },
+        animationSpec = tween(200),
+        label         = "editProfileBorder",
+    )
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = colors.surface,
+        tonalElevation   = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(top = 8.dp, bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // ── Sheet title ───────────────────────────────────────────────────
+            Text(
+                text     = "Edit profile",
+                style    = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(24.dp))
+
+            // ── Avatar with camera badge ──────────────────────────────────────
+            Box(modifier = Modifier.padding(4.dp)) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier         = Modifier
+                        .size(80.dp)
+                        .background(color = AvatarBg, shape = CircleShape),
+                ) {
+                    Text(
+                        text       = liveInitials,
+                        fontSize   = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color      = Color.White,
+                    )
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier         = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(26.dp)
+                        .background(HorizonBlue, CircleShape)
+                        .border(2.dp, colors.surface, CircleShape),
+                ) {
+                    Icon(
+                        imageVector        = Icons.Outlined.CameraAlt,
+                        contentDescription = "Change photo",
+                        tint               = Color.White,
+                        modifier           = Modifier.size(13.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text       = "Change photo",
+                fontSize   = 12.sp,
+                color      = HorizonBlue,
+                fontWeight = FontWeight.Medium,
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // ── Display name field ────────────────────────────────────────────
+            Text(
+                text     = "Display name",
+                style    = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            BasicTextField(
+                value         = name,
+                onValueChange = { name = it; if (it.isNotBlank()) showError = false },
+                singleLine    = true,
+                cursorBrush   = SolidColor(HorizonBlue),
+                textStyle     = TextStyle(fontSize = 15.sp, color = colors.textPrimary),
+                modifier      = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { hasFocus = it.isFocused },
+                decorationBox = { innerField ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(colors.background)
+                            .border(
+                                width = if (hasFocus || (showError && name.isBlank())) 2.dp else 1.dp,
+                                color = borderColor,
+                                shape = RoundedCornerShape(12.dp),
+                            )
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector        = Icons.Outlined.Person,
+                            contentDescription = null,
+                            tint               = if (hasFocus) HorizonBlue else colors.textTertiary,
+                            modifier           = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Box(Modifier.weight(1f)) {
+                            if (name.isEmpty()) {
+                                Text(
+                                    text  = "Your display name",
+                                    style = TextStyle(fontSize = 15.sp, color = colors.textTertiary),
+                                )
+                            }
+                            innerField()
+                        }
+                    }
+                },
+            )
+            if (showError && name.isBlank()) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text     = "Name cannot be empty",
+                    fontSize = 12.sp,
+                    color    = AlertRed,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── Read-only email field ─────────────────────────────────────────
+            Text(
+                text     = "Email",
+                style    = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colors.chipBg)
+                    .border(1.dp, colors.divider, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector        = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint               = colors.textTertiary,
+                    modifier           = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text  = email,
+                    style = TextStyle(fontSize = 15.sp, color = colors.textTertiary),
+                )
+            }
+
+            Spacer(Modifier.height(28.dp))
+
+            // ── Save button ───────────────────────────────────────────────────
+            Button(
+                onClick  = {
+                    if (name.isBlank()) showError = true
+                    else onSave(name.trim())
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape    = RoundedCornerShape(12.dp),
+                colors   = ButtonDefaults.buttonColors(containerColor = HorizonBlue),
+            ) {
+                Text(
+                    text       = "Save changes",
+                    color      = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize   = 15.sp,
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // ── Cancel ────────────────────────────────────────────────────────
+            TextButton(
+                onClick  = onDismiss,
+                modifier = Modifier.fillMaxWidth().height(44.dp),
+            ) {
+                Text(
+                    text       = "Cancel",
+                    color      = colors.textSecondary,
+                    fontWeight = FontWeight.Medium,
+                )
             }
         }
     }

@@ -1,6 +1,7 @@
 package dev.atmos.shared.ui.profile.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -77,18 +79,41 @@ fun ProfileHeaderCard(
                 .fillMaxWidth()
                 .padding(bottom = 24.dp),
         ) {
+            // Avatar with camera badge — tapping opens the edit sheet
             Box(
-                contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(80.dp)
-                    .background(color = AvatarBg, shape = CircleShape),
+                    .clickable(onClick = onEdit)
+                    .padding(4.dp),
             ) {
-                Text(
-                    text = initials,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(color = AvatarBg, shape = CircleShape),
+                ) {
+                    Text(
+                        text       = initials,
+                        fontSize   = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color      = Color.White,
+                    )
+                }
+                // Camera badge bottom-right
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(26.dp)
+                        .background(HorizonBlue, CircleShape)
+                        .border(2.dp, colors.surface, CircleShape),
+                ) {
+                    Icon(
+                        imageVector        = Icons.Outlined.CameraAlt,
+                        contentDescription = "Edit profile photo",
+                        tint               = Color.White,
+                        modifier           = Modifier.size(13.dp),
+                    )
+                }
             }
             Spacer(Modifier.height(12.dp))
             Text(

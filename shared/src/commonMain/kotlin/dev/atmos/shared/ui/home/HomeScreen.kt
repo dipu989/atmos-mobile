@@ -48,6 +48,11 @@ import dev.atmos.shared.ui.home.components.RecentActivityCard
 import dev.atmos.shared.ui.home.components.TodayImpactCard
 import dev.atmos.shared.ui.home.components.TransportBreakdownCard
 import dev.atmos.shared.ui.home.components.WeeklyTrendCard
+import dev.atmos.shared.ui.common.InsightsSkeleton
+import dev.atmos.shared.ui.common.RecentActivitySkeleton
+import dev.atmos.shared.ui.common.TodayImpactSkeleton
+import dev.atmos.shared.ui.common.TransportBreakdownSkeleton
+import dev.atmos.shared.ui.common.WeeklyTrendSkeleton
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import kotlinx.coroutines.launch
@@ -128,7 +133,14 @@ fun HomeScreen(
                 }
             }
 
-            if (state.recentActivity.isEmpty() && pendingTrip == null) {
+            if (state.isLoading) {
+                // ── Skeleton loading state ────────────────────────────────────
+                item { TodayImpactSkeleton() }
+                item { WeeklyTrendSkeleton() }
+                item { TransportBreakdownSkeleton() }
+                item { RecentActivitySkeleton() }
+                item { InsightsSkeleton() }
+            } else if (state.recentActivity.isEmpty() && pendingTrip == null) {
                 // ── First-run empty state ─────────────────────────────────────
                 item { HomeEmptyState(onLogTrip = onFabClick) }
             } else {

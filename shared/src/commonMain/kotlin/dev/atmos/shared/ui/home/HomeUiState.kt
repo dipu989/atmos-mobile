@@ -86,6 +86,7 @@ data class HomeUiState(
     val insights: List<InsightEntry>,
     val unreadInsightsCount: Int,
     val pendingTrip: PendingTripEntry? = null,
+    val isLoading: Boolean = false,
 )
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
