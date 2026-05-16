@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
@@ -96,6 +97,7 @@ fun RecentActivityCard(
     entries: List<RecentActivityEntry>,
     modifier: Modifier = Modifier,
     onTripClick: (RecentActivityEntry) -> Unit = {},
+    onLogTrip: () -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
 
@@ -116,14 +118,47 @@ fun RecentActivityCard(
 
         Spacer(Modifier.height(16.dp))
 
-        entries.forEachIndexed { index, entry ->
-            ActivityRow(entry = entry, onClick = { onTripClick(entry) })
-            if (index < entries.lastIndex) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    thickness = 1.dp,
-                    color = colors.divider,
-                )
+        if (entries.isEmpty()) {
+            // ── Inline empty state ────────────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector        = Icons.Outlined.Schedule,
+                        contentDescription = null,
+                        tint               = colors.textSecondary,
+                        modifier           = Modifier.size(26.dp),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text     = "No trips today",
+                        fontSize = 14.sp,
+                        color    = colors.textSecondary,
+                    )
+                    TextButton(onClick = onLogTrip) {
+                        Text(
+                            text       = "Log one now →",
+                            fontSize   = 13.sp,
+                            color      = HorizonBlue,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            }
+        } else {
+            entries.forEachIndexed { index, entry ->
+                ActivityRow(entry = entry, onClick = { onTripClick(entry) })
+                if (index < entries.lastIndex) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        thickness = 1.dp,
+                        color = colors.divider,
+                    )
+                }
             }
         }
     }
