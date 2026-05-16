@@ -39,6 +39,7 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToInsights: () -> Unit = {},
     onFabClick: () -> Unit = {},
+    onEditPendingTrip: (PendingTripEntry) -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
@@ -101,10 +102,7 @@ fun HomeScreen(
                             pendingTrip = null
                             scope.launch { snackbarHostState.showSnackbar("Trip confirmed — nice work!") }
                         },
-                        onEdit = {
-                            // Will open log activity sheet pre-filled with detected data
-                            scope.launch { snackbarHostState.showSnackbar("Edit trip — coming soon") }
-                        },
+                        onEdit = { onEditPendingTrip(trip) },
                         onDismiss = { pendingTrip = null },
                     )
                 }

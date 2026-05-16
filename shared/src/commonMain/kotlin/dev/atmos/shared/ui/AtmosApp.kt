@@ -11,6 +11,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
+import dev.atmos.shared.ui.home.PendingTripEntry
+import dev.atmos.shared.ui.logactivity.LogActivityPrefill
 import dev.atmos.shared.ui.auth.LoginScreen
 import dev.atmos.shared.ui.auth.SignUpScreen
 import dev.atmos.shared.ui.home.HomeScreen
@@ -45,6 +47,7 @@ fun AtmosApp() {
     var appearanceMode by remember { mutableStateOf(AppearanceMode.SYSTEM) }
     var notificationsEnabled by remember { mutableStateOf(true) }
     var showLogActivity by remember { mutableStateOf(false) }
+    var tripToEdit     by remember { mutableStateOf<PendingTripEntry?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -92,9 +95,10 @@ fun AtmosApp() {
                         greeting  = currentGreeting(),
                         dateLabel = currentDateLabel(),
                     ),
-                    onNavigateToProfile = { screen = Screen.Profile },
+                    onNavigateToProfile  = { screen = Screen.Profile },
                     onNavigateToInsights = { screen = Screen.Insights },
-                    onFabClick = { showLogActivity = true },
+                    onFabClick           = { tripToEdit = null; showLogActivity = true },
+                    onEditPendingTrip    = { trip -> tripToEdit = trip; showLogActivity = true },
                 )
 
                 Screen.Profile -> ProfileScreen(
@@ -123,7 +127,10 @@ fun AtmosApp() {
             // ── Log Activity sheet — global, shown over any screen ────────────
             if (showLogActivity) {
                 LogActivitySheet(
-                    onDismiss = { showLogActivity = false },
+                    prefill   = tripToEdit?.let { t ->
+                        LogActivityPrefill(origin = t.origin, destination = t.destination, mode = t.mode)
+                    },
+                    onDismiss = { showLogActivity = false; tripToEdit = null },
                     onTripLogged = { trip ->
                         showLogActivity = false
                         scope.launch {

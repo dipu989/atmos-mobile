@@ -71,6 +71,14 @@ import dev.atmos.shared.ui.theme.Sage
 import dev.atmos.shared.util.currentDateLabel
 import dev.atmos.shared.util.currentTimeLabel
 
+// ── Pre-fill model (used by pending trip Edit) ────────────────────────────────
+
+data class LogActivityPrefill(
+    val origin: String = "",
+    val destination: String = "",
+    val mode: TransportModeType? = null,
+)
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,6 +86,7 @@ import dev.atmos.shared.util.currentTimeLabel
 fun LogActivitySheet(
     onDismiss: () -> Unit,
     onTripLogged: (LoggedTrip) -> Unit = {},
+    prefill: LogActivityPrefill? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
     val colors = LocalAtmosColors.current
@@ -91,6 +100,7 @@ fun LogActivitySheet(
         LogActivityContent(
             onDismiss = onDismiss,
             onTripLogged = onTripLogged,
+            prefill = prefill,
         )
     }
 }
@@ -101,11 +111,12 @@ fun LogActivitySheet(
 private fun LogActivityContent(
     onDismiss: () -> Unit,
     onTripLogged: (LoggedTrip) -> Unit,
+    prefill: LogActivityPrefill? = null,
 ) {
     val colors = LocalAtmosColors.current
-    var selectedMode by remember { mutableStateOf(TransportModeType.DRIVING) }
-    var origin by remember { mutableStateOf("") }
-    var destination by remember { mutableStateOf("") }
+    var selectedMode by remember { mutableStateOf(prefill?.mode ?: TransportModeType.DRIVING) }
+    var origin by remember { mutableStateOf(prefill?.origin ?: "") }
+    var destination by remember { mutableStateOf(prefill?.destination ?: "") }
     var originError by remember { mutableStateOf(false) }
     var destinationError by remember { mutableStateOf(false) }
 
