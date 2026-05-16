@@ -1,6 +1,7 @@
 package dev.atmos.shared.ui.home.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -94,6 +95,7 @@ private val TransportModeType.icon: ImageVector
 fun RecentActivityCard(
     entries: List<RecentActivityEntry>,
     modifier: Modifier = Modifier,
+    onTripClick: (RecentActivityEntry) -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
 
@@ -115,7 +117,7 @@ fun RecentActivityCard(
         Spacer(Modifier.height(16.dp))
 
         entries.forEachIndexed { index, entry ->
-            ActivityRow(entry = entry)
+            ActivityRow(entry = entry, onClick = { onTripClick(entry) })
             if (index < entries.lastIndex) {
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 12.dp),
@@ -132,13 +134,16 @@ fun RecentActivityCard(
 @Composable
 private fun ActivityRow(
     entry: RecentActivityEntry,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     ) {
         Box(
             contentAlignment = Alignment.Center,

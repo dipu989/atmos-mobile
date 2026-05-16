@@ -12,7 +12,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
 import dev.atmos.shared.ui.home.PendingTripEntry
+import dev.atmos.shared.ui.home.RecentActivityEntry
 import dev.atmos.shared.ui.logactivity.LogActivityPrefill
+import dev.atmos.shared.ui.tripdetail.TripDetailScreen
 import dev.atmos.shared.ui.auth.LoginScreen
 import dev.atmos.shared.ui.auth.SignUpScreen
 import dev.atmos.shared.ui.home.HomeScreen
@@ -36,6 +38,7 @@ private sealed class Screen {
     data object SignUp         : Screen()
     data object ForgotPassword : Screen()
     data object Home           : Screen()
+    data object TripDetail     : Screen()
     data object Profile        : Screen()
     data object Insights       : Screen()
 }
@@ -48,6 +51,7 @@ fun AtmosApp() {
     var notificationsEnabled by remember { mutableStateOf(true) }
     var showLogActivity by remember { mutableStateOf(false) }
     var tripToEdit     by remember { mutableStateOf<PendingTripEntry?>(null) }
+    var selectedTrip   by remember { mutableStateOf<RecentActivityEntry?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -99,6 +103,7 @@ fun AtmosApp() {
                     onNavigateToInsights = { screen = Screen.Insights },
                     onFabClick           = { tripToEdit = null; showLogActivity = true },
                     onEditPendingTrip    = { trip -> tripToEdit = trip; showLogActivity = true },
+                    onTripClick          = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
                 )
 
                 Screen.Profile -> ProfileScreen(
@@ -116,6 +121,26 @@ fun AtmosApp() {
                     onDeleteAccount = { screen = Screen.Home },
                     onFabClick = { showLogActivity = true },
                 )
+
+                Screen.TripDetail -> selectedTrip?.let { entry ->
+                    TripDetailScreen(
+                        entry          = entry,
+                        dailyGoalKgCO2 = previewHomeUiState.todayImpact.dailyGoalKgCO2,
+                        onBack         = { screen = Screen.Home },
+                        onEdit         = {
+                            tripToEdit = PendingTripEntry(
+                                mode           = entry.mode,
+                                origin         = entry.origin,
+                                destination    = entry.destination,
+                                distanceKm     = entry.distanceKm,
+                                durationMin    = entry.durationMin,
+                                estimatedKgCO2 = entry.kgCO2,
+                            )
+                            showLogActivity = true
+                        },
+                        onDelete = { screen = Screen.Home },
+                    )
+                }
 
                 Screen.Insights -> InsightsScreen(
                     entries = previewHomeUiState.insights,

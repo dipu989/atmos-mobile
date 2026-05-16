@@ -53,6 +53,8 @@ data class RecentActivityEntry(
     val origin: String,
     val destination: String,
     val timeLabel: String,
+    val dateLabel: String = "Today",
+    val distanceKm: Float = 0f,
     val durationMin: Int,
     val kgCO2: Float,
     val isAutoDetected: Boolean = true,   // false = manually logged
@@ -112,20 +114,23 @@ val previewHomeUiState = HomeUiState(
         RecentActivityEntry(
             mode = TransportModeType.DRIVING,
             origin = "Home", destination = "Office",
-            timeLabel = "8:45 AM", durationMin = 22, kgCO2 = 1.8f,
+            timeLabel = "8:45 AM", dateLabel = "Today",
+            distanceKm = 8.6f, durationMin = 22, kgCO2 = 1.8f,
             isAutoDetected = true,
         ),
         RecentActivityEntry(
             mode = TransportModeType.WALKING,
             origin = "Office", destination = "Café",
-            timeLabel = "12:30 PM", durationMin = 8, kgCO2 = 0f,
+            timeLabel = "12:30 PM", dateLabel = "Today",
+            distanceKm = 0.6f, durationMin = 8, kgCO2 = 0f,
             isAutoDetected = true,
         ),
         RecentActivityEntry(
             mode = TransportModeType.BUS,
             origin = "Café", destination = "Downtown",
-            timeLabel = "2:15 PM", durationMin = 15, kgCO2 = 0.5f,
-            isAutoDetected = false,   // manually logged
+            timeLabel = "2:15 PM", dateLabel = "Today",
+            distanceKm = 5.5f, durationMin = 15, kgCO2 = 0.5f,
+            isAutoDetected = false,
         ),
     ),
     insights = listOf(
