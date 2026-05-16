@@ -160,3 +160,38 @@ val previewHomeUiState = HomeUiState(
         estimatedKgCO2   = 1.7f,
     ),
 )
+
+// ── Full activity history mock (for Activities screen) ────────────────────────
+
+val previewAllActivities: List<Pair<String, List<RecentActivityEntry>>> = listOf(
+    "Today" to listOf(
+        RecentActivityEntry(TransportModeType.DRIVING, "Home", "Office",
+            timeLabel = "8:45 AM", dateLabel = "Today", distanceKm = 8.6f, durationMin = 22, kgCO2 = 1.8f, isAutoDetected = true),
+        RecentActivityEntry(TransportModeType.WALKING, "Office", "Café",
+            timeLabel = "12:30 PM", dateLabel = "Today", distanceKm = 0.6f, durationMin = 8, kgCO2 = 0f, isAutoDetected = true),
+        RecentActivityEntry(TransportModeType.BUS, "Café", "Downtown",
+            timeLabel = "2:15 PM", dateLabel = "Today", distanceKm = 5.5f, durationMin = 15, kgCO2 = 0.5f, isAutoDetected = false),
+    ),
+    "Yesterday" to listOf(
+        RecentActivityEntry(TransportModeType.METRO, "Home", "Mall",
+            timeLabel = "10:00 AM", dateLabel = "Yesterday", distanceKm = 12.3f, durationMin = 28, kgCO2 = 0.8f, isAutoDetected = true),
+        RecentActivityEntry(TransportModeType.DRIVING, "Mall", "Home",
+            timeLabel = "6:30 PM", dateLabel = "Yesterday", distanceKm = 12.3f, durationMin = 35, kgCO2 = 2.1f, isAutoDetected = false),
+    ),
+    "Mon, May 13" to listOf(
+        RecentActivityEntry(TransportModeType.CYCLING, "Home", "Park",
+            timeLabel = "7:30 AM", dateLabel = "Mon, May 13", distanceKm = 3.2f, durationMin = 20, kgCO2 = 0f, isAutoDetected = true),
+        RecentActivityEntry(TransportModeType.CAB, "Office", "Airport",
+            timeLabel = "4:00 PM", dateLabel = "Mon, May 13", distanceKm = 18.5f, durationMin = 45, kgCO2 = 3.2f, isAutoDetected = false),
+    ),
+    "Sat, May 10" to listOf(
+        RecentActivityEntry(TransportModeType.TRAIN, "City Centre", "Suburbs",
+            timeLabel = "9:00 AM", dateLabel = "Sat, May 10", distanceKm = 35.0f, durationMin = 55, kgCO2 = 1.2f, isAutoDetected = true),
+    ),
+    "Thu, May 8" to listOf(
+        RecentActivityEntry(TransportModeType.FLIGHT, "Delhi", "Mumbai",
+            timeLabel = "6:00 AM", dateLabel = "Thu, May 8", distanceKm = 1150.0f, durationMin = 125, kgCO2 = 98.6f, isAutoDetected = true),
+        RecentActivityEntry(TransportModeType.CAB, "Mumbai Airport", "Hotel",
+            timeLabel = "8:45 AM", dateLabel = "Thu, May 8", distanceKm = 22.0f, durationMin = 40, kgCO2 = 3.8f, isAutoDetected = true),
+    ),
+)

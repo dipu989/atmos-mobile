@@ -132,7 +132,7 @@ fun RecentActivityCard(
 // ── Single activity row ───────────────────────────────────────────────────────
 
 @Composable
-private fun ActivityRow(
+internal fun ActivityRow(
     entry: RecentActivityEntry,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,

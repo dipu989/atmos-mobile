@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -31,18 +31,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.NavActive
 import dev.atmos.shared.ui.theme.NavInactive
 
-enum class AtmosTab { HOME, INSIGHTS }
+enum class AtmosTab { HOME, ACTIVITIES }
 
 @Composable
 fun AtmosBottomBar(
     selectedTab: AtmosTab,
-    unreadInsights: Int,
     onTabSelected: (AtmosTab) -> Unit,
     onFabClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -69,12 +67,11 @@ fun AtmosBottomBar(
 
             Spacer(Modifier.weight(1f))
 
-            NavTabWithBadge(
-                icon = Icons.Outlined.Lightbulb,
-                label = "Insights",
-                selected = selectedTab == AtmosTab.INSIGHTS,
-                badgeCount = unreadInsights,
-                onClick = { onTabSelected(AtmosTab.INSIGHTS) },
+            NavTab(
+                icon = Icons.Outlined.History,
+                label = "Activities",
+                selected = selectedTab == AtmosTab.ACTIVITIES,
+                onClick = { onTabSelected(AtmosTab.ACTIVITIES) },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -135,57 +132,3 @@ private fun NavTab(
     }
 }
 
-@Composable
-private fun NavTabWithBadge(
-    icon: ImageVector,
-    label: String,
-    selected: Boolean,
-    badgeCount: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = LocalAtmosColors.current
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = modifier.clickable(
-            interactionSource = remember { MutableInteractionSource() },
-            indication = null,
-            onClick = onClick,
-        ),
-    ) {
-        Box {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = if (selected) NavActive else NavInactive,
-                modifier = Modifier.size(22.dp),
-            )
-            if (badgeCount > 0) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 6.dp, y = (-4).dp)
-                        .size(16.dp)
-                        .background(AlertRed, CircleShape),
-                ) {
-                    Text(
-                        text = badgeCount.coerceAtMost(99).toString(),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.surface,
-                    )
-                }
-            }
-        }
-        Spacer(Modifier.height(3.dp))
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-            color = if (selected) NavActive else NavInactive,
-        )
-    }
-}
