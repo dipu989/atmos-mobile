@@ -42,3 +42,4 @@ DerivedData/
 
 # Local design/product docs — not for source control
 PRODUCT_SPEC.md
+tasks.md
