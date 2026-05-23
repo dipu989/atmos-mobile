@@ -1,0 +1,34 @@
+CREATE TABLE legs (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    session_id      TEXT    NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    mode            TEXT    NOT NULL,            -- matches TransportModeType name()
+    started_at_ms   INTEGER NOT NULL,
+    ended_at_ms     INTEGER,
+    distance_km     REAL    NOT NULL DEFAULT 0,
+    waypoints_json  TEXT    NOT NULL DEFAULT '[]',
+    sort_order      INTEGER NOT NULL             -- leg sequence within the session
+    -- co2_kg is intentionally omitted: backend resolves region-aware + date-aware
+    -- emission factors (DEFRA IN) and calculates kg_co2e via POST /activities
+);
+
+insert:
+INSERT INTO legs (id, session_id, mode, started_at_ms, ended_at_ms, distance_km, waypoints_json, sort_order)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+updateEnd:
+UPDATE legs
+SET ended_at_ms = ?, distance_km = ?, waypoints_json = ?
+WHERE id = ?;
+
+getForSession:
+SELECT * FROM legs
+WHERE session_id = ?
+ORDER BY sort_order ASC;
+
+delete:
+DELETE FROM legs
+WHERE id = ?;
+
+deleteForSession:
+DELETE FROM legs
+WHERE session_id = ?;
