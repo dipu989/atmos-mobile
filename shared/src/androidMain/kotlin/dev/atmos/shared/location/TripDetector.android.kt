@@ -116,7 +116,10 @@ class AndroidTripDetector(
                 .setActivityType(DetectedActivity.WALKING)
                 .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
                 .build(),
-            // STILL is added in task 2.5 (TripTransitionReceiver update)
+            ActivityTransition.Builder()
+                .setActivityType(DetectedActivity.STILL)
+                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
+                .build(),
         )
     )
 
