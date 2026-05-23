@@ -9,6 +9,8 @@ serialization           = "1.8.1"
 datetime                = "0.6.1"
 multiplatform-settings  = "1.2.0"
 androidx-activity       = "1.10.1"
+play-services-location  = "21.3.0"
+sqldelight              = "2.0.2"
 
 [libraries]
 # Ktor
@@ -38,9 +40,16 @@ multiplatform-settings          = { module = "com.russhwolf:multiplatform-settin
 multiplatform-settings-no-arg   = { module = "com.russhwolf:multiplatform-settings-no-arg",   version.ref = "multiplatform-settings" }
 
 # Android
-androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
+androidx-activity-compose   = { module = "androidx.activity:activity-compose",                           version.ref = "androidx-activity" }
+play-services-location       = { module = "com.google.android.gms:play-services-location",               version.ref = "play-services-location" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version = "1.7.0" }
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version = "1.7.0" }
+
+# SQLDelight
+sqldelight-runtime              = { module = "app.cash.sqldelight:runtime",                        version.ref = "sqldelight" }
+sqldelight-coroutines           = { module = "app.cash.sqldelight:coroutines-extensions",          version.ref = "sqldelight" }
+sqldelight-driver-android       = { module = "app.cash.sqldelight:android-driver",                 version.ref = "sqldelight" }
+sqldelight-driver-native        = { module = "app.cash.sqldelight:native-driver",                  version.ref = "sqldelight" }
 
 [plugins]
 kotlin-multiplatform    = { id = "org.jetbrains.kotlin.multiplatform",          version.ref = "kotlin" }
@@ -49,3 +58,4 @@ compose-multiplatform   = { id = "org.jetbrains.compose",                       
 compose-compiler        = { id = "org.jetbrains.kotlin.plugin.compose",         version.ref = "kotlin" }
 android-application     = { id = "com.android.application",                     version.ref = "agp" }
 android-library         = { id = "com.android.library",                         version.ref = "agp" }
+sqldelight              = { id = "app.cash.sqldelight",                          version.ref = "sqldelight" }
