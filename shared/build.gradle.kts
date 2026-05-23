@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.android.library)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -57,15 +58,22 @@ kotlin {
 
             // Local storage
             implementation(libs.multiplatform.settings)
+
+            // Database
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines)
         }
 
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)
+            implementation(libs.play.services.location)   // FusedLocation + Activity Recognition
+            implementation(libs.sqldelight.driver.android)
         }
 
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.sqldelight.driver.native)
         }
     }
 }
@@ -81,5 +89,14 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+}
+
+sqldelight {
+    databases {
+        create("AtmosDatabase") {
+            packageName.set("dev.atmos.shared.db")
+            generateAsync.set(true)   // coroutines-friendly suspend queries
+        }
     }
 }
