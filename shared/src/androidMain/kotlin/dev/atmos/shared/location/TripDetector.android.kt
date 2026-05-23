@@ -139,6 +139,7 @@ class AndroidTripDetector(
         restorePartialSession()
     }
 
+    @SuppressLint("MissingPermission")
     override fun stopMonitoring() {
         ActivityRecognition.getClient(context)
             .removeActivityTransitionUpdates(transitionPendingIntent)
