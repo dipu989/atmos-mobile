@@ -71,6 +71,8 @@ fun HomeScreen(
     onEditPendingTrip: (PendingTripEntry) -> Unit = {},
     onTripClick: (RecentActivityEntry) -> Unit = {},
     onInsightClick: (InsightEntry) -> Unit = {},
+    onPendingTripConfirmed: () -> Unit = {},
+    onPendingTripDismissed: () -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
@@ -130,10 +132,14 @@ fun HomeScreen(
                         trip = trip,
                         onConfirm = {
                             pendingTrip = null
+                            onPendingTripConfirmed()   // clears TripDetectorState
                             scope.launch { snackbarHostState.showSnackbar("Trip confirmed — nice work!") }
                         },
                         onEdit = { onEditPendingTrip(trip) },
-                        onDismiss = { pendingTrip = null },
+                        onDismiss = {
+                            pendingTrip = null
+                            onPendingTripDismissed()   // clears TripDetectorState
+                        },
                     )
                 }
             }

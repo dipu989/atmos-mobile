@@ -57,7 +57,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
+import dev.atmos.shared.location.LocationPermissionState
+import dev.atmos.shared.location.TripDetectorState
 import dev.atmos.shared.ui.theme.Sage
+import androidx.compose.runtime.collectAsState
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
@@ -65,11 +68,17 @@ import dev.atmos.shared.ui.theme.Sage
 fun OnboardingScreen(
     onGetStarted: () -> Unit = {},
     onAlreadyHaveAccount: () -> Unit = {},
+    onRequestLocationPermission: () -> Unit = {},
+    onRequestNotificationPermission: () -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     var currentPage by remember { mutableStateOf(0) }
     var notificationsEnabled by remember { mutableStateOf(false) }
-    var locationEnabled by remember { mutableStateOf(false) }
+
+    // Reflect actual system permission state in the pill instead of optimistic local state
+    val permState by TripDetectorState.permissionState.collectAsState()
+    val locationEnabled = permState == LocationPermissionState.GRANTED
+            || permState == LocationPermissionState.BACKGROUND_ONLY
 
     Box(
         modifier = Modifier
@@ -99,8 +108,13 @@ fun OnboardingScreen(
                 2 -> PermissionsPage(
                     notificationsEnabled = notificationsEnabled,
                     locationEnabled = locationEnabled,
-                    onNotificationsToggle = { notificationsEnabled = it },
-                    onLocationToggle = { locationEnabled = it },
+                    onNotificationsToggle = { enabled ->
+                        if (enabled) onRequestNotificationPermission()
+                        else notificationsEnabled = false
+                    },
+                    onLocationToggle = { enabled ->
+                        if (enabled) onRequestLocationPermission()
+                    },
                 )
             }
         }

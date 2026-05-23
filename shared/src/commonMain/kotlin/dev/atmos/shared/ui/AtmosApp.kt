@@ -6,12 +6,16 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
+import dev.atmos.shared.location.LocalPermissionRequester
+import dev.atmos.shared.location.TripDetectorState
+import dev.atmos.shared.location.createTripDetector
 import dev.atmos.shared.ui.activities.ActivitiesScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
 import dev.atmos.shared.ui.home.InsightEntry
@@ -70,6 +74,15 @@ fun AtmosApp() {
         homeIsLoading = false
     }
 
+    // Real pending trip from background detection service
+    val autoDetectedTrip by TripDetectorState.pendingTrip.collectAsState()
+
+    // Trip detector instance — started once when the user completes onboarding
+    val tripDetector = remember { createTripDetector() }
+
+    // Permission requester injected from platform (Android: AndroidPermissionRequester, iOS: no-op)
+    val permissionRequester = LocalPermissionRequester.current
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -91,8 +104,19 @@ fun AtmosApp() {
         ) { _ ->
             when (screen) {
                 Screen.Onboarding -> OnboardingScreen(
-                    onGetStarted         = { screen = Screen.SignUp },
+                    onGetStarted         = {
+                        tripDetector.startMonitoring()
+                        screen = Screen.SignUp
+                    },
                     onAlreadyHaveAccount = { screen = Screen.Login },
+                    onRequestLocationPermission     = {
+                        permissionRequester.requestLocation { _ -> }
+                        // iOS: also trigger CLLocationManager via TripDetector
+                        tripDetector.requestPermissions()
+                    },
+                    onRequestNotificationPermission = {
+                        permissionRequester.requestNotification { _ -> }
+                    },
                 )
 
                 Screen.Login -> LoginScreen(
@@ -113,9 +137,10 @@ fun AtmosApp() {
 
                 Screen.Home -> HomeScreen(
                     state = previewHomeUiState.copy(
-                        greeting  = currentGreeting(),
-                        dateLabel = currentDateLabel(),
-                        isLoading = homeIsLoading,
+                        greeting    = currentGreeting(),
+                        dateLabel   = currentDateLabel(),
+                        isLoading   = homeIsLoading,
+                        pendingTrip = autoDetectedTrip,   // real detection overrides mock
                     ),
                     onNavigateToProfile    = { screen = Screen.Profile },
                     onNavigateToActivities = { screen = Screen.Activities },
@@ -125,6 +150,8 @@ fun AtmosApp() {
                     onEditPendingTrip      = { trip -> tripToEdit = trip; showLogActivity = true },
                     onTripClick            = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
                     onInsightClick         = { entry -> selectedInsight = entry; screen = Screen.InsightDetail },
+                    onPendingTripConfirmed = { TripDetectorState.clearPendingTrip() },
+                    onPendingTripDismissed = { TripDetectorState.clearPendingTrip() },
                 )
 
                 Screen.Profile -> ProfileScreen(
