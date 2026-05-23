@@ -44,5 +44,19 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<!-- Location permissions — required for background trip detection -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Atmos detects your commute trips in the background to track your carbon footprint automatically.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Atmos needs your location to detect trip start and end points.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Atmos uses motion data to detect when you are in a vehicle versus walking.</string>
+
+	<!-- Enable background location updates -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 </dict>
 </plist>
