@@ -8,6 +8,11 @@ plugins {
 }
 
 kotlin {
+    compilerOptions {
+        // expect/actual classes are in Beta — suppress the warning project-wide
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     androidTarget {
         compilations.all {
             compileTaskProvider.configure {
@@ -96,7 +101,8 @@ sqldelight {
     databases {
         create("AtmosDatabase") {
             packageName.set("dev.atmos.shared.db")
-            generateAsync.set(true)   // coroutines-friendly suspend queries
+            // generateAsync not set — Android + iOS use synchronous drivers.
+            // Flow wrappers come from coroutines-extensions via .asFlow() at query call sites.
         }
     }
 }
