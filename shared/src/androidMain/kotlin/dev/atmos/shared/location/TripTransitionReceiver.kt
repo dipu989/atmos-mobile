@@ -13,8 +13,6 @@ import com.google.android.gms.location.DetectedActivity
  *
  * Translates raw Play Services events into [VehicleActivity] and forwards them to
  * [AndroidTripDetector] via its companion object.
- *
- * Note: STILL_ENTERED support added in task 2.5.
  */
 class TripTransitionReceiver : BroadcastReceiver() {
 
@@ -35,6 +33,10 @@ class TripTransitionReceiver : BroadcastReceiver() {
                 event.activityType == DetectedActivity.WALKING &&
                         event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER ->
                     VehicleActivity.WALKING_ENTERED
+
+                event.activityType == DetectedActivity.STILL &&
+                        event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER ->
+                    VehicleActivity.STILL_ENTERED
 
                 else -> continue
             }
