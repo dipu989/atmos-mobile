@@ -1,4 +1,6 @@
-# Atmos Mobile
+<h1 align="center">Atmos Mobile</h1>
+<img width="1774" height="887" alt="atmos-mobile" src="https://github.com/user-attachments/assets/d9ad6ea8-dca4-43d5-9ef1-bf55195eb34e" />
+
 
 Personal carbon footprint tracker for Android and iOS, built with Kotlin Multiplatform and Compose Multiplatform.
 
