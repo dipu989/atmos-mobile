@@ -5,13 +5,16 @@ package dev.atmos.shared.auth
 /**
  * Receives the result of a Google Sign-In flow.
  *
- * Exactly one of [idToken] or [error] will be non-null.
+ * Outcomes:
+ *   - Success:   [idToken] is non-null, [error] is null, [cancelled] is false
+ *   - Cancelled: [idToken] is null, [error] is null, [cancelled] is true
+ *   - Error:     [idToken] is null, [error] is non-null, [cancelled] is false
  *
  * This is a regular interface (not `fun interface`) so it exports cleanly to
  * ObjC/Swift as a protocol that the Swift bridge can conform to.
  */
 interface GoogleSignInCallback {
-    fun onResult(idToken: String?, error: String?)
+    fun onResult(idToken: String?, error: String?, cancelled: Boolean)
 }
 
 // ── Launcher ──────────────────────────────────────────────────────────────────
@@ -36,6 +39,6 @@ expect fun createGoogleSignInLauncher(): GoogleSignInLauncher
 
 internal class NoOpGoogleSignInLauncher : GoogleSignInLauncher {
     override fun launch(callback: GoogleSignInCallback) {
-        callback.onResult(null, "Google Sign-In is not configured on this platform")
+        callback.onResult(null, "Google Sign-In is not configured on this platform", false)
     }
 }

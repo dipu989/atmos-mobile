@@ -3,6 +3,7 @@ package dev.atmos.shared.network
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -41,16 +42,32 @@ data class AuthResponseDto(
  *
  * Endpoint: POST /api/v1/auth/google/token
  * Body:     { "id_token": "<raw Google ID token>" }
- * Returns:  [AuthResponseDto] with user info + JWT pair.
+ * Returns:  [AuthResponseDto] with user info + JWT pair on success;
+ *           a [Result.Failure] with a human-readable message otherwise.
  */
 class AuthService(
     private val httpClient: HttpClient = AtmosHttpClient.instance,
 ) {
 
     suspend fun signInWithGoogle(idToken: String): Result<AuthResponseDto> = runCatching {
-        httpClient.post("$ATMOS_BASE_URL/api/v1/auth/google/token") {
+        val response = httpClient.post("$ATMOS_BASE_URL/api/v1/auth/google/token") {
             contentType(ContentType.Application.Json)
             setBody(GoogleTokenRequest(idToken))
-        }.body<AuthResponseDto>()
+        }
+        // Fail fast with a clean message instead of letting Ktor try (and fail) to
+        // deserialise an error body into AuthResponseDto.
+        if (response.status.value !in 200..299) {
+            throw Exception(httpErrorMessage(response.status))
+        }
+        response.body<AuthResponseDto>()
+    }
+
+    private fun httpErrorMessage(status: HttpStatusCode): String = when (status.value) {
+        400 -> "Invalid request. Please try again."
+        401 -> "Google sign-in token was rejected. Please try again."
+        403 -> "Access denied."
+        429 -> "Too many requests. Please wait a moment and try again."
+        in 500..599 -> "Server error (${status.value}). Please try again later."
+        else -> "Sign-in failed (${status.value}). Please try again."
     }
 }

@@ -69,13 +69,13 @@ class AndroidGoogleSignIn(private val activity: Activity) : GoogleSignInLauncher
                 )
                 val googleIdToken = GoogleIdTokenCredential
                     .createFrom(result.credential.data)
-                callback.onResult(googleIdToken.idToken, null)
+                callback.onResult(googleIdToken.idToken, null, false)
             } catch (e: GetCredentialCancellationException) {
-                callback.onResult(null, "Sign-in cancelled")
+                callback.onResult(null, null, true)   // user dismissed the picker
             } catch (e: GetCredentialException) {
-                callback.onResult(null, e.message ?: "Credential error")
+                callback.onResult(null, e.message ?: "Credential error", false)
             } catch (e: Exception) {
-                callback.onResult(null, e.message ?: "Sign-in failed")
+                callback.onResult(null, e.message ?: "Sign-in failed", false)
             }
         }
     }

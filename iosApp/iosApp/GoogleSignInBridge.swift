@@ -17,16 +17,21 @@ class SwiftGoogleSignInBridge: NSObject, GoogleSignInLauncher {
             .compactMap({ $0 as? UIWindowScene })
             .flatMap({ $0.windows })
             .first(where: { $0.isKeyWindow })?.rootViewController else {
-            callback.onResult(idToken: nil, error: "Could not find root view controller")
+            callback.onResult(idToken: nil, error: "Could not find root view controller", cancelled: false)
             return
         }
 
         GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { result, error in
             if let idToken = result?.user.idToken?.tokenString {
-                callback.onResult(idToken: idToken, error: nil)
+                callback.onResult(idToken: idToken, error: nil, cancelled: false)
+            } else if let nsError = error as NSError?,
+                      nsError.domain == "com.google.GIDSignIn",
+                      nsError.code == -4 {
+                // GIDSignInErrorCodeCanceled = -4 — user dismissed the sheet
+                callback.onResult(idToken: nil, error: nil, cancelled: true)
             } else {
                 let msg = error?.localizedDescription ?? "Failed to retrieve ID token"
-                callback.onResult(idToken: nil, error: msg)
+                callback.onResult(idToken: nil, error: msg, cancelled: false)
             }
         }
     }

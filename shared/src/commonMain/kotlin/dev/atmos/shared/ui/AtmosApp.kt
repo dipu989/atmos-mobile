@@ -103,13 +103,16 @@ fun AtmosApp() {
         googleSignInError   = null
 
         googleSignInLauncher.launch(object : GoogleSignInCallback {
-            override fun onResult(idToken: String?, error: String?) {
-                if (idToken == null) {
-                    // User cancelled or error from the platform sign-in
+            override fun onResult(idToken: String?, error: String?, cancelled: Boolean) {
+                if (cancelled) {
+                    // User dismissed the picker — reset loading, show nothing
                     googleSignInLoading = false
-                    if (error != null && error != "Sign-in cancelled") {
-                        googleSignInError = error
-                    }
+                    return
+                }
+                if (idToken == null) {
+                    // Platform-level error (e.g. no Google account on device)
+                    googleSignInLoading = false
+                    googleSignInError = error ?: "Sign-in failed. Please try again."
                     return
                 }
 
