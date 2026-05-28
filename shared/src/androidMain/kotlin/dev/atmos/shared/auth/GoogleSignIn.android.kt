@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 //
 // Example: "123456789-abc123def456.apps.googleusercontent.com"
 //
-private const val WEB_CLIENT_ID = "TODO_REPLACE_WITH_WEB_CLIENT_ID"
+private const val WEB_CLIENT_ID = "778685057864-2l30rul0rgv654jgdlhvkrhu7gg0nq7e.apps.googleusercontent.com"
 
 // ── Holder ────────────────────────────────────────────────────────────────────
 

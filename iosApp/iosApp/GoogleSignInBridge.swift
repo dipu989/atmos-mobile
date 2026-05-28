@@ -17,9 +17,7 @@ import shared
 //
 // 3. Add the reversed client ID to Info.plist:
 //    Key:   URL types (CFBundleURLTypes)
-//    Item:  URL Schemes = "com.googleusercontent.apps.123456789-abc123def456"
-//    (Just reverse the client ID, e.g. "123456789-abc123def456.apps.googleusercontent.com"
-//    → "com.googleusercontent.apps.123456789-abc123def456")
+//    Item:  URL Schemes = "com.googleusercontent.apps.778685057864-b58pa3j4nbepeomg30ciubf0ltdgft4m"
 //
 // 4. Uncomment `import GoogleSignIn` and the entire SwiftGoogleSignInBridge class.
 //
@@ -33,7 +31,7 @@ import shared
 
 // import GoogleSignIn
 //
-// private let IOS_CLIENT_ID = "TODO_REPLACE_WITH_IOS_CLIENT_ID"
+// private let IOS_CLIENT_ID = "778685057864-b58pa3j4nbepeomg30ciubf0ltdgft4m.apps.googleusercontent.com"
 //
 // /// Swift bridge that implements Kotlin's GoogleSignInLauncher interface.
 // /// It drives the native GIDSignIn bottom sheet and passes the raw ID token
