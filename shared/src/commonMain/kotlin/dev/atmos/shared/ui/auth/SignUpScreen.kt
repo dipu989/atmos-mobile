@@ -48,6 +48,10 @@ import dev.atmos.shared.ui.theme.LocalAtmosColors
 fun SignUpScreen(
     onCreateAccount: () -> Unit = {},
     onNavigateToSignIn: () -> Unit = {},
+    // Real Google Sign-In callback — wired up in AtmosApp.
+    onGoogleSignIn: () -> Unit = {},
+    googleSignInLoading: Boolean = false,
+    googleSignInError: String? = null,
 ) {
     val colors = LocalAtmosColors.current
     val scrollState = rememberScrollState()
@@ -259,7 +263,22 @@ fun SignUpScreen(
             OrDivider()
             Spacer(Modifier.height(16.dp))
 
-            GoogleSignInButton(onClick = onCreateAccount)
+            GoogleSignInButton(
+                onClick = onGoogleSignIn,
+                loading = googleSignInLoading,
+            )
+
+            if (googleSignInError != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = googleSignInError,
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        color = dev.atmos.shared.ui.theme.AlertRed,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             Spacer(Modifier.height(36.dp))
 

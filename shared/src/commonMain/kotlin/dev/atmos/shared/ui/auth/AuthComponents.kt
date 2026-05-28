@@ -248,10 +248,12 @@ fun AuthPrimaryButton(
 fun GoogleSignInButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    loading: Boolean = false,
 ) {
     val colors = LocalAtmosColors.current
     OutlinedButton(
         onClick = onClick,
+        enabled = !loading,
         modifier = modifier
             .fillMaxWidth()
             .height(54.dp),
@@ -259,25 +261,34 @@ fun GoogleSignInButton(
         border = BorderStroke(1.dp, colors.divider),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = colors.surface,
+            disabledContainerColor = colors.surface.copy(alpha = 0.6f),
         ),
     ) {
-        Text(
-            text = "G",
-            style = TextStyle(
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
+        if (loading) {
+            CircularProgressIndicator(
                 color = Color(0xFF4285F4),
-            ),
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(
-            text = "Continue with Google",
-            style = TextStyle(
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = colors.textPrimary,
-            ),
-        )
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+            )
+        } else {
+            Text(
+                text = "G",
+                style = TextStyle(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF4285F4),
+                ),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = "Continue with Google",
+                style = TextStyle(
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colors.textPrimary,
+                ),
+            )
+        }
     }
 }
 
