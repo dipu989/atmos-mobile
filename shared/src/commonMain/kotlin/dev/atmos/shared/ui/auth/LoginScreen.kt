@@ -41,6 +41,10 @@ fun LoginScreen(
     onSignIn: () -> Unit = {},
     onNavigateToSignUp: () -> Unit = {},
     onForgotPassword: () -> Unit = {},
+    // Real Google Sign-In callback — wired up in AtmosApp with Credential Manager / GIDSignIn.
+    onGoogleSignIn: () -> Unit = {},
+    googleSignInLoading: Boolean = false,
+    googleSignInError: String? = null,
 ) {
     val colors = LocalAtmosColors.current
     val scrollState = rememberScrollState()
@@ -168,7 +172,23 @@ fun LoginScreen(
             OrDivider()
             Spacer(Modifier.height(16.dp))
 
-            GoogleSignInButton(onClick = onSignIn)
+            GoogleSignInButton(
+                onClick  = onGoogleSignIn,
+                loading  = googleSignInLoading,
+            )
+
+            // Show error below the button if sign-in failed
+            if (googleSignInError != null) {
+                Spacer(Modifier.height(8.dp))
+                androidx.compose.material3.Text(
+                    text = googleSignInError,
+                    style = androidx.compose.ui.text.TextStyle(
+                        fontSize = 12.sp,
+                        color = dev.atmos.shared.ui.theme.AlertRed,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             Spacer(Modifier.height(36.dp))
 

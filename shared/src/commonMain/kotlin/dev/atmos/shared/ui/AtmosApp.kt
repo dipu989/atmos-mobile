@@ -12,6 +12,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import dev.atmos.shared.auth.AppTokenStore
+import dev.atmos.shared.auth.AuthState
+import dev.atmos.shared.auth.AuthUser
+import dev.atmos.shared.auth.GoogleSignInCallback
+import dev.atmos.shared.auth.createGoogleSignInLauncher
+import dev.atmos.shared.network.AuthService
 import dev.atmos.shared.ui.activities.ActivitiesScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
 import dev.atmos.shared.ui.home.InsightEntry
@@ -36,7 +43,6 @@ import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.util.currentDateLabel
 import dev.atmos.shared.util.currentGreeting
-import kotlinx.coroutines.launch
 
 private sealed class Screen {
     data object Onboarding     : Screen()
@@ -54,7 +60,95 @@ private sealed class Screen {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AtmosApp() {
-    var screen by remember { mutableStateOf<Screen>(Screen.Onboarding) }
+
+    // ── Auth — determine initial screen from persisted token ─────────────────
+    val tokenStore = remember { AppTokenStore.instance }
+    val authService = remember { AuthService() }
+    val googleSignInLauncher = remember { createGoogleSignInLauncher() }
+
+    var screen by remember {
+        // Skip onboarding/auth if the user is already signed in
+        mutableStateOf<Screen>(
+            if (tokenStore.isLoggedIn) Screen.Home else Screen.Onboarding
+        )
+    }
+
+    // Restore AuthState from persisted tokens on first composition
+    LaunchedEffect(Unit) {
+        if (tokenStore.isLoggedIn) {
+            AuthState.onSignedIn(
+                AuthUser(
+                    id          = tokenStore.getUserId() ?: "",
+                    email       = tokenStore.getUserEmail() ?: "",
+                    displayName = tokenStore.getDisplayName() ?: "",
+                    avatarUrl   = tokenStore.getAvatarUrl() ?: "",
+                )
+            )
+        }
+    }
+
+    // ── Google Sign-In state ─────────────────────────────────────────────────
+    var googleSignInLoading by remember { mutableStateOf(false) }
+    var googleSignInError   by remember { mutableStateOf<String?>(null) }
+
+    val scope = rememberCoroutineScope()
+
+    /**
+     * Launches the platform Google Sign-In flow, then exchanges the ID token
+     * with the Atmos backend. On success, persists tokens and navigates to Home.
+     */
+    fun handleGoogleSignIn() {
+        if (googleSignInLoading) return
+        googleSignInLoading = true
+        googleSignInError   = null
+
+        googleSignInLauncher.launch(object : GoogleSignInCallback {
+            override fun onResult(idToken: String?, error: String?, cancelled: Boolean) {
+                if (cancelled) {
+                    // User dismissed the picker — reset loading, show nothing
+                    googleSignInLoading = false
+                    return
+                }
+                if (idToken == null) {
+                    // Platform-level error (e.g. no Google account on device)
+                    googleSignInLoading = false
+                    googleSignInError = error ?: "Sign-in failed. Please try again."
+                    return
+                }
+
+                // Exchange Google ID token for Atmos JWT
+                scope.launch {
+                    val result = authService.signInWithGoogle(idToken)
+                    result.onSuccess { response ->
+                        // Persist tokens
+                        tokenStore.save(response)
+                        // Update in-memory auth state
+                        AuthState.onSignedIn(
+                            AuthUser(
+                                id          = response.user.id,
+                                email       = response.user.email,
+                                displayName = response.user.displayName,
+                                avatarUrl   = response.user.avatarUrl,
+                            )
+                        )
+                        googleSignInLoading = false
+                        screen = Screen.Home
+                    }.onFailure { e ->
+                        googleSignInLoading = false
+                        googleSignInError   = e.message ?: "Sign-in failed. Please try again."
+                    }
+                }
+            }
+        })
+    }
+
+    fun handleSignOut() {
+        tokenStore.clear()
+        AuthState.onSignedOut()
+        screen = Screen.Onboarding
+    }
+
+    // ── Home loading simulation (replace with real data later) ───────────────
     var appearanceMode by remember { mutableStateOf(AppearanceMode.SYSTEM) }
     var notificationsEnabled by remember { mutableStateOf(true) }
     var showLogActivity by remember { mutableStateOf(false) }
@@ -63,15 +157,12 @@ fun AtmosApp() {
     var selectedInsight  by remember { mutableStateOf<InsightEntry?>(null) }
     var homeIsLoading    by remember { mutableStateOf(true) }
 
-    // Simulate a 2-second data load each time Home is first composed.
-    // Replace with real ViewModel state when backend is wired up.
     LaunchedEffect(Unit) {
         delay(2_000)
         homeIsLoading = false
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     AtmosTheme(appearanceMode = appearanceMode) {
         val colors = LocalAtmosColors.current
@@ -96,18 +187,24 @@ fun AtmosApp() {
                 )
 
                 Screen.Login -> LoginScreen(
-                    onSignIn           = { screen = Screen.Home },
-                    onNavigateToSignUp = { screen = Screen.SignUp },
-                    onForgotPassword   = { screen = Screen.ForgotPassword },
+                    onSignIn             = { screen = Screen.Home },  // email/password (stub)
+                    onNavigateToSignUp   = { screen = Screen.SignUp },
+                    onForgotPassword     = { screen = Screen.ForgotPassword },
+                    onGoogleSignIn       = { handleGoogleSignIn() },
+                    googleSignInLoading  = googleSignInLoading,
+                    googleSignInError    = googleSignInError,
                 )
 
                 Screen.SignUp -> SignUpScreen(
-                    onCreateAccount    = { screen = Screen.Home },
+                    onCreateAccount    = { screen = Screen.Home },    // email/password (stub)
                     onNavigateToSignIn = { screen = Screen.Login },
+                    onGoogleSignIn     = { handleGoogleSignIn() },
+                    googleSignInLoading = googleSignInLoading,
+                    googleSignInError   = googleSignInError,
                 )
 
                 Screen.ForgotPassword -> ForgotPasswordScreen(
-                    onBack        = { screen = Screen.Login },
+                    onBack         = { screen = Screen.Login },
                     onBackToSignIn = { screen = Screen.Login },
                 )
 
@@ -134,14 +231,14 @@ fun AtmosApp() {
                             appearanceMode = appearanceMode,
                         ),
                     ),
-                    onBack                = { screen = Screen.Home },
-                    onNavigateToHome      = { screen = Screen.Home },
+                    onBack                 = { screen = Screen.Home },
+                    onNavigateToHome       = { screen = Screen.Home },
                     onNavigateToActivities = { screen = Screen.Activities },
-                    onAppearanceChange    = { mode -> appearanceMode = mode },
-                    onNotificationsToggle = { enabled -> notificationsEnabled = enabled },
-                    onSignOut = { screen = Screen.Home },
-                    onDeleteAccount = { screen = Screen.Home },
-                    onFabClick = { showLogActivity = true },
+                    onAppearanceChange     = { mode -> appearanceMode = mode },
+                    onNotificationsToggle  = { enabled -> notificationsEnabled = enabled },
+                    onSignOut    = { handleSignOut() },
+                    onDeleteAccount = { handleSignOut() },
+                    onFabClick   = { showLogActivity = true },
                 )
 
                 Screen.TripDetail -> selectedTrip?.let { entry ->
@@ -173,9 +270,9 @@ fun AtmosApp() {
 
                 Screen.InsightDetail -> selectedInsight?.let { entry ->
                     InsightDetailScreen(
-                        entry      = entry,
-                        onBack     = { screen = Screen.Home },
-                        onLogTrip  = { showLogActivity = true },
+                        entry     = entry,
+                        onBack    = { screen = Screen.Home },
+                        onLogTrip = { showLogActivity = true },
                     )
                 }
 
@@ -186,13 +283,13 @@ fun AtmosApp() {
                 )
             }
 
-            // ── Log Activity sheet — global, shown over any screen ────────────
+            // ── Log Activity sheet — global, shown over any screen ───────────
             if (showLogActivity) {
                 LogActivitySheet(
                     prefill   = tripToEdit?.let { t ->
                         LogActivityPrefill(origin = t.origin, destination = t.destination, mode = t.mode)
                     },
-                    onDismiss = { showLogActivity = false; tripToEdit = null },
+                    onDismiss    = { showLogActivity = false; tripToEdit = null },
                     onTripLogged = { trip ->
                         showLogActivity = false
                         scope.launch {

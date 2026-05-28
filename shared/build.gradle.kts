@@ -74,6 +74,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.play.services.location)   // FusedLocation + Activity Recognition
             implementation(libs.sqldelight.driver.android)
+            implementation(libs.androidx.credentials)                     // Credential Manager
+            implementation(libs.androidx.credentials.play.services.auth) // Google Sign-In backcompat
+            implementation(libs.googleid)                                // Google ID token helper
         }
 
         iosMain.dependencies {
