@@ -1,5 +1,7 @@
 package dev.atmos.shared.ui.home
 
+import dev.atmos.shared.location.OngoingSessionUiState
+
 // ── Data models ───────────────────────────────────────────────────────────────
 
 data class UserProfile(
@@ -86,6 +88,7 @@ data class HomeUiState(
     val insights: List<InsightEntry>,
     val unreadInsightsCount: Int,
     val pendingTrip: PendingTripEntry? = null,
+    val ongoingSession: OngoingSessionUiState? = null,
     val isLoading: Boolean = false,
     val isError: Boolean = false,
 )
