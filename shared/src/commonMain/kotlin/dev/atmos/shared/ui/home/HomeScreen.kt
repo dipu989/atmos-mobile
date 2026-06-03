@@ -45,6 +45,7 @@ import dev.atmos.shared.ui.home.components.AtmosBottomBar
 import dev.atmos.shared.ui.home.components.AtmosHeader
 import dev.atmos.shared.ui.home.components.AtmosTab
 import dev.atmos.shared.ui.home.components.InsightsSection
+import dev.atmos.shared.ui.home.components.OngoingTripCard
 import dev.atmos.shared.ui.home.components.PendingTripCard
 import dev.atmos.shared.ui.home.components.RecentActivityCard
 import dev.atmos.shared.ui.home.components.TodayImpactCard
@@ -71,6 +72,9 @@ fun HomeScreen(
     onEditPendingTrip: (PendingTripEntry) -> Unit = {},
     onTripClick: (RecentActivityEntry) -> Unit = {},
     onInsightClick: (InsightEntry) -> Unit = {},
+    onStopAndSave: () -> Unit = {},
+    onDiscard: () -> Unit = {},
+    onResume: () -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
@@ -123,8 +127,20 @@ fun HomeScreen(
                 )
             }
 
+            // Ongoing trip — shown while a session is actively being tracked
+            state.ongoingSession?.let { session ->
+                item {
+                    OngoingTripCard(
+                        state         = session,
+                        onStopAndSave = onStopAndSave,
+                        onDiscard     = onDiscard,
+                        onResume      = onResume,
+                    )
+                }
+            }
+
             // Pending trip confirmation — shown at the top when auto-detection fires
-            pendingTrip?.let { trip ->
+            if (state.ongoingSession == null) pendingTrip?.let { trip ->
                 item {
                     PendingTripCard(
                         trip = trip,

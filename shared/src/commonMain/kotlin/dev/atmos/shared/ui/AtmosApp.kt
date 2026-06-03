@@ -13,7 +13,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.collectAsState
 import dev.atmos.shared.auth.AppTokenStore
+import dev.atmos.shared.location.TripDetectorState
+import dev.atmos.shared.location.createTripDetector
 import dev.atmos.shared.auth.AuthState
 import dev.atmos.shared.auth.AuthUser
 import dev.atmos.shared.auth.GoogleSignInCallback
@@ -148,7 +151,12 @@ fun AtmosApp() {
         screen = Screen.Onboarding
     }
 
-    // ── Home loading simulation (replace with real data later) ───────────────
+    // ── Trip detector StateFlows ─────────────────────────────────────────────
+    val tripDetector = remember { createTripDetector() }
+    val ongoingSession  by TripDetectorState.ongoingSession.collectAsState()
+    val pendingSession  by TripDetectorState.pendingSession.collectAsState()
+
+    // ── Home UI ──────────────────────────────────────────────────────────────
     var appearanceMode by remember { mutableStateOf(AppearanceMode.SYSTEM) }
     var notificationsEnabled by remember { mutableStateOf(true) }
     var showLogActivity by remember { mutableStateOf(false) }
@@ -210,9 +218,10 @@ fun AtmosApp() {
 
                 Screen.Home -> HomeScreen(
                     state = previewHomeUiState.copy(
-                        greeting  = currentGreeting(),
-                        dateLabel = currentDateLabel(),
-                        isLoading = homeIsLoading,
+                        greeting       = currentGreeting(),
+                        dateLabel      = currentDateLabel(),
+                        isLoading      = homeIsLoading,
+                        ongoingSession = ongoingSession,
                     ),
                     onNavigateToProfile    = { screen = Screen.Profile },
                     onNavigateToActivities = { screen = Screen.Activities },
@@ -222,6 +231,9 @@ fun AtmosApp() {
                     onEditPendingTrip      = { trip -> tripToEdit = trip; showLogActivity = true },
                     onTripClick            = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
                     onInsightClick         = { entry -> selectedInsight = entry; screen = Screen.InsightDetail },
+                    onStopAndSave          = { tripDetector.manualEndAndSave() },
+                    onDiscard              = { tripDetector.discardSession() },
+                    onResume               = { /* cancels LegEnding grace — handled inside detector */ },
                 )
 
                 Screen.Profile -> ProfileScreen(
