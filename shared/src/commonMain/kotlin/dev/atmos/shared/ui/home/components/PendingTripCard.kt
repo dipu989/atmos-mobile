@@ -37,7 +37,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.atmos.shared.ui.home.PendingTripEntry
+import dev.atmos.shared.location.PendingSessionEntry
 import dev.atmos.shared.ui.home.TransportModeType
 import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
@@ -47,15 +47,24 @@ import dev.atmos.shared.ui.theme.Sage
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 
+/**
+ * Shown on HomeScreen after the detector auto-ends a session (stationarity timeout).
+ * Displays the session's legs and totals; user can confirm, edit, or dismiss.
+ *
+ * - Single-leg sessions: shows the mode label + total distance/duration
+ * - Multi-leg sessions:  shows a legs emoji strip ("🚗 8.6 km · 🚶 0.6 km") + totals
+ */
 @Composable
 fun PendingTripCard(
-    trip: PendingTripEntry,
+    session: PendingSessionEntry,
     onConfirm: () -> Unit,
     onEdit: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = LocalAtmosColors.current
+    val colors      = LocalAtmosColors.current
+    val primaryMode = session.legs.firstOrNull()?.mode ?: TransportModeType.DRIVING
+    val isMultiLeg  = session.legs.size > 1
 
     Column(
         modifier = modifier
@@ -73,36 +82,24 @@ fun PendingTripCard(
                 )
                 .padding(horizontal = 16.dp, vertical = 10.dp),
         ) {
-            // Pulsing dot
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(HorizonBlue, CircleShape),
-            )
+            Box(modifier = Modifier.size(8.dp).background(HorizonBlue, CircleShape))
             Spacer(Modifier.width(8.dp))
             Icon(
-                imageVector = Icons.Outlined.MyLocation,
+                imageVector        = Icons.Outlined.MyLocation,
                 contentDescription = null,
-                tint = HorizonBlue,
-                modifier = Modifier.size(14.dp),
+                tint               = HorizonBlue,
+                modifier           = Modifier.size(14.dp),
             )
             Spacer(Modifier.width(4.dp))
             Text(
-                text = "Trip detected",
-                fontSize = 13.sp,
+                text       = "Trip detected",
+                fontSize   = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = HorizonBlue,
-                modifier = Modifier.weight(1f),
+                color      = HorizonBlue,
+                modifier   = Modifier.weight(1f),
             )
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier.size(28.dp),
-            ) {
-                Text(
-                    text = "✕",
-                    fontSize = 13.sp,
-                    color = colors.textSecondary,
-                )
+            IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                Text(text = "✕", fontSize = 13.sp, color = colors.textSecondary)
             }
         }
 
@@ -113,53 +110,47 @@ fun PendingTripCard(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
-            // Mode icon
+            // Primary mode icon circle — always uses the first leg's mode
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
+                modifier         = Modifier
                     .size(48.dp)
-                    .background(
-                        color = trip.mode.iconBackground,
-                        shape = CircleShape,
-                    ),
+                    .background(primaryMode.iconBackground, CircleShape),
             ) {
                 Icon(
-                    imageVector = trip.mode.icon,
+                    imageVector        = primaryMode.icon,
                     contentDescription = null,
-                    tint = trip.mode.iconTint,
-                    modifier = Modifier.size(22.dp),
+                    tint               = primaryMode.iconTint,
+                    modifier           = Modifier.size(22.dp),
                 )
             }
 
             Spacer(Modifier.width(14.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "${trip.origin} → ${trip.destination}",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.textPrimary,
-                )
+                if (isMultiLeg) {
+                    // "🚗 8.6 km  ·  🚶 0.6 km"
+                    Text(
+                        text = session.legs.joinToString("  ·  ") { leg ->
+                            "${leg.mode.emoji} ${leg.distanceKm.toDisplayString()} km"
+                        },
+                        fontSize   = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = colors.textPrimary,
+                    )
+                } else {
+                    Text(
+                        text       = primaryMode.displayLabel,
+                        fontSize   = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = colors.textPrimary,
+                    )
+                }
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    text = "${trip.distanceKm.toDisplayString()} km · ${trip.durationMin} min",
+                    text     = "${session.totalDistKm.toDisplayString()} km · ${session.totalDurationMin} min",
                     fontSize = 13.sp,
-                    color = colors.textSecondary,
-                )
-            }
-
-            // CO₂ estimate
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "${trip.estimatedKgCO2.toDisplayString()} kg",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textPrimary,
-                )
-                Text(
-                    text = "CO₂",
-                    fontSize = 11.sp,
-                    color = colors.textSecondary,
+                    color    = colors.textSecondary,
                 )
             }
         }
@@ -173,65 +164,91 @@ fun PendingTripCard(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextButton(
-                onClick = onEdit,
-                modifier = Modifier.weight(1f),
-            ) {
+            TextButton(onClick = onEdit, modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Edit",
-                    fontSize = 14.sp,
+                    text       = "Edit",
+                    fontSize   = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = HorizonBlue,
+                    color      = HorizonBlue,
                 )
             }
-
             Button(
-                onClick = onConfirm,
+                onClick  = onConfirm,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Sage),
+                shape    = RoundedCornerShape(10.dp),
+                colors   = ButtonDefaults.buttonColors(containerColor = Sage),
             ) {
                 Text(
-                    text = "Confirm ✓",
-                    fontSize = 14.sp,
+                    text       = "Confirm ✓",
+                    fontSize   = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color      = Color.White,
                 )
             }
         }
     }
 }
 
-// ── Transport mode helpers ────────────────────────────────────────────────────
+// ── TransportModeType display helpers ────────────────────────────────────────
+
+private val TransportModeType.displayLabel: String
+    get() = when (this) {
+        TransportModeType.DRIVING        -> "Driving"
+        TransportModeType.WALKING        -> "Walking"
+        TransportModeType.CAB            -> "Cab"
+        TransportModeType.TWO_WHEELER    -> "Two-wheeler"
+        TransportModeType.AUTO_RICKSHAW  -> "Auto"
+        TransportModeType.PUBLIC_TRANSIT -> "Transit"
+        TransportModeType.BUS            -> "Bus"
+        TransportModeType.METRO          -> "Metro"
+        TransportModeType.TRAIN          -> "Train"
+        TransportModeType.CYCLING        -> "Cycling"
+        TransportModeType.FLIGHT         -> "Flight"
+    }
+
+private val TransportModeType.emoji: String
+    get() = when (this) {
+        TransportModeType.DRIVING        -> "🚗"
+        TransportModeType.WALKING        -> "🚶"
+        TransportModeType.CAB            -> "🚕"
+        TransportModeType.TWO_WHEELER    -> "🛵"
+        TransportModeType.AUTO_RICKSHAW  -> "🛺"
+        TransportModeType.PUBLIC_TRANSIT,
+        TransportModeType.BUS            -> "🚌"
+        TransportModeType.METRO          -> "🚇"
+        TransportModeType.TRAIN          -> "🚆"
+        TransportModeType.CYCLING        -> "🚲"
+        TransportModeType.FLIGHT         -> "✈️"
+    }
 
 private val TransportModeType.iconTint: Color
     get() = when (this) {
         TransportModeType.DRIVING,
         TransportModeType.CAB,
-        TransportModeType.FLIGHT        -> AlertRed
+        TransportModeType.FLIGHT         -> AlertRed
         TransportModeType.PUBLIC_TRANSIT,
         TransportModeType.BUS,
         TransportModeType.METRO,
-        TransportModeType.TRAIN         -> HorizonBlue
+        TransportModeType.TRAIN          -> HorizonBlue
         TransportModeType.CYCLING,
-        TransportModeType.WALKING       -> Sage
+        TransportModeType.WALKING        -> Sage
         TransportModeType.TWO_WHEELER,
-        TransportModeType.AUTO_RICKSHAW -> Peach
+        TransportModeType.AUTO_RICKSHAW  -> Peach
     }
 
 private val TransportModeType.iconBackground: Color
     get() = when (this) {
         TransportModeType.DRIVING,
         TransportModeType.CAB,
-        TransportModeType.FLIGHT        -> Color(0xFFFFEEEC)
+        TransportModeType.FLIGHT         -> Color(0xFFFFEEEC)
         TransportModeType.PUBLIC_TRANSIT,
         TransportModeType.BUS,
         TransportModeType.METRO,
-        TransportModeType.TRAIN         -> Color(0xFFE8F2FA)
+        TransportModeType.TRAIN          -> Color(0xFFE8F2FA)
         TransportModeType.CYCLING,
-        TransportModeType.WALKING       -> Color(0xFFE8F7F0)
+        TransportModeType.WALKING        -> Color(0xFFE8F7F0)
         TransportModeType.TWO_WHEELER,
-        TransportModeType.AUTO_RICKSHAW -> Color(0xFFFFF3EE)
+        TransportModeType.AUTO_RICKSHAW  -> Color(0xFFFFF3EE)
     }
 
 private val TransportModeType.icon: ImageVector

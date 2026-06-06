@@ -138,6 +138,20 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
         }
     }
 
+    override fun confirmPendingSession(sessionId: String) {
+        scope.launch {
+            repo.confirmSession(sessionId)
+            TripDetectorState.emitPendingSession(null)
+        }
+    }
+
+    override fun dismissPendingSession(sessionId: String) {
+        scope.launch {
+            repo.deleteSession(sessionId)
+            TripDetectorState.emitPendingSession(null)
+        }
+    }
+
     override fun resumeLeg() {
         scope.launch {
             val phase = currentPhase
