@@ -67,6 +67,19 @@ data class PendingLegEntry(
     val distanceKm: Float,
 )
 
+// ── UI model: recently saved session (5-second snackbar window) ───────────────
+
+/**
+ * Emitted into [TripDetectorState.recentlySaved] immediately after a user-initiated save.
+ * Cleared automatically after 5 s. AtmosApp shows a "Trip saved · X km [Edit]" snackbar.
+ */
+data class RecentlySavedSession(
+    val sessionId: String,
+    val totalDistKm: Float,
+    /** Mode of the first leg — used to pre-fill LogActivitySheet when user taps "Edit". */
+    val firstLegMode: TransportModeType?,
+)
+
 // ── Reactive state bridge (background → Compose UI) ──────────────────────────
 
 /**
@@ -84,11 +97,12 @@ object TripDetectorState {
     val pendingSession: StateFlow<PendingSessionEntry?> = _pendingSession.asStateFlow()
 
     /**
-     * Emits the sessionId of the most recently auto-saved session for ~5 s, then null.
-     * AtmosApp shows a "Trip saved · Edit" snackbar on each non-null emission.
+     * Non-null for ~5 s after a user-initiated save. Carries distance + first leg mode
+     * so AtmosApp can show "Trip saved · X.X km [Edit]" without a DB round-trip.
+     * Cleared automatically by the detector after 5 s.
      */
-    private val _recentlySavedSessionId = MutableStateFlow<String?>(null)
-    val recentlySavedSessionId: StateFlow<String?> = _recentlySavedSessionId.asStateFlow()
+    private val _recentlySaved = MutableStateFlow<RecentlySavedSession?>(null)
+    val recentlySaved: StateFlow<RecentlySavedSession?> = _recentlySaved.asStateFlow()
 
     /** Drives permission pill state on OnboardingScreen. */
     private val _permissionState = MutableStateFlow(LocationPermissionState.UNKNOWN)
@@ -96,7 +110,7 @@ object TripDetectorState {
 
     fun emitOngoingSession(state: OngoingSessionUiState?) { _ongoingSession.value = state }
     fun emitPendingSession(session: PendingSessionEntry?) { _pendingSession.value = session }
-    fun emitRecentlySaved(sessionId: String?) { _recentlySavedSessionId.value = sessionId }
+    fun emitRecentlySaved(session: RecentlySavedSession?) { _recentlySaved.value = session }
     fun updatePermissionState(state: LocationPermissionState) { _permissionState.value = state }
 }
 
@@ -124,6 +138,13 @@ interface TripDetector {
 
     /** Discard the current session without saving. Clears [TripDetectorState.ongoingSession]. */
     fun discardSession()
+
+    /**
+     * Cancel the LegEnding grace window and resume the current active leg.
+     * Called when the user taps "Resume" on the LegEnding countdown banner.
+     * No-op if not in [SessionPhase.LegEnding].
+     */
+    fun resumeLeg()
 
     /**
      * Inject an activity transition event directly.

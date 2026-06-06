@@ -4,6 +4,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,6 +32,7 @@ import dev.atmos.shared.ui.auth.SignUpScreen
 import dev.atmos.shared.ui.home.HomeScreen
 import dev.atmos.shared.ui.home.PendingTripEntry
 import dev.atmos.shared.ui.home.RecentActivityEntry
+import dev.atmos.shared.ui.home.TransportModeType
 import dev.atmos.shared.ui.home.previewAllActivities
 import dev.atmos.shared.ui.home.previewHomeUiState
 import dev.atmos.shared.ui.insights.InsightsScreen
@@ -155,6 +157,7 @@ fun AtmosApp() {
     val tripDetector = remember { createTripDetector() }
     val ongoingSession  by TripDetectorState.ongoingSession.collectAsState()
     val pendingSession  by TripDetectorState.pendingSession.collectAsState()
+    val recentlySaved   by TripDetectorState.recentlySaved.collectAsState()
 
     // ── Home UI ──────────────────────────────────────────────────────────────
     var appearanceMode by remember { mutableStateOf(AppearanceMode.SYSTEM) }
@@ -171,6 +174,30 @@ fun AtmosApp() {
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // ── "Trip saved · X km [Edit]" snackbar ─────────────────────────────────
+    LaunchedEffect(recentlySaved) {
+        val saved = recentlySaved ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message     = "Trip saved · ${saved.totalDistKm.toDisplayString()} km",
+            actionLabel = "Edit",
+            withDismissAction = false,
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            // Pre-fill LogActivitySheet with the first leg's mode + total distance
+            tripToEdit = PendingTripEntry(
+                mode           = saved.firstLegMode
+                    ?.let { TransportModeType.valueOf(it.name) }
+                    ?: TransportModeType.DRIVING,
+                origin         = "",
+                destination    = "",
+                distanceKm     = saved.totalDistKm,
+                durationMin    = 0,
+                estimatedKgCO2 = 0f,
+            )
+            showLogActivity = true
+        }
+    }
 
     AtmosTheme(appearanceMode = appearanceMode) {
         val colors = LocalAtmosColors.current
@@ -233,7 +260,7 @@ fun AtmosApp() {
                     onInsightClick         = { entry -> selectedInsight = entry; screen = Screen.InsightDetail },
                     onStopAndSave          = { tripDetector.manualEndAndSave() },
                     onDiscard              = { tripDetector.discardSession() },
-                    onResume               = { /* cancels LegEnding grace — handled inside detector */ },
+                    onResume               = { tripDetector.resumeLeg() },
                 )
 
                 Screen.Profile -> ProfileScreen(
