@@ -140,6 +140,18 @@ interface TripDetector {
     fun discardSession()
 
     /**
+     * User confirmed a system-auto-ended session (tapped "Confirm ✓" on PendingTripCard).
+     * Marks the session as confirmed in the DB and clears [TripDetectorState.pendingSession].
+     */
+    fun confirmPendingSession(sessionId: String)
+
+    /**
+     * User dismissed a pending session without saving (tapped "✕" or scrolled away).
+     * Hard-deletes the session from the DB and clears [TripDetectorState.pendingSession].
+     */
+    fun dismissPendingSession(sessionId: String)
+
+    /**
      * Cancel the LegEnding grace window and resume the current active leg.
      * Called when the user taps "Resume" on the LegEnding countdown banner.
      * No-op if not in [SessionPhase.LegEnding].

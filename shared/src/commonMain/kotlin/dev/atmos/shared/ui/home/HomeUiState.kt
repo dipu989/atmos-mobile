@@ -1,6 +1,8 @@
 package dev.atmos.shared.ui.home
 
 import dev.atmos.shared.location.OngoingSessionUiState
+import dev.atmos.shared.location.PendingLegEntry
+import dev.atmos.shared.location.PendingSessionEntry
 
 // ── Data models ───────────────────────────────────────────────────────────────
 
@@ -87,7 +89,7 @@ data class HomeUiState(
     val recentActivity: List<RecentActivityEntry>,
     val insights: List<InsightEntry>,
     val unreadInsightsCount: Int,
-    val pendingTrip: PendingTripEntry? = null,
+    val pendingSession: PendingSessionEntry? = null,
     val ongoingSession: OngoingSessionUiState? = null,
     val isLoading: Boolean = false,
     val isError: Boolean = false,
@@ -163,13 +165,14 @@ val previewHomeUiState = HomeUiState(
         ),
     ),
     unreadInsightsCount = 3,
-    pendingTrip = PendingTripEntry(
-        mode             = TransportModeType.DRIVING,
-        origin           = "Office",
-        destination      = "Home",
-        distanceKm       = 11.8f,
-        durationMin      = 24,
-        estimatedKgCO2   = 1.7f,
+    pendingSession = PendingSessionEntry(
+        sessionId        = "preview-session",
+        legs             = listOf(
+            PendingLegEntry(legId = "leg-1", mode = TransportModeType.DRIVING, distanceKm = 8.6f),
+            PendingLegEntry(legId = "leg-2", mode = TransportModeType.WALKING, distanceKm = 0.6f),
+        ),
+        totalDistKm      = 9.2f,
+        totalDurationMin = 24,
     ),
 )
 

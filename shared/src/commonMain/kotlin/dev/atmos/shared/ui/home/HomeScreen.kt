@@ -69,7 +69,9 @@ fun HomeScreen(
     onNavigateToInsights: () -> Unit = {},
     onRetry: () -> Unit = {},
     onFabClick: () -> Unit = {},
-    onEditPendingTrip: (PendingTripEntry) -> Unit = {},
+    onConfirmPendingSession: () -> Unit = {},
+    onDismissPendingSession: () -> Unit = {},
+    onEditPendingSession: () -> Unit = {},
     onTripClick: (RecentActivityEntry) -> Unit = {},
     onInsightClick: (InsightEntry) -> Unit = {},
     onStopAndSave: () -> Unit = {},
@@ -78,7 +80,7 @@ fun HomeScreen(
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
-    var pendingTrip by remember { mutableStateOf(state.pendingTrip) }
+    var pendingSession by remember { mutableStateOf(state.pendingSession) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -139,17 +141,23 @@ fun HomeScreen(
                 }
             }
 
-            // Pending trip confirmation — shown at the top when auto-detection fires
-            if (state.ongoingSession == null) pendingTrip?.let { trip ->
+            // Pending trip confirmation — shown when detector auto-ends a session
+            if (state.ongoingSession == null) pendingSession?.let { session ->
                 item {
                     PendingTripCard(
-                        trip = trip,
+                        session   = session,
                         onConfirm = {
-                            pendingTrip = null
+                            pendingSession = null
+                            onConfirmPendingSession()
                             scope.launch { snackbarHostState.showSnackbar("Trip confirmed — nice work!") }
                         },
-                        onEdit = { onEditPendingTrip(trip) },
-                        onDismiss = { pendingTrip = null },
+                        onEdit    = {
+                            onEditPendingSession()
+                        },
+                        onDismiss = {
+                            pendingSession = null
+                            onDismissPendingSession()
+                        },
                     )
                 }
             }
@@ -164,7 +172,7 @@ fun HomeScreen(
                 item { TransportBreakdownSkeleton() }
                 item { RecentActivitySkeleton() }
                 item { InsightsSkeleton() }
-            } else if (state.recentActivity.isEmpty() && pendingTrip == null) {
+            } else if (state.recentActivity.isEmpty() && pendingSession == null) {
                 // ── First-run empty state ─────────────────────────────────────
                 item { HomeEmptyState(onLogTrip = onFabClick) }
             } else {

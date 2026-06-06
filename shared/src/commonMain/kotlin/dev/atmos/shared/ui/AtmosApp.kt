@@ -245,17 +245,38 @@ fun AtmosApp() {
 
                 Screen.Home -> HomeScreen(
                     state = previewHomeUiState.copy(
-                        greeting       = currentGreeting(),
-                        dateLabel      = currentDateLabel(),
-                        isLoading      = homeIsLoading,
-                        ongoingSession = ongoingSession,
+                        greeting        = currentGreeting(),
+                        dateLabel       = currentDateLabel(),
+                        isLoading       = homeIsLoading,
+                        ongoingSession  = ongoingSession,
+                        pendingSession  = pendingSession,
                     ),
                     onNavigateToProfile    = { screen = Screen.Profile },
                     onNavigateToActivities = { screen = Screen.Activities },
                     onNavigateToInsights   = { screen = Screen.Insights },
                     onRetry                = { homeIsLoading = true },
                     onFabClick             = { tripToEdit = null; showLogActivity = true },
-                    onEditPendingTrip      = { trip -> tripToEdit = trip; showLogActivity = true },
+                    onConfirmPendingSession = {
+                        pendingSession?.let { tripDetector.confirmPendingSession(it.sessionId) }
+                    },
+                    onDismissPendingSession = {
+                        pendingSession?.let { tripDetector.dismissPendingSession(it.sessionId) }
+                    },
+                    onEditPendingSession    = {
+                        pendingSession?.let { s ->
+                            tripToEdit = PendingTripEntry(
+                                mode           = s.legs.firstOrNull()
+                                    ?.let { TransportModeType.valueOf(it.mode.name) }
+                                    ?: TransportModeType.DRIVING,
+                                origin         = "",
+                                destination    = "",
+                                distanceKm     = s.totalDistKm,
+                                durationMin    = s.totalDurationMin,
+                                estimatedKgCO2 = 0f,
+                            )
+                            showLogActivity = true
+                        }
+                    },
                     onTripClick            = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
                     onInsightClick         = { entry -> selectedInsight = entry; screen = Screen.InsightDetail },
                     onStopAndSave          = { tripDetector.manualEndAndSave() },
