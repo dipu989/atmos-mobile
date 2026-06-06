@@ -164,6 +164,19 @@ class AndroidTripDetector(
         }
     }
 
+    override fun resumeLeg() {
+        scope.launch {
+            val phase = currentPhase
+            if (phase is SessionPhase.LegEnding) {
+                legEndingJob?.cancel()
+                stillTimeoutJob?.cancel()
+                currentPhase = SessionPhase.Active(phase.previousMode)
+                updateServiceNotification()
+                publishOngoingSession()
+            }
+        }
+    }
+
     override fun handleTransition(event: VehicleActivity) {
         scope.launch {
             when (event) {
@@ -369,7 +382,13 @@ class AndroidTripDetector(
 
         if (userInitiated) {
             // User hit "End Trip" — save immediately, show snackbar in UI
-            TripDetectorState.emitRecentlySaved(session.sessionId)
+            TripDetectorState.emitRecentlySaved(
+                RecentlySavedSession(
+                    sessionId    = session.sessionId,
+                    totalDistKm  = totalDist,
+                    firstLegMode = session.legs.firstOrNull()?.mode,
+                )
+            )
             scope.launch {
                 delay(5_000L)
                 TripDetectorState.emitRecentlySaved(null)
