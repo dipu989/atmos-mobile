@@ -16,26 +16,29 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.collectAsState
 import dev.atmos.shared.auth.AppTokenStore
-import dev.atmos.shared.location.TripDetectorState
-import dev.atmos.shared.location.createTripDetector
 import dev.atmos.shared.auth.AuthState
 import dev.atmos.shared.auth.AuthUser
 import dev.atmos.shared.auth.GoogleSignInCallback
 import dev.atmos.shared.auth.createGoogleSignInLauncher
+import dev.atmos.shared.db.DatabaseProvider
+import dev.atmos.shared.db.TripRepositoryImpl
+import dev.atmos.shared.db.groupByDateLabel
+import dev.atmos.shared.db.toRecentActivityEntry
+import dev.atmos.shared.location.TripDetectorState
+import dev.atmos.shared.location.createTripDetector
 import dev.atmos.shared.network.AuthService
 import dev.atmos.shared.ui.activities.ActivitiesScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
-import dev.atmos.shared.ui.home.InsightEntry
-import dev.atmos.shared.ui.insightdetail.InsightDetailScreen
 import dev.atmos.shared.ui.auth.LoginScreen
 import dev.atmos.shared.ui.auth.SignUpScreen
 import dev.atmos.shared.ui.home.HomeScreen
+import dev.atmos.shared.ui.home.InsightEntry
 import dev.atmos.shared.ui.home.PendingTripEntry
 import dev.atmos.shared.ui.home.RecentActivityEntry
 import dev.atmos.shared.ui.home.TransportModeType
-import dev.atmos.shared.ui.home.previewAllActivities
 import dev.atmos.shared.ui.home.previewHomeUiState
 import dev.atmos.shared.ui.insights.InsightsScreen
+import dev.atmos.shared.ui.insightdetail.InsightDetailScreen
 import dev.atmos.shared.ui.logactivity.LogActivityPrefill
 import dev.atmos.shared.ui.logactivity.LogActivitySheet
 import dev.atmos.shared.ui.onboarding.OnboardingScreen
@@ -159,6 +162,18 @@ fun AtmosApp() {
     val pendingSession  by TripDetectorState.pendingSession.collectAsState()
     val recentlySaved   by TripDetectorState.recentlySaved.collectAsState()
 
+    // ── Confirmed sessions from DB ────────────────────────────────────────────
+    // TripDetector.init() guarantees DatabaseProvider is ready before we reach here.
+    val repo = remember { TripRepositoryImpl(DatabaseProvider.database) }
+    val confirmedSessions by repo.observeConfirmedSessions().collectAsState(initial = emptyList())
+    val groupedActivities = remember(confirmedSessions) {
+        confirmedSessions.map { it.toRecentActivityEntry() }.groupByDateLabel()
+    }
+    // Most-recent 3 sessions for the HomeScreen "Recent Activity" card
+    val recentActivityEntries = remember(confirmedSessions) {
+        confirmedSessions.take(3).map { it.toRecentActivityEntry() }
+    }
+
     // ── Home UI ──────────────────────────────────────────────────────────────
     var appearanceMode by remember { mutableStateOf(AppearanceMode.SYSTEM) }
     var notificationsEnabled by remember { mutableStateOf(true) }
@@ -250,6 +265,7 @@ fun AtmosApp() {
                         isLoading       = homeIsLoading,
                         ongoingSession  = ongoingSession,
                         pendingSession  = pendingSession,
+                        recentActivity  = recentActivityEntries,
                     ),
                     onNavigateToProfile    = { screen = Screen.Profile },
                     onNavigateToActivities = { screen = Screen.Activities },
@@ -322,7 +338,7 @@ fun AtmosApp() {
                 }
 
                 Screen.Activities -> ActivitiesScreen(
-                    groupedEntries   = previewAllActivities,
+                    groupedEntries   = groupedActivities,
                     onNavigateToHome = { screen = Screen.Home },
                     onTripClick      = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
                     onFabClick       = { showLogActivity = true },

@@ -199,7 +199,8 @@ internal fun ActivityRow(
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${entry.origin} → ${entry.destination}",
+                    text = if (entry.destination.isBlank()) entry.origin
+                           else "${entry.origin} → ${entry.destination}",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = colors.textPrimary,
