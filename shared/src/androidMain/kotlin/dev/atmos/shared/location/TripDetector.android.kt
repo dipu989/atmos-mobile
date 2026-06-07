@@ -260,6 +260,7 @@ class AndroidTripDetector(
             is SessionPhase.Active -> {
                 // Start 60 s grace — user might re-enter (petrol stop, short errand)
                 currentPhase = SessionPhase.LegEnding(phase.currentMode)
+                updateServiceNotification()   // switch notification to "Trip ending…"
                 legEndingJob = scope.launch {
                     for (i in (TRIP_ENDING_GRACE_MS / 1_000L).toInt() downTo 0) {
                         legEndingSecondsLeft = i
@@ -523,13 +524,25 @@ class AndroidTripDetector(
     }
 
     private fun updateServiceNotification() {
-        val mode = (currentPhase as? SessionPhase.Active)?.currentMode ?: return
+        val phase = currentPhase
+        val mode = when (phase) {
+            is SessionPhase.Active    -> phase.currentMode
+            is SessionPhase.LegEnding -> phase.previousMode
+            else -> return
+        }
+        val phaseStr = if (phase is SessionPhase.LegEnding)
+            TripDetectionServiceConsts.PHASE_LEG_ENDING
+        else
+            TripDetectionServiceConsts.PHASE_ACTIVE
         try {
             context.startService(
                 serviceIntent(TripDetectionServiceConsts.ACTION_UPDATE)
                     .putExtra(TripDetectionServiceConsts.EXTRA_MODE, mode.name)
                     .putExtra(TripDetectionServiceConsts.EXTRA_DIST_KM,
                         sessionState?.totalDistanceKm ?: 0f)
+                    .putExtra(TripDetectionServiceConsts.EXTRA_START_TIME_MS,
+                        sessionState?.startTimeMs ?: System.currentTimeMillis())
+                    .putExtra(TripDetectionServiceConsts.EXTRA_PHASE, phaseStr)
             )
         } catch (_: Exception) { }
     }
@@ -666,14 +679,25 @@ data class LegStateDto(
  * Defined here (shared module) to avoid a circular dependency on the androidApp module.
  */
 object TripDetectionServiceConsts {
-    const val EXTRA_ACTION       = "action"
-    const val EXTRA_MODE         = "mode"
-    const val EXTRA_DIST_KM      = "dist_km"
-    const val ACTION_START       = "start"
-    const val ACTION_STOP        = "stop"
-    const val ACTION_UPDATE      = "update"
+    const val EXTRA_ACTION        = "action"
+    const val EXTRA_MODE          = "mode"
+    const val EXTRA_DIST_KM       = "dist_km"
+    const val EXTRA_START_TIME_MS = "start_time_ms"
+    const val EXTRA_PHASE         = "phase"
+
+    const val ACTION_START         = "start"
+    const val ACTION_STOP          = "stop"
+    const val ACTION_UPDATE        = "update"
     const val ACTION_TRIP_DETECTED = "trip_detected"
-    const val ACTION_TRIP_SAVED  = "trip_saved"
+    const val ACTION_TRIP_SAVED    = "trip_saved"
+
+    /** Broadcast action fired by TripActionReceiver when the user taps "End Trip" in the notification. */
+    const val ACTION_END_TRIP = "dev.atmos.android.ACTION_END_TRIP"
+    /** Broadcast action fired by TripActionReceiver when the user taps "Discard" in the notification. */
+    const val ACTION_DISCARD  = "dev.atmos.android.ACTION_DISCARD"
+
+    const val PHASE_ACTIVE     = "active"
+    const val PHASE_LEG_ENDING = "leg_ending"
 }
 
 private fun serializeWaypoints(waypoints: List<LatLng>): String =
