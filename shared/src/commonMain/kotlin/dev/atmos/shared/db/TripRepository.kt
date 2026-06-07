@@ -42,6 +42,19 @@ interface TripRepository {
     /** Hard-delete a session. Legs are removed automatically via ON DELETE CASCADE. */
     suspend fun deleteSession(id: String)
 
+    /**
+     * Atomically write a complete manually-logged trip (one session + one leg).
+     * The session is immediately confirmed — no PendingTripCard shown.
+     *
+     * Both [started_at_ms] and [ended_at_ms] are set to [timestampMs]; duration
+     * is therefore 0 min for manual entries (no user-entered duration field yet).
+     *
+     * @param mode         [TransportModeType.name] string (e.g. "DRIVING")
+     * @param distanceKm   user-entered or backend-estimated trip distance
+     * @param timestampMs  epoch-ms wall-clock time for the log entry
+     */
+    suspend fun saveManualTrip(mode: String, distanceKm: Float, timestampMs: Long)
+
     /** All sessions that have ended but not yet been confirmed. */
     suspend fun getPendingSessions(): List<SessionWithLegs>
 
