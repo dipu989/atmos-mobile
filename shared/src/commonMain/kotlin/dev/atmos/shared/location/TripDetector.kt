@@ -160,7 +160,7 @@ interface TripDetector {
 
     /**
      * Inject an activity transition event directly.
-     * Used by [TripTransitionReceiver] (Android) and the debug overlay in MainActivity.
+     * Used by [TripTransitionReceiver] (Android).
      */
     fun handleTransition(event: VehicleActivity)
 }

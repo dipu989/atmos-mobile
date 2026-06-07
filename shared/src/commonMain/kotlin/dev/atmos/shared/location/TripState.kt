@@ -2,25 +2,6 @@ package dev.atmos.shared.location
 
 import dev.atmos.shared.ui.home.TransportModeType
 
-// ── Legacy single-trip phases — kept for backward compat, removed in cleanup ──
-// TODO: delete once 2.3 (Android) + 2.4 (iOS) state machine rewrites are done
-
-sealed class TripPhase {
-    data object Idle        : TripPhase()
-    data object TripStarting: TripPhase()
-    data object Active      : TripPhase()
-    data object TripEnding  : TripPhase()
-    data object Completed   : TripPhase()
-}
-
-data class RawTrip(
-    val startTimeMs: Long,
-    val waypoints: MutableList<LatLng> = mutableListOf(),
-    var distanceKm: Float = 0f,
-    var durationMin: Int = 0,
-    var lastFixTimeMs: Long = startTimeMs,
-)
-
 // ── Session phases ────────────────────────────────────────────────────────────
 
 sealed class SessionPhase {
