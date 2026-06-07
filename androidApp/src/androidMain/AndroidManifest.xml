@@ -46,6 +46,11 @@
             android:name="dev.atmos.shared.location.TripTransitionReceiver"
             android:exported="false" />
 
+        <!-- BroadcastReceiver for notification action buttons (End Trip / Discard) -->
+        <receiver
+            android:name=".TripActionReceiver"
+            android:exported="false" />
+
     </application>
 
 </manifest>
