@@ -2,6 +2,7 @@ package dev.atmos.shared.db
 
 import dev.atmos.shared.ui.home.RecentActivityEntry
 import dev.atmos.shared.ui.home.TransportModeType
+import dev.atmos.shared.ui.home.emissionFactor
 import dev.atmos.shared.util.formatDateGroupLabel
 import dev.atmos.shared.util.formatTimestamp
 
@@ -13,9 +14,9 @@ import dev.atmos.shared.util.formatTimestamp
  * - [RecentActivityEntry.origin] — On-device detection does not resolve street addresses.
  *   We synthesise a human-readable label from the leg modes instead (e.g. "Driving",
  *   "Driving + Walking"). ActivityRow handles an empty destination gracefully.
- * - [RecentActivityEntry.kgCO2] — Always 0 here; the backend computes emissions after
- *   the session is POSTed to /activities. CO₂ should be fetched from backend responses
- *   and layered in separately once that API call is wired.
+ * - [RecentActivityEntry.kgCO2] — Calculated on-device using India-region DEFRA 2023
+ *   factors (kg CO₂e per km) summed across all legs. This is a local estimate; the
+ *   backend may refine it once the session is POSTed to /activities.
  * - [RecentActivityEntry.isAutoDetected] — Always true for DB-sourced sessions.
  */
 fun SessionWithLegs.toRecentActivityEntry(): RecentActivityEntry {
@@ -39,15 +40,22 @@ fun SessionWithLegs.toRecentActivityEntry(): RecentActivityEntry {
         ?.let { end -> ((end - session.started_at_ms) / 60_000L).toInt().coerceAtLeast(0) }
         ?: 0
 
+    // Sum kg CO₂e across all legs: distance_km × mode emission factor (DEFRA IN 2023)
+    val kgCO2 = sortedLegs.sumOf { leg ->
+        val mode = runCatching { TransportModeType.valueOf(leg.mode) }.getOrNull()
+            ?: TransportModeType.DRIVING
+        (leg.distance_km * mode.emissionFactor).toDouble()
+    }.toFloat()
+
     return RecentActivityEntry(
         mode           = primaryMode,
         origin         = modeLabel,
-        destination    = "",                                          // no address on-device
+        destination    = "",                 // no address on-device
         timeLabel      = formatTimestamp(session.started_at_ms),
         dateLabel      = formatDateGroupLabel(session.started_at_ms),
         distanceKm     = session.total_dist_km.toFloat(),
         durationMin    = durationMin,
-        kgCO2          = 0f,                                          // computed by backend
+        kgCO2          = kgCO2,
         isAutoDetected = true,
     )
 }

@@ -63,6 +63,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.home.TransportModeType
+import dev.atmos.shared.ui.home.emissionFactor
 import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
@@ -578,23 +579,6 @@ data class LoggedTrip(
     val distanceKm: Float,
     val estimatedKgCO2: Float,
 )
-
-// ── Emission factors (kg CO₂ per km) ─────────────────────────────────────────
-
-val TransportModeType.emissionFactor: Float
-    get() = when (this) {
-        TransportModeType.DRIVING        -> 0.21f
-        TransportModeType.CAB            -> 0.21f
-        TransportModeType.TWO_WHEELER    -> 0.11f
-        TransportModeType.AUTO_RICKSHAW  -> 0.10f
-        TransportModeType.BUS,
-        TransportModeType.PUBLIC_TRANSIT -> 0.09f
-        TransportModeType.TRAIN,
-        TransportModeType.METRO          -> 0.04f
-        TransportModeType.FLIGHT         -> 0.26f
-        TransportModeType.CYCLING,
-        TransportModeType.WALKING        -> 0.00f
-    }
 
 val TransportModeType.displayLabel: String
     get() = when (this) {
