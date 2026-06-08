@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+
 package dev.atmos.shared.db
 
 import app.cash.sqldelight.coroutines.asFlow
@@ -8,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlin.uuid.Uuid
 
 /**
  * SQLDelight-backed implementation of [TripRepository].
@@ -113,5 +116,33 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
             waypoints_json = waypointsJson,
             id             = id,
         )
+    }
+
+    override suspend fun saveManualTrip(
+        mode: String,
+        distanceKm: Float,
+        timestampMs: Long,
+    ) = withContext(Dispatchers.IO) {
+        val sessionId = Uuid.random().toString()
+        val legId     = Uuid.random().toString()
+        database.transaction {
+            database.sessionsQueries.insert(
+                id            = sessionId,
+                started_at_ms = timestampMs,
+                ended_at_ms   = timestampMs,
+                total_dist_km = distanceKm.toDouble(),
+                is_confirmed  = 1L,
+            )
+            database.legsQueries.insert(
+                id             = legId,
+                session_id     = sessionId,
+                mode           = mode,
+                started_at_ms  = timestampMs,
+                ended_at_ms    = timestampMs,
+                distance_km    = distanceKm.toDouble(),
+                waypoints_json = "[]",
+                sort_order     = 0L,
+            )
+        }
     }
 }

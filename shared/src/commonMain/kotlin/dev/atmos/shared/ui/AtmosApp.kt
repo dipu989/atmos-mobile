@@ -51,6 +51,7 @@ import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.util.currentDateLabel
 import dev.atmos.shared.util.currentGreeting
+import kotlinx.datetime.Clock
 
 private sealed class Screen {
     data object Onboarding     : Screen()
@@ -368,7 +369,14 @@ fun AtmosApp() {
                     onDismiss    = { showLogActivity = false; tripToEdit = null },
                     onTripLogged = { trip ->
                         showLogActivity = false
+                        tripToEdit = null
                         scope.launch {
+                            // Persist to DB — trip appears immediately in Activities + HomeScreen
+                            repo.saveManualTrip(
+                                mode        = trip.mode.name,
+                                distanceKm  = trip.distanceKm,
+                                timestampMs = Clock.System.now().toEpochMilliseconds(),
+                            )
                             snackbarHostState.showSnackbar(
                                 "Trip logged — ${trip.origin} → ${trip.destination} · ${
                                     if (trip.estimatedKgCO2 == 0f) "Zero emissions 🌿"
