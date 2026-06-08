@@ -24,6 +24,8 @@ import dev.atmos.shared.db.DatabaseProvider
 import dev.atmos.shared.db.TripRepositoryImpl
 import dev.atmos.shared.db.groupByDateLabel
 import dev.atmos.shared.db.toRecentActivityEntry
+import dev.atmos.shared.location.LocalPermissionRequester
+import dev.atmos.shared.location.LocationPermissionState
 import dev.atmos.shared.location.TripDetectorState
 import dev.atmos.shared.location.createTripDetector
 import dev.atmos.shared.network.AuthService
@@ -159,9 +161,15 @@ fun AtmosApp() {
 
     // ── Trip detector StateFlows ─────────────────────────────────────────────
     val tripDetector = remember { createTripDetector() }
-    val ongoingSession  by TripDetectorState.ongoingSession.collectAsState()
-    val pendingSession  by TripDetectorState.pendingSession.collectAsState()
-    val recentlySaved   by TripDetectorState.recentlySaved.collectAsState()
+    val ongoingSession      by TripDetectorState.ongoingSession.collectAsState()
+    val pendingSession      by TripDetectorState.pendingSession.collectAsState()
+    val recentlySaved       by TripDetectorState.recentlySaved.collectAsState()
+    val locationPermState   by TripDetectorState.permissionState.collectAsState()
+    val notifGranted        by TripDetectorState.notificationsGranted.collectAsState()
+
+    val locationGranted = locationPermState == LocationPermissionState.GRANTED ||
+                          locationPermState == LocationPermissionState.BACKGROUND_ONLY
+    val permReq = LocalPermissionRequester.current
 
     // ── Confirmed sessions from DB ────────────────────────────────────────────
     // TripDetector.init() guarantees DatabaseProvider is ready before we reach here.
@@ -233,8 +241,12 @@ fun AtmosApp() {
         ) { _ ->
             when (screen) {
                 Screen.Onboarding -> OnboardingScreen(
-                    onGetStarted         = { screen = Screen.SignUp },
-                    onAlreadyHaveAccount = { screen = Screen.Login },
+                    onGetStarted           = { screen = Screen.SignUp },
+                    onAlreadyHaveAccount   = { screen = Screen.Login },
+                    locationGranted        = locationGranted,
+                    notificationsGranted   = notifGranted,
+                    onRequestLocation      = { permReq.requestLocation() },
+                    onRequestNotifications = { permReq.requestNotification() },
                 )
 
                 Screen.Login -> LoginScreen(

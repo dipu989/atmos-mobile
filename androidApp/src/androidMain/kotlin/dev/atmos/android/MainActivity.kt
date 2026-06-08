@@ -1,11 +1,24 @@
 package dev.atmos.android
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.core.content.ContextCompat
 import dev.atmos.shared.auth.GoogleSignInHolder
+import dev.atmos.shared.location.LocalPermissionRequester
+import dev.atmos.shared.location.LocationPermissionState
+import dev.atmos.shared.location.NoOpPermissionRequester
+import dev.atmos.shared.location.PermissionRequester
 import dev.atmos.shared.location.TripDetectorHolder
+import dev.atmos.shared.location.TripDetectorState
 import dev.atmos.shared.ui.AtmosApp
 
 class MainActivity : ComponentActivity() {
@@ -18,8 +31,64 @@ class MainActivity : ComponentActivity() {
         TripDetectorHolder.init(applicationContext)
         GoogleSignInHolder.init(this)
 
+        // Sync permission state with TripDetectorState so the onboarding pills
+        // reflect real grant status even on subsequent app launches.
+        val locationAlreadyGranted = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        if (locationAlreadyGranted) {
+            TripDetectorState.updatePermissionState(LocationPermissionState.GRANTED)
+        }
+        val notifAlreadyGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else true   // Pre-Android-13: notifications are always available
+        TripDetectorState.updateNotificationsGranted(notifAlreadyGranted)
+
         setContent {
-            AtmosApp()
+            // ── Location permission launcher ──────────────────────────────────
+            val locationLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions()
+            ) { perms ->
+                val granted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true
+                TripDetectorState.updatePermissionState(
+                    if (granted) LocationPermissionState.GRANTED else LocationPermissionState.DENIED
+                )
+            }
+
+            // ── Notification permission launcher (Android 13+) ────────────────
+            val notifLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { granted ->
+                TripDetectorState.updateNotificationsGranted(granted)
+            }
+
+            // ── Provide the requester to the whole composition tree ───────────
+            val permReq: PermissionRequester = remember {
+                object : PermissionRequester {
+                    override fun requestLocation() {
+                        locationLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION,
+                            )
+                        )
+                    }
+                    override fun requestNotification() {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            // Pre-Android-13: permission is implicit — mark granted immediately
+                            TripDetectorState.updateNotificationsGranted(true)
+                        }
+                    }
+                }
+            }
+
+            CompositionLocalProvider(LocalPermissionRequester provides permReq) {
+                AtmosApp()
+            }
         }
     }
 }
