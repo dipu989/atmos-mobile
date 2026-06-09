@@ -13,9 +13,10 @@ import dev.atmos.shared.util.formatTimestamp
  * - [RecentActivityEntry.origin] — On-device detection does not resolve street addresses.
  *   We synthesise a human-readable label from the leg modes instead (e.g. "Driving",
  *   "Driving + Walking"). ActivityRow handles an empty destination gracefully.
- * - [RecentActivityEntry.kgCO2] — Always 0 here; the backend computes emissions after
- *   the session is POSTed to /activities. CO₂ should be fetched from backend responses
- *   and layered in separately once that API call is wired.
+ * - [RecentActivityEntry.kgCO2] — Always 0f here. CO₂ is intentionally omitted from the
+ *   local DB schema (see Sessions.sq) and computed server-side via POST /activities using
+ *   region-aware DEFRA factors. It should be fetched from backend responses and layered
+ *   in once that API call is wired.
  * - [RecentActivityEntry.isAutoDetected] — Always true for DB-sourced sessions.
  */
 fun SessionWithLegs.toRecentActivityEntry(): RecentActivityEntry {
@@ -42,12 +43,12 @@ fun SessionWithLegs.toRecentActivityEntry(): RecentActivityEntry {
     return RecentActivityEntry(
         mode           = primaryMode,
         origin         = modeLabel,
-        destination    = "",                                          // no address on-device
+        destination    = "",                 // no address on-device
         timeLabel      = formatTimestamp(session.started_at_ms),
         dateLabel      = formatDateGroupLabel(session.started_at_ms),
         distanceKm     = session.total_dist_km.toFloat(),
         durationMin    = durationMin,
-        kgCO2          = 0f,                                          // computed by backend
+        kgCO2          = 0f,                 // computed server-side via POST /activities
         isAutoDetected = true,
     )
 }

@@ -34,6 +34,26 @@ enum class TransportModeType {
         get() = this == DRIVING || this == CAB || this == FLIGHT
 }
 
+/**
+ * India-region DEFRA 2023 emission factors (kg CO₂e per km).
+ * Canonical definition — import from here instead of duplicating.
+ * Used by LogActivitySheet (estimate card), SessionMapper (per-leg CO₂), and the dashboard.
+ */
+val TransportModeType.emissionFactor: Float
+    get() = when (this) {
+        TransportModeType.DRIVING        -> 0.21f
+        TransportModeType.CAB            -> 0.21f
+        TransportModeType.TWO_WHEELER    -> 0.11f
+        TransportModeType.AUTO_RICKSHAW  -> 0.10f
+        TransportModeType.BUS,
+        TransportModeType.PUBLIC_TRANSIT -> 0.09f
+        TransportModeType.TRAIN,
+        TransportModeType.METRO          -> 0.04f
+        TransportModeType.FLIGHT         -> 0.26f
+        TransportModeType.CYCLING,
+        TransportModeType.WALKING        -> 0.00f
+    }
+
 data class TransportModeEntry(
     val mode: TransportModeType,
     val displayName: String,
