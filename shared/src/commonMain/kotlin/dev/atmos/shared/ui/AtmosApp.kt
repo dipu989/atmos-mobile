@@ -191,6 +191,9 @@ fun AtmosApp() {
     var selectedTrip     by remember { mutableStateOf<RecentActivityEntry?>(null) }
     var selectedInsight  by remember { mutableStateOf<InsightEntry?>(null) }
     var homeIsLoading    by remember { mutableStateOf(true) }
+    // Non-null when the user tapped Edit on a confirmed DB trip — holds the session to replace.
+    var editingSessionId  by remember { mutableStateOf<String?>(null) }
+    var editingTimestampMs by remember { mutableStateOf(0L) }
 
     LaunchedEffect(Unit) {
         delay(2_000)
@@ -208,6 +211,9 @@ fun AtmosApp() {
             withDismissAction = false,
         )
         if (result == SnackbarResult.ActionPerformed) {
+            // Mark as an edit so onTripLogged replaces the auto-saved session
+            editingSessionId   = saved.sessionId
+            editingTimestampMs = saved.startedAtMs
             // Pre-fill LogActivitySheet with the first leg's mode + total distance
             tripToEdit = PendingTripEntry(
                 mode           = saved.firstLegMode
@@ -336,6 +342,9 @@ fun AtmosApp() {
                         dailyGoalKgCO2 = previewHomeUiState.todayImpact.dailyGoalKgCO2,
                         onBack         = { screen = Screen.Home },
                         onEdit         = {
+                            // Capture session identity so onTripLogged can delete-then-replace
+                            editingSessionId  = entry.sessionId.ifEmpty { null }
+                            editingTimestampMs = entry.timestampMs
                             tripToEdit = PendingTripEntry(
                                 mode           = entry.mode,
                                 origin         = entry.origin,
@@ -346,7 +355,17 @@ fun AtmosApp() {
                             )
                             showLogActivity = true
                         },
-                        onDelete = { screen = Screen.Home },
+                        onDelete = {
+                            val sessionId = entry.sessionId
+                            scope.launch {
+                                try {
+                                    if (sessionId.isNotEmpty()) repo.deleteSession(sessionId)
+                                } catch (e: Exception) {
+                                    snackbarHostState.showSnackbar("Could not delete trip — please try again")
+                                }
+                            }
+                            screen = Screen.Home
+                        },
                     )
                 }
 
@@ -376,25 +395,55 @@ fun AtmosApp() {
             if (showLogActivity) {
                 LogActivitySheet(
                     prefill   = tripToEdit?.let { t ->
-                        LogActivityPrefill(origin = t.origin, destination = t.destination, mode = t.mode)
+                        LogActivityPrefill(
+                            origin      = t.origin,
+                            destination = t.destination,
+                            mode        = t.mode,
+                            distanceKm  = t.distanceKm,
+                        )
                     },
-                    onDismiss    = { showLogActivity = false; tripToEdit = null },
+                    onDismiss    = {
+                        showLogActivity    = false
+                        tripToEdit         = null
+                        editingSessionId   = null
+                        editingTimestampMs = 0L
+                    },
                     onTripLogged = { trip ->
                         showLogActivity = false
-                        tripToEdit = null
+                        tripToEdit      = null
+                        // Snapshot + clear before the coroutine runs
+                        val sessionBeingEdited  = editingSessionId
+                        val originalTimestampMs = editingTimestampMs
+                        editingSessionId   = null
+                        editingTimestampMs = 0L
                         scope.launch {
-                            // Persist to DB — trip appears immediately in Activities + HomeScreen
-                            repo.saveManualTrip(
-                                mode        = trip.mode.name,
-                                distanceKm  = trip.distanceKm,
-                                timestampMs = Clock.System.now().toEpochMilliseconds(),
-                            )
-                            snackbarHostState.showSnackbar(
-                                "Trip logged — ${trip.origin} → ${trip.destination} · ${
-                                    if (trip.estimatedKgCO2 == 0f) "Zero emissions 🌿"
-                                    else "${trip.estimatedKgCO2.toDisplayString()} kg CO₂"
-                                }"
-                            )
+                            try {
+                                if (sessionBeingEdited != null) {
+                                    // Edit flow: atomic delete + replace inside one DB transaction
+                                    repo.updateManualTrip(
+                                        oldSessionId = sessionBeingEdited,
+                                        mode         = trip.mode.name,
+                                        distanceKm   = trip.distanceKm,
+                                        timestampMs  = originalTimestampMs,
+                                    )
+                                    snackbarHostState.showSnackbar("Trip updated")
+                                } else {
+                                    // New-log flow: save with current timestamp
+                                    repo.saveManualTrip(
+                                        mode        = trip.mode.name,
+                                        distanceKm  = trip.distanceKm,
+                                        timestampMs = Clock.System.now().toEpochMilliseconds(),
+                                    )
+                                    snackbarHostState.showSnackbar(
+                                        "Trip logged — ${trip.origin} → ${trip.destination} · ${
+                                            if (trip.estimatedKgCO2 == 0f) "Zero emissions 🌿"
+                                            else "${trip.estimatedKgCO2.toDisplayString()} kg CO₂"
+                                        }"
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar("Could not save trip — please try again")
+                            }
                         }
                     },
                 )

@@ -78,6 +78,8 @@ data class LogActivityPrefill(
     val origin: String = "",
     val destination: String = "",
     val mode: TransportModeType? = null,
+    /** Pre-fill the distance field when editing an existing confirmed trip. 0f = leave blank. */
+    val distanceKm: Float = 0f,
 )
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -122,10 +124,12 @@ private fun LogActivityContent(
     var destinationError by remember { mutableStateOf(false) }
 
     val routeReady = origin.isNotBlank() && destination.isNotBlank()
-    // Distance and CO₂ will be calculated from the route once backend logic is wired up.
-    // For now distanceKm stays 0f — the estimate card is hidden until then.
-    val distanceKm = 0f
-    val estimatedCO2 = 0f
+
+    // Distance: user-editable; pre-filled when editing an existing trip.
+    val prefillDistStr = prefill?.distanceKm?.let { if (it > 0f) it.toDisplayString() else "" } ?: ""
+    var distanceKmText by remember(prefill) { mutableStateOf(prefillDistStr) }
+    val distanceKm = distanceKmText.toFloatOrNull() ?: 0f
+    val estimatedCO2 = distanceKm * selectedMode.emissionFactor
 
     Column(
         modifier = Modifier
@@ -199,8 +203,20 @@ private fun LogActivityContent(
             )
         }
 
-        // ── Distance (auto-calculated) ────────────────────────────────────────
-        DistanceAutoRow(routeReady = routeReady)
+        // ── Distance ──────────────────────────────────────────────────────────
+        SectionLabel("Distance (km)")
+        InputField(
+            value        = distanceKmText,
+            onValueChange = { input ->
+                // Allow digits and at most one decimal point
+                val filtered = input.filter { it.isDigit() || it == '.' }
+                val dotCount = filtered.count { it == '.' }
+                if (dotCount <= 1) distanceKmText = filtered
+            },
+            placeholder  = "e.g. 8.6",
+            leadingIcon  = Icons.Outlined.Straighten,
+            keyboardType = KeyboardType.Decimal,
+        )
 
         // ── Date & Time ───────────────────────────────────────────────────────
         SectionLabel("When?")

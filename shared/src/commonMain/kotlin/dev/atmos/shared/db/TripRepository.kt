@@ -55,6 +55,26 @@ interface TripRepository {
      */
     suspend fun saveManualTrip(mode: String, distanceKm: Float, timestampMs: Long)
 
+    /**
+     * Atomically replace an existing manually-logged trip with new values.
+     *
+     * Deletes [oldSessionId] (and its legs via ON DELETE CASCADE) then inserts
+     * a fresh session + leg — all inside a single SQLite transaction so there is
+     * no window where the trip is absent from the DB.
+     *
+     * @param oldSessionId DB session ID to replace
+     * @param mode         [TransportModeType.name] string (e.g. "DRIVING")
+     * @param distanceKm   updated trip distance
+     * @param timestampMs  original epoch-ms start time — preserved so the trip
+     *                     stays in the same date group after editing
+     */
+    suspend fun updateManualTrip(
+        oldSessionId: String,
+        mode: String,
+        distanceKm: Float,
+        timestampMs: Long,
+    )
+
     /** All sessions that have ended but not yet been confirmed. */
     suspend fun getPendingSessions(): List<SessionWithLegs>
 

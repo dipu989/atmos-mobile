@@ -50,6 +50,8 @@ fun SessionWithLegs.toRecentActivityEntry(): RecentActivityEntry {
         durationMin    = durationMin,
         kgCO2          = 0f,                 // computed server-side via POST /activities
         isAutoDetected = true,
+        sessionId      = session.id,
+        timestampMs    = session.started_at_ms,
     )
 }
 

@@ -402,6 +402,7 @@ class AndroidTripDetector(
                     sessionId    = session.sessionId,
                     totalDistKm  = totalDist,
                     firstLegMode = session.legs.firstOrNull()?.mode,
+                    startedAtMs  = session.startTimeMs,
                 )
             )
             scope.launch {

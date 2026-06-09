@@ -78,6 +78,8 @@ data class RecentlySavedSession(
     val totalDistKm: Float,
     /** Mode of the first leg — used to pre-fill LogActivitySheet when user taps "Edit". */
     val firstLegMode: TransportModeType?,
+    /** Epoch-ms start time — preserved when editing so the trip stays in the same date group. */
+    val startedAtMs: Long = 0L,
 )
 
 // ── Reactive state bridge (background → Compose UI) ──────────────────────────
