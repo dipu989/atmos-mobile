@@ -17,10 +17,6 @@ import kotlinx.datetime.Clock
 import platform.CoreLocation.CLLocation
 import platform.CoreLocation.CLLocationManager
 import platform.CoreLocation.CLLocationManagerDelegateProtocol
-import platform.CoreLocation.kCLAuthorizationStatusAuthorizedAlways
-import platform.CoreLocation.kCLAuthorizationStatusAuthorizedWhenInUse
-import platform.CoreLocation.kCLAuthorizationStatusDenied
-import platform.CoreLocation.kCLAuthorizationStatusNotDetermined
 import platform.CoreLocation.kCLLocationAccuracyBest
 import platform.CoreLocation.kCLLocationAccuracyHundredMeters
 import platform.CoreMotion.CMMotionActivity
@@ -486,14 +482,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
     // ── Permission state ──────────────────────────────────────────────────────
 
     private fun checkCurrentPermissionState() {
-        val state = when (locationManager.authorizationStatus) {
-            kCLAuthorizationStatusAuthorizedAlways    -> LocationPermissionState.GRANTED
-            kCLAuthorizationStatusAuthorizedWhenInUse -> LocationPermissionState.BACKGROUND_ONLY
-            kCLAuthorizationStatusDenied              -> LocationPermissionState.DENIED
-            kCLAuthorizationStatusNotDetermined       -> LocationPermissionState.UNKNOWN
-            else                                      -> LocationPermissionState.UNKNOWN
-        }
-        TripDetectorState.updatePermissionState(state)
+        locationManager.syncPermissionStateToStore()
     }
 
     // ── Persistence — NSUserDefaults (no JSON needed) ─────────────────────────
