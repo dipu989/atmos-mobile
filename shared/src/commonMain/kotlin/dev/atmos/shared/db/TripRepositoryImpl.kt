@@ -145,4 +145,35 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
             )
         }
     }
+
+    override suspend fun updateManualTrip(
+        oldSessionId: String,
+        mode: String,
+        distanceKm: Float,
+        timestampMs: Long,
+    ) = withContext(Dispatchers.IO) {
+        val newSessionId = Uuid.random().toString()
+        val newLegId     = Uuid.random().toString()
+        // Single transaction: delete old + insert replacement — no gap where the trip is absent.
+        database.transaction {
+            database.sessionsQueries.delete(id = oldSessionId)
+            database.sessionsQueries.insert(
+                id            = newSessionId,
+                started_at_ms = timestampMs,
+                ended_at_ms   = timestampMs,
+                total_dist_km = distanceKm.toDouble(),
+                is_confirmed  = 1L,
+            )
+            database.legsQueries.insert(
+                id             = newLegId,
+                session_id     = newSessionId,
+                mode           = mode,
+                started_at_ms  = timestampMs,
+                ended_at_ms    = timestampMs,
+                distance_km    = distanceKm.toDouble(),
+                waypoints_json = "[]",
+                sort_order     = 0L,
+            )
+        }
+    }
 }

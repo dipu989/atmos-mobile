@@ -86,6 +86,10 @@ data class RecentActivityEntry(
     val durationMin: Int,
     val kgCO2: Float,
     val isAutoDetected: Boolean = true,   // false = manually logged
+    /** DB session ID — empty string for hardcoded preview entries. */
+    val sessionId: String = "",
+    /** Original epoch-ms start time — preserved when editing so the trip stays in the correct date group. */
+    val timestampMs: Long = 0L,
 )
 
 // ── Pending trip (auto-detected, awaiting user confirmation) ──────────────────
