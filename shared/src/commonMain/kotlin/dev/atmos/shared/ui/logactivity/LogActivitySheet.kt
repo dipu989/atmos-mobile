@@ -122,6 +122,7 @@ private fun LogActivityContent(
     var destination by remember { mutableStateOf(prefill?.destination ?: "") }
     var originError by remember { mutableStateOf(false) }
     var destinationError by remember { mutableStateOf(false) }
+    var distanceError by remember { mutableStateOf(false) }
 
     val routeReady = origin.isNotBlank() && destination.isNotBlank()
 
@@ -211,11 +212,15 @@ private fun LogActivityContent(
                 // Allow digits and at most one decimal point
                 val filtered = input.filter { it.isDigit() || it == '.' }
                 val dotCount = filtered.count { it == '.' }
-                if (dotCount <= 1) distanceKmText = filtered
+                if (dotCount <= 1) {
+                    distanceKmText = filtered
+                    distanceError = false
+                }
             },
             placeholder  = "e.g. 8.6",
             leadingIcon  = Icons.Outlined.Straighten,
             keyboardType = KeyboardType.Decimal,
+            isError      = distanceError,
         )
 
         // ── Date & Time ───────────────────────────────────────────────────────
@@ -245,10 +250,11 @@ private fun LogActivityContent(
         // ── CTA ───────────────────────────────────────────────────────────────
         Button(
             onClick = {
-                originError = origin.isBlank()
+                originError      = origin.isBlank()
                 destinationError = destination.isBlank()
+                distanceError    = distanceKm <= 0f
 
-                if (!originError && !destinationError) {
+                if (!originError && !destinationError && !distanceError) {
                     onTripLogged(
                         LoggedTrip(
                             mode = selectedMode,

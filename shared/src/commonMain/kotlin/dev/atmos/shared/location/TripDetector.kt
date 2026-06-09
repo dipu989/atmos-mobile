@@ -58,6 +58,8 @@ data class PendingSessionEntry(
     val legs: List<PendingLegEntry>,
     val totalDistKm: Float,
     val totalDurationMin: Int,
+    /** Epoch-ms session start — used to sync to the backend after the user confirms. */
+    val startedAtMs: Long = 0L,
 )
 
 /** One leg within a pending session. Mode can be edited by the user before confirming. */

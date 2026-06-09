@@ -28,7 +28,12 @@ import dev.atmos.shared.location.LocalPermissionRequester
 import dev.atmos.shared.location.LocationPermissionState
 import dev.atmos.shared.location.TripDetectorState
 import dev.atmos.shared.location.createTripDetector
+import dev.atmos.shared.network.ActivityService
 import dev.atmos.shared.network.AuthService
+import dev.atmos.shared.network.TimelineService
+import dev.atmos.shared.network.backendMode
+import dev.atmos.shared.ui.home.TodayImpact
+import dev.atmos.shared.ui.home.WeeklyDataPoint
 import dev.atmos.shared.ui.activities.ActivitiesScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
 import dev.atmos.shared.ui.auth.LoginScreen
@@ -54,6 +59,11 @@ import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.util.currentDateLabel
 import dev.atmos.shared.util.currentGreeting
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 
 private sealed class Screen {
     data object Onboarding     : Screen()
@@ -75,6 +85,8 @@ fun AtmosApp() {
     // ── Auth — determine initial screen from persisted token ─────────────────
     val tokenStore = remember { AppTokenStore.instance }
     val authService = remember { AuthService() }
+    val activityService = remember { ActivityService() }
+    val timelineService = remember { TimelineService() }
     val googleSignInLauncher = remember { createGoogleSignInLauncher() }
 
     var screen by remember {
@@ -195,16 +207,121 @@ fun AtmosApp() {
     var editingSessionId  by remember { mutableStateOf<String?>(null) }
     var editingTimestampMs by remember { mutableStateOf(0L) }
 
+    // ── Timeline data (real CO₂ totals from backend) ──────────────────────────
+    // Initialised to neutral zeros — the Home screen skeleton renders while the first fetch runs.
+    // Using preview/fake values here would silently display fabricated data on network failure.
+    var todayImpact  by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = 5.0f, percentVsWeeklyAvg = 0)) }
+    var weeklyTrend  by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
+
     LaunchedEffect(Unit) {
         delay(2_000)
         homeIsLoading = false
     }
 
+    // Fetch timeline whenever the user is authenticated and lands on Home.
+    // Re-fetches automatically after any trip is saved (triggeredBy counter below).
+    var timelineTrigger by remember { mutableStateOf(0) }
+    LaunchedEffect(screen, timelineTrigger) {
+        if (screen != Screen.Home || !tokenStore.isLoggedIn) return@LaunchedEffect
+        timelineService.getDaily().onSuccess { daily ->
+            todayImpact = TodayImpact(
+                kgCO2              = daily.totalKgCo2e,
+                dailyGoalKgCO2     = todayImpact.dailyGoalKgCO2,   // keep user-set goal
+                percentVsWeeklyAvg = daily.trend.changePct?.toInt() ?: 0,
+            )
+        }
+        timelineService.getWeekly().onSuccess { weekly ->
+            if (weekly.days.isNotEmpty()) {
+                // Parse week_start to derive each day's real date — avoids the wrong assumption
+                // that today is always the last element in the list.
+                val weekStartDate = try { LocalDate.parse(weekly.weekStart) } catch (_: Exception) { null }
+                val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                weeklyTrend = weekly.days.mapIndexed { i, day ->
+                    val dayDate = weekStartDate?.plus(i, DateTimeUnit.DAY)
+                    // ordinal: 0=Mon … 6=Sun (Kotlin enum / java.time.DayOfWeek)
+                    val label = when (dayDate?.dayOfWeek?.ordinal) {
+                        0 -> "Mon"; 1 -> "Tue"; 2 -> "Wed"; 3 -> "Thu"
+                        4 -> "Fri"; 5 -> "Sat"; 6 -> "Sun"
+                        else -> listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun").getOrElse(i) { "D${i + 1}" }
+                    }
+                    WeeklyDataPoint(
+                        dayLabel = label,
+                        kgCO2    = day.totalKgCo2e,
+                        isToday  = dayDate == today,
+                    )
+                }
+            }
+        }
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // ── "Trip saved · X km [Edit]" snackbar ─────────────────────────────────
+    // ── Backend sync helper ──────────────────────────────────────────────────
+    /**
+     * Fire-and-forget: POST /activities for [sessionId].
+     * Stores the returned backend UUID locally; silently ignores network failures.
+     * On success, bumps [timelineTrigger] so the Home screen re-fetches CO₂ totals.
+     */
+    fun syncToBackend(
+        sessionId: String,
+        mode: TransportModeType,
+        distanceKm: Float,
+        durationMin: Int,
+        startedAtMs: Long,
+        endedAtMs: Long,
+    ) {
+        if (!tokenStore.isLoggedIn || sessionId.isEmpty()) return
+        scope.launch {
+            activityService.ingestActivity(
+                sessionId   = sessionId,
+                mode        = mode,
+                distanceKm  = distanceKm,
+                durationMin = durationMin,
+                startedAtMs = startedAtMs,
+                endedAtMs   = endedAtMs,
+            ).onSuccess { dto ->
+                if (dto.id.isNotEmpty()) {
+                    repo.updateBackendActivityId(sessionId, dto.id)
+                    timelineTrigger++ // only bump on a real 201 — not on 409 no-ops
+                }
+            }
+        }
+    }
+
+    // ── Startup backfill — re-sync sessions confirmed before the backend_activity_id column ──
+    // Sessions confirmed before the migration (1.sqm) have backend_activity_id = NULL.
+    // This effect runs once on first authenticated launch and fires syncToBackend for each,
+    // so pre-migration trips eventually appear in the backend's CO₂ timeline.
+    LaunchedEffect(Unit) {
+        if (!tokenStore.isLoggedIn) return@LaunchedEffect
+        val unsynced = try { repo.getUnsyncedConfirmedSessions() } catch (_: Exception) { return@LaunchedEffect }
+        unsynced.forEach { swl ->
+            val primaryLeg = swl.legs.firstOrNull() ?: return@forEach
+            val mode = try { TransportModeType.valueOf(primaryLeg.mode) } catch (_: Exception) { return@forEach }
+            syncToBackend(
+                sessionId   = swl.session.id,
+                mode        = mode,
+                distanceKm  = swl.session.total_dist_km.toFloat(),
+                durationMin = 0,
+                startedAtMs = swl.session.started_at_ms,
+                endedAtMs   = swl.session.ended_at_ms ?: swl.session.started_at_ms,
+            )
+        }
+    }
+
+    // ── "Trip saved · X km [Edit]" snackbar + backend sync ──────────────────
     LaunchedEffect(recentlySaved) {
         val saved = recentlySaved ?: return@LaunchedEffect
+        // Sync the auto-saved session to the backend immediately
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        syncToBackend(
+            sessionId   = saved.sessionId,
+            mode        = saved.firstLegMode ?: TransportModeType.DRIVING,
+            distanceKm  = saved.totalDistKm,
+            durationMin = 0,
+            startedAtMs = saved.startedAtMs,
+            endedAtMs   = nowMs,
+        )
         val result = snackbarHostState.showSnackbar(
             message     = "Trip saved · ${saved.totalDistKm.toDisplayString()} km",
             actionLabel = "Edit",
@@ -285,6 +402,8 @@ fun AtmosApp() {
                         ongoingSession  = ongoingSession,
                         pendingSession  = pendingSession,
                         recentActivity  = recentActivityEntries,
+                        todayImpact     = todayImpact,
+                        weeklyTrend     = weeklyTrend,
                     ),
                     onNavigateToProfile    = { screen = Screen.Profile },
                     onNavigateToActivities = { screen = Screen.Activities },
@@ -292,7 +411,18 @@ fun AtmosApp() {
                     onRetry                = { homeIsLoading = true },
                     onFabClick             = { tripToEdit = null; showLogActivity = true },
                     onConfirmPendingSession = {
-                        pendingSession?.let { tripDetector.confirmPendingSession(it.sessionId) }
+                        pendingSession?.let { s ->
+                            tripDetector.confirmPendingSession(s.sessionId)
+                            val nowMs = Clock.System.now().toEpochMilliseconds()
+                            syncToBackend(
+                                sessionId   = s.sessionId,
+                                mode        = s.legs.firstOrNull()?.mode ?: TransportModeType.DRIVING,
+                                distanceKm  = s.totalDistKm,
+                                durationMin = s.totalDurationMin,
+                                startedAtMs = s.startedAtMs,
+                                endedAtMs   = nowMs,
+                            )
+                        }
                     },
                     onDismissPendingSession = {
                         pendingSession?.let { tripDetector.dismissPendingSession(it.sessionId) }
@@ -360,11 +490,12 @@ fun AtmosApp() {
                             scope.launch {
                                 try {
                                     if (sessionId.isNotEmpty()) repo.deleteSession(sessionId)
+                                    screen = Screen.Home  // navigate only after successful delete
                                 } catch (e: Exception) {
                                     snackbarHostState.showSnackbar("Could not delete trip — please try again")
+                                    // stay on TripDetailScreen so the user can retry
                                 }
                             }
-                            screen = Screen.Home
                         },
                     )
                 }
@@ -420,19 +551,37 @@ fun AtmosApp() {
                             try {
                                 if (sessionBeingEdited != null) {
                                     // Edit flow: atomic delete + replace inside one DB transaction
-                                    repo.updateManualTrip(
+                                    val editNowMs = Clock.System.now().toEpochMilliseconds()
+                                    val newId = repo.updateManualTrip(
                                         oldSessionId = sessionBeingEdited,
                                         mode         = trip.mode.name,
                                         distanceKm   = trip.distanceKm,
                                         timestampMs  = originalTimestampMs,
                                     )
+                                    syncToBackend(
+                                        sessionId   = newId,
+                                        mode        = trip.mode,
+                                        distanceKm  = trip.distanceKm,
+                                        durationMin = 0,
+                                        startedAtMs = originalTimestampMs,
+                                        endedAtMs   = editNowMs,  // use current time, not the trip's start
+                                    )
                                     snackbarHostState.showSnackbar("Trip updated")
                                 } else {
                                     // New-log flow: save with current timestamp
-                                    repo.saveManualTrip(
+                                    val nowMs = Clock.System.now().toEpochMilliseconds()
+                                    val newId = repo.saveManualTrip(
                                         mode        = trip.mode.name,
                                         distanceKm  = trip.distanceKm,
-                                        timestampMs = Clock.System.now().toEpochMilliseconds(),
+                                        timestampMs = nowMs,
+                                    )
+                                    syncToBackend(
+                                        sessionId   = newId,
+                                        mode        = trip.mode,
+                                        distanceKm  = trip.distanceKm,
+                                        durationMin = 0,
+                                        startedAtMs = nowMs,
+                                        endedAtMs   = nowMs,
                                     )
                                     snackbarHostState.showSnackbar(
                                         "Trip logged — ${trip.origin} → ${trip.destination} · ${

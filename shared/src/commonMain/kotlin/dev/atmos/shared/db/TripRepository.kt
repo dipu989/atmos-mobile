@@ -43,6 +43,21 @@ interface TripRepository {
     suspend fun deleteSession(id: String)
 
     /**
+     * Persist the backend activity UUID returned by `POST /api/v1/activities`.
+     * No-op if [backendActivityId] is blank.
+     */
+    suspend fun updateBackendActivityId(sessionId: String, backendActivityId: String)
+
+    /**
+     * Returns all confirmed sessions that have not yet been synced to the backend
+     * (i.e. `backend_activity_id IS NULL`).
+     *
+     * Used on startup to backfill sessions that were confirmed before the
+     * `backend_activity_id` column was introduced (migration 1→2).
+     */
+    suspend fun getUnsyncedConfirmedSessions(): List<SessionWithLegs>
+
+    /**
      * Atomically write a complete manually-logged trip (one session + one leg).
      * The session is immediately confirmed — no PendingTripCard shown.
      *
@@ -53,7 +68,10 @@ interface TripRepository {
      * @param distanceKm   user-entered or backend-estimated trip distance
      * @param timestampMs  epoch-ms wall-clock time for the log entry
      */
-    suspend fun saveManualTrip(mode: String, distanceKm: Float, timestampMs: Long)
+    /**
+     * Returns the new session ID so the caller can sync it to the backend.
+     */
+    suspend fun saveManualTrip(mode: String, distanceKm: Float, timestampMs: Long): String
 
     /**
      * Atomically replace an existing manually-logged trip with new values.
@@ -67,13 +85,14 @@ interface TripRepository {
      * @param distanceKm   updated trip distance
      * @param timestampMs  original epoch-ms start time — preserved so the trip
      *                     stays in the same date group after editing
+     * @return the new session ID so the caller can sync it to the backend
      */
     suspend fun updateManualTrip(
         oldSessionId: String,
         mode: String,
         distanceKm: Float,
         timestampMs: Long,
-    )
+    ): String
 
     /** All sessions that have ended but not yet been confirmed. */
     suspend fun getPendingSessions(): List<SessionWithLegs>
