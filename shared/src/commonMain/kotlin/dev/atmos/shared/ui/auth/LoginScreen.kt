@@ -38,13 +38,16 @@ import dev.atmos.shared.ui.theme.LocalAtmosColors
 
 @Composable
 fun LoginScreen(
-    onSignIn: () -> Unit = {},
+    /** Called when the user taps "Sign In" with valid form data. */
+    onSignIn: (email: String, password: String) -> Unit = { _, _ -> },
     onNavigateToSignUp: () -> Unit = {},
     onForgotPassword: () -> Unit = {},
     // Real Google Sign-In callback — wired up in AtmosApp with Credential Manager / GIDSignIn.
     onGoogleSignIn: () -> Unit = {},
     googleSignInLoading: Boolean = false,
     googleSignInError: String? = null,
+    emailSignInLoading: Boolean = false,
+    emailSignInError: String? = null,
 ) {
     val colors = LocalAtmosColors.current
     val scrollState = rememberScrollState()
@@ -129,7 +132,7 @@ fun LoginScreen(
                 keyboardActions = KeyboardActions(
                     onDone = {
                         passwordTouched = true
-                        if (isFormValid) onSignIn()
+                        if (isFormValid) onSignIn(email, password)
                     },
                 ),
                 modifier = Modifier.fillMaxWidth(),
@@ -160,13 +163,28 @@ fun LoginScreen(
 
             // Sign In CTA
             AuthPrimaryButton(
-                text = "Sign In",
+                text    = "Sign In",
+                loading = emailSignInLoading,
+                enabled = !googleSignInLoading,
                 onClick = {
                     emailTouched    = true
                     passwordTouched = true
-                    if (isFormValid) onSignIn()
+                    if (isFormValid) onSignIn(email, password)
                 },
             )
+
+            // Show error below the email sign-in button if it failed
+            if (emailSignInError != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = emailSignInError,
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        color = dev.atmos.shared.ui.theme.AlertRed,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             Spacer(Modifier.height(22.dp))
             OrDivider()
@@ -175,14 +193,15 @@ fun LoginScreen(
             GoogleSignInButton(
                 onClick  = onGoogleSignIn,
                 loading  = googleSignInLoading,
+                enabled  = !emailSignInLoading,
             )
 
-            // Show error below the button if sign-in failed
+            // Show error below the Google button if Google sign-in failed
             if (googleSignInError != null) {
                 Spacer(Modifier.height(8.dp))
-                androidx.compose.material3.Text(
+                Text(
                     text = googleSignInError,
-                    style = androidx.compose.ui.text.TextStyle(
+                    style = TextStyle(
                         fontSize = 12.sp,
                         color = dev.atmos.shared.ui.theme.AlertRed,
                     ),
