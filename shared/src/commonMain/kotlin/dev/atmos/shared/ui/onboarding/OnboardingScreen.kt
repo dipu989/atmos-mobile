@@ -65,11 +65,13 @@ import dev.atmos.shared.ui.theme.Sage
 fun OnboardingScreen(
     onGetStarted: () -> Unit = {},
     onAlreadyHaveAccount: () -> Unit = {},
+    locationGranted: Boolean = false,
+    notificationsGranted: Boolean = false,
+    onRequestLocation: () -> Unit = {},
+    onRequestNotifications: () -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     var currentPage by remember { mutableStateOf(0) }
-    var notificationsEnabled by remember { mutableStateOf(false) }
-    var locationEnabled by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -97,10 +99,10 @@ fun OnboardingScreen(
                 0 -> WelcomePage()
                 1 -> HowItWorksPage()
                 2 -> PermissionsPage(
-                    notificationsEnabled = notificationsEnabled,
-                    locationEnabled = locationEnabled,
-                    onNotificationsToggle = { notificationsEnabled = it },
-                    onLocationToggle = { locationEnabled = it },
+                    notificationsGranted  = notificationsGranted,
+                    locationGranted       = locationGranted,
+                    onRequestNotifications = onRequestNotifications,
+                    onRequestLocation     = onRequestLocation,
                 )
             }
         }
@@ -451,10 +453,10 @@ private fun FeatureRow(
 
 @Composable
 private fun PermissionsPage(
-    notificationsEnabled: Boolean,
-    locationEnabled: Boolean,
-    onNotificationsToggle: (Boolean) -> Unit,
-    onLocationToggle: (Boolean) -> Unit,
+    notificationsGranted: Boolean,
+    locationGranted: Boolean,
+    onRequestNotifications: () -> Unit,
+    onRequestLocation: () -> Unit,
 ) {
     val colors = LocalAtmosColors.current
 
@@ -487,27 +489,27 @@ private fun PermissionsPage(
         Spacer(Modifier.height(36.dp))
 
         PermissionCard(
-            icon      = Icons.Outlined.NotificationsNone,
-            iconBg    = colors.insightBlueBg,
-            iconTint  = HorizonBlue,
+            icon        = Icons.Outlined.NotificationsNone,
+            iconBg      = colors.insightBlueBg,
+            iconTint    = HorizonBlue,
             accentColor = HorizonBlue,
-            title     = "Push Notifications",
-            subtitle  = "Get notified when a trip is detected and ready to confirm.",
-            granted   = notificationsEnabled,
-            onAllow   = { onNotificationsToggle(true) },
+            title       = "Push Notifications",
+            subtitle    = "Get notified when a trip is detected and ready to confirm.",
+            granted     = notificationsGranted,
+            onAllow     = onRequestNotifications,
         )
 
         Spacer(Modifier.height(12.dp))
 
         PermissionCard(
-            icon      = Icons.Outlined.LocationOn,
-            iconBg    = colors.insightGreenBg,
-            iconTint  = Sage,
+            icon        = Icons.Outlined.LocationOn,
+            iconBg      = colors.insightGreenBg,
+            iconTint    = Sage,
             accentColor = Sage,
-            title     = "Location Access",
-            subtitle  = "Always-on access so Atmos can detect trips even when the app is closed.",
-            granted   = locationEnabled,
-            onAllow   = { onLocationToggle(true) },
+            title       = "Location Access",
+            subtitle    = "Always-on access so Atmos can detect trips even when the app is closed.",
+            granted     = locationGranted,
+            onAllow     = onRequestLocation,
         )
     }
 }

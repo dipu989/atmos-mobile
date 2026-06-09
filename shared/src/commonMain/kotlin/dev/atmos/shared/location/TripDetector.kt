@@ -104,14 +104,19 @@ object TripDetectorState {
     private val _recentlySaved = MutableStateFlow<RecentlySavedSession?>(null)
     val recentlySaved: StateFlow<RecentlySavedSession?> = _recentlySaved.asStateFlow()
 
-    /** Drives permission pill state on OnboardingScreen. */
+    /** Drives the Location permission pill on OnboardingScreen. */
     private val _permissionState = MutableStateFlow(LocationPermissionState.UNKNOWN)
     val permissionState: StateFlow<LocationPermissionState> = _permissionState.asStateFlow()
+
+    /** Drives the Notifications permission pill on OnboardingScreen. */
+    private val _notificationsGranted = MutableStateFlow(false)
+    val notificationsGranted: StateFlow<Boolean> = _notificationsGranted.asStateFlow()
 
     fun emitOngoingSession(state: OngoingSessionUiState?) { _ongoingSession.value = state }
     fun emitPendingSession(session: PendingSessionEntry?) { _pendingSession.value = session }
     fun emitRecentlySaved(session: RecentlySavedSession?) { _recentlySaved.value = session }
     fun updatePermissionState(state: LocationPermissionState) { _permissionState.value = state }
+    fun updateNotificationsGranted(granted: Boolean) { _notificationsGranted.value = granted }
 }
 
 // ── TripDetector interface + expect factory ───────────────────────────────────
