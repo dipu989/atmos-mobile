@@ -413,10 +413,11 @@ class AndroidTripDetector(
         } else {
             // System auto-end — show PendingTripCard for confirmation
             val pending = PendingSessionEntry(
-                sessionId       = session.sessionId,
-                legs            = session.legs.map { PendingLegEntry(it.legId, it.mode, it.distanceKm) },
-                totalDistKm     = totalDist,
+                sessionId        = session.sessionId,
+                legs             = session.legs.map { PendingLegEntry(it.legId, it.mode, it.distanceKm) },
+                totalDistKm      = totalDist,
                 totalDurationMin = totalDurationMin,
+                startedAtMs      = session.startTimeMs,
             )
             TripDetectorState.emitPendingSession(pending)
             postTripReadyNotification()

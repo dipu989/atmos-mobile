@@ -2,6 +2,7 @@ package dev.atmos.shared.db
 
 import dev.atmos.shared.ui.home.RecentActivityEntry
 import dev.atmos.shared.ui.home.TransportModeType
+import dev.atmos.shared.ui.home.emissionFactor
 import dev.atmos.shared.util.formatDateGroupLabel
 import dev.atmos.shared.util.formatTimestamp
 
@@ -13,10 +14,10 @@ import dev.atmos.shared.util.formatTimestamp
  * - [RecentActivityEntry.origin] — On-device detection does not resolve street addresses.
  *   We synthesise a human-readable label from the leg modes instead (e.g. "Driving",
  *   "Driving + Walking"). ActivityRow handles an empty destination gracefully.
- * - [RecentActivityEntry.kgCO2] — Always 0f here. CO₂ is intentionally omitted from the
- *   local DB schema (see Sessions.sq) and computed server-side via POST /activities using
- *   region-aware DEFRA factors. It should be fetched from backend responses and layered
- *   in once that API call is wired.
+ * - [RecentActivityEntry.kgCO2] — Computed locally from [TransportModeType.emissionFactor] ×
+ *   `total_dist_km` using India-region DEFRA 2023 factors. This gives an immediate value
+ *   for display; the backend recomputes it asynchronously after POST /activities and stores
+ *   it in the timeline summaries.
  * - [RecentActivityEntry.isAutoDetected] — Always true for DB-sourced sessions.
  */
 fun SessionWithLegs.toRecentActivityEntry(): RecentActivityEntry {
@@ -48,7 +49,7 @@ fun SessionWithLegs.toRecentActivityEntry(): RecentActivityEntry {
         dateLabel      = formatDateGroupLabel(session.started_at_ms),
         distanceKm     = session.total_dist_km.toFloat(),
         durationMin    = durationMin,
-        kgCO2          = 0f,                 // computed server-side via POST /activities
+        kgCO2          = primaryMode.emissionFactor * session.total_dist_km.toFloat(),
         isAutoDetected = true,
         sessionId      = session.id,
         timestampMs    = session.started_at_ms,

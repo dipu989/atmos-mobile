@@ -55,6 +55,29 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
         database.sessionsQueries.delete(id = id)
     }
 
+    override suspend fun updateBackendActivityId(sessionId: String, backendActivityId: String) {
+        if (backendActivityId.isBlank()) return
+        withContext(Dispatchers.IO) {
+            database.sessionsQueries.updateBackendActivityId(
+                backend_activity_id = backendActivityId,
+                id = sessionId,
+            )
+        }
+    }
+
+    override suspend fun getUnsyncedConfirmedSessions(): List<SessionWithLegs> =
+        withContext(Dispatchers.IO) {
+            database.sessionsQueries
+                .getUnsyncedConfirmed()
+                .executeAsList()
+                .map { session ->
+                    val legs = database.legsQueries
+                        .getForSession(session.id)
+                        .executeAsList()
+                    SessionWithLegs(session, legs)
+                }
+        }
+
     override suspend fun getPendingSessions(): List<SessionWithLegs> =
         withContext(Dispatchers.IO) {
             database.sessionsQueries
@@ -122,7 +145,7 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
         mode: String,
         distanceKm: Float,
         timestampMs: Long,
-    ) = withContext(Dispatchers.IO) {
+    ): String = withContext(Dispatchers.IO) {
         val sessionId = Uuid.random().toString()
         val legId     = Uuid.random().toString()
         database.transaction {
@@ -144,6 +167,7 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
                 sort_order     = 0L,
             )
         }
+        sessionId
     }
 
     override suspend fun updateManualTrip(
@@ -151,7 +175,7 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
         mode: String,
         distanceKm: Float,
         timestampMs: Long,
-    ) = withContext(Dispatchers.IO) {
+    ): String = withContext(Dispatchers.IO) {
         val newSessionId = Uuid.random().toString()
         val newLegId     = Uuid.random().toString()
         // Single transaction: delete old + insert replacement — no gap where the trip is absent.
@@ -175,5 +199,6 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
                 sort_order     = 0L,
             )
         }
+        newSessionId
     }
 }
