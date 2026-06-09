@@ -173,6 +173,14 @@ fun AtmosApp() {
 
     // ── Trip detector StateFlows ─────────────────────────────────────────────
     val tripDetector = remember { createTripDetector() }
+
+    // Start low-power monitoring once on composition entry. Safe to call again on
+    // recomposition (remember guards against re-creation, and startMonitoring is
+    // idempotent — it returns early if already active).
+    LaunchedEffect(Unit) {
+        tripDetector.startMonitoring()
+    }
+
     val ongoingSession      by TripDetectorState.ongoingSession.collectAsState()
     val pendingSession      by TripDetectorState.pendingSession.collectAsState()
     val recentlySaved       by TripDetectorState.recentlySaved.collectAsState()

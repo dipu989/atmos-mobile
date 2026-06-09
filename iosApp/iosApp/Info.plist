@@ -38,6 +38,16 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Atmos detects your commute trips in the background to track your carbon footprint automatically.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Atmos needs your location to detect trip start and end points.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Atmos uses motion data to detect when you are travelling by vehicle.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
