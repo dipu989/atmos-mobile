@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.collectAsState
@@ -118,12 +119,23 @@ fun AtmosApp() {
     var emailSignInError    by remember { mutableStateOf<String?>(null) }
     var emailSignUpLoading  by remember { mutableStateOf(false) }
     var emailSignUpError    by remember { mutableStateOf<String?>(null) }
+    var forgotLoading       by remember { mutableStateOf(false) }
+    var forgotError         by remember { mutableStateOf<String?>(null) }
+    var forgotSucceeded     by remember { mutableStateOf(false) }
+    val forgotJobHolder     = remember { object { var job: Job? = null } }
 
-    // Clear stale auth errors whenever the user navigates to a different screen
+    // Clear stale auth errors and reset forgot-password state on every screen transition.
+    // Also cancels any in-flight password-reset request so it cannot ghost-write state
+    // after the user has already navigated away.
     LaunchedEffect(screen) {
         emailSignInError  = null
         emailSignUpError  = null
         googleSignInError = null
+        forgotError       = null
+        forgotLoading     = false
+        forgotSucceeded   = false
+        forgotJobHolder.job?.cancel()
+        forgotJobHolder.job = null
     }
 
     val scope = rememberCoroutineScope()
@@ -213,6 +225,26 @@ fun AtmosApp() {
                 .onFailure { e ->
                     emailSignUpLoading = false
                     emailSignUpError   = e.message ?: "Sign-up failed. Please try again."
+                }
+        }
+    }
+
+    /** Request a password-reset email against POST /api/v1/auth/forgot-password. */
+    fun handleForgotPassword(email: String) {
+        if (forgotLoading) return
+        forgotLoading = true
+        forgotError   = null
+        // Do NOT reset forgotSucceeded here: on the resend path it is already true and
+        // clearing it would animate the success screen away before the request completes.
+        forgotJobHolder.job = scope.launch {
+            authService.requestPasswordReset(email)
+                .onSuccess {
+                    forgotLoading   = false
+                    forgotSucceeded = true
+                }
+                .onFailure { e ->
+                    forgotLoading = false
+                    forgotError   = e.message ?: "Failed to send reset link. Please try again."
                 }
         }
     }
@@ -435,7 +467,7 @@ fun AtmosApp() {
                 Screen.Login -> LoginScreen(
                     onSignIn            = { email, password -> handleEmailSignIn(email, password) },
                     onNavigateToSignUp  = { screen = Screen.SignUp },
-                    onForgotPassword    = { screen = Screen.ForgotPassword },
+                    onForgotPassword    = { forgotSucceeded = false; forgotError = null; screen = Screen.ForgotPassword },
                     onGoogleSignIn      = { handleGoogleSignIn() },
                     googleSignInLoading = googleSignInLoading,
                     googleSignInError   = googleSignInError,
@@ -454,8 +486,12 @@ fun AtmosApp() {
                 )
 
                 Screen.ForgotPassword -> ForgotPasswordScreen(
-                    onBack         = { screen = Screen.Login },
-                    onBackToSignIn = { screen = Screen.Login },
+                    onBack          = { screen = Screen.Login },
+                    onBackToSignIn  = { screen = Screen.Login },
+                    onSendResetLink = { email -> handleForgotPassword(email) },
+                    sendLoading     = forgotLoading,
+                    sendError       = forgotError,
+                    showSuccess     = forgotSucceeded,
                 )
 
                 Screen.Home -> HomeScreen(

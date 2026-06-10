@@ -28,6 +28,9 @@ private data class EmailSignUpRequest(
     val password: String,
 )
 
+@Serializable
+private data class ForgotPasswordRequest(val email: String)
+
 // ── Response DTOs ─────────────────────────────────────────────────────────────
 
 @Serializable
@@ -111,6 +114,22 @@ class AuthService(
         response.body<AuthResponseDto>()
     }
 
+    /**
+     * Request a password-reset email.
+     * Endpoint: POST /api/v1/auth/forgot-password
+     * Body:     { "email": "..." }
+     * Returns Unit on success (2xx); a human-readable failure message otherwise.
+     */
+    suspend fun requestPasswordReset(email: String): Result<Unit> = runCatching {
+        val response = httpClient.post("$ATMOS_BASE_URL/api/v1/auth/forgot-password") {
+            contentType(ContentType.Application.Json)
+            setBody(ForgotPasswordRequest(email))
+        }
+        if (response.status.value !in 200..299) {
+            throw Exception(forgotPasswordErrorMessage(response.status))
+        }
+    }
+
     // ── Error message helpers ─────────────────────────────────────────────────
 
     private fun googleErrorMessage(status: HttpStatusCode): String = when (status.value) {
@@ -129,6 +148,13 @@ class AuthService(
         429 -> "Too many attempts. Please wait a moment and try again."
         in 500..599 -> "Server error (${status.value}). Please try again later."
         else -> "Sign-in failed (${status.value}). Please try again."
+    }
+
+    private fun forgotPasswordErrorMessage(status: HttpStatusCode): String = when (status.value) {
+        400 -> "Please enter a valid email address."
+        429 -> "Too many attempts. Please wait a moment and try again."
+        in 500..599 -> "Server error (${status.value}). Please try again later."
+        else -> "Failed to send reset link. Please try again."
     }
 
     private fun emailSignUpErrorMessage(status: HttpStatusCode): String = when (status.value) {
