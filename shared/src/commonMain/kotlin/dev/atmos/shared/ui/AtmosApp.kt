@@ -54,6 +54,7 @@ import dev.atmos.shared.ui.onboarding.OnboardingScreen
 import dev.atmos.shared.ui.profile.AppearanceMode
 import dev.atmos.shared.ui.profile.ProfileScreen
 import dev.atmos.shared.ui.profile.previewProfileUiState
+import dev.atmos.shared.ui.profile.toInitials
 import dev.atmos.shared.ui.tripdetail.TripDetailScreen
 import dev.atmos.shared.ui.theme.AtmosTheme
 import dev.atmos.shared.ui.theme.HorizonBlue
@@ -557,9 +558,13 @@ fun AtmosApp() {
 
                 Screen.Profile -> ProfileScreen(
                     state = previewProfileUiState.copy(
-                        displayName     = authUser?.displayName ?: previewProfileUiState.displayName,
-                        initials        = authUser?.displayName?.toInitials() ?: previewProfileUiState.initials,
-                        email           = authUser?.email ?: previewProfileUiState.email,
+                        displayName     = authUser?.displayName ?: "",
+                        initials        = authUser?.let { user ->
+                            user.displayName.takeIf { it.isNotBlank() }?.toInitials()
+                                ?: user.email.firstOrNull()?.uppercaseChar()?.toString()
+                                ?: "?"
+                        } ?: "?",
+                        email           = authUser?.email ?: "",
                         totalCO2SavedKg = weeklyTrend.sumOf { it.kgCO2.toDouble() }.toFloat(),
                         daysTracked     = profileDaysTracked,
                         todayKgCO2      = todayImpact.kgCO2,
@@ -710,15 +715,6 @@ fun AtmosApp() {
                 )
             }
         }
-    }
-}
-
-private fun String.toInitials(): String {
-    val words = trim().split(" ").filter { it.isNotEmpty() }
-    return when {
-        words.isEmpty() -> "?"
-        words.size == 1 -> words[0].take(2).uppercase()
-        else            -> "${words[0].first()}${words[1].first()}".uppercase()
     }
 }
 
