@@ -275,6 +275,9 @@ fun AtmosApp() {
                           locationPermState == LocationPermissionState.BACKGROUND_ONLY
     val permReq = LocalPermissionRequester.current
 
+    // ── Auth user ─────────────────────────────────────────────────────────────
+    val authUser by AuthState.currentUser.collectAsState()
+
     // ── Confirmed sessions from DB ────────────────────────────────────────────
     // TripDetector.init() guarantees DatabaseProvider is ready before we reach here.
     val repo = remember { TripRepositoryImpl(DatabaseProvider.database) }
@@ -286,6 +289,9 @@ fun AtmosApp() {
     val recentActivityEntries = remember(confirmedSessions) {
         confirmedSessions.take(3).map { it.toRecentActivityEntry() }
     }
+    // Profile impact stats — CO₂ from backend weekly data (region-accurate DEFRA factors),
+    // days tracked from local DB confirmed sessions.
+    val profileDaysTracked = groupedActivities.size
 
     // ── Home UI ──────────────────────────────────────────────────────────────
     var appearanceMode by remember { mutableStateOf(AppearanceMode.SYSTEM) }
@@ -551,6 +557,12 @@ fun AtmosApp() {
 
                 Screen.Profile -> ProfileScreen(
                     state = previewProfileUiState.copy(
+                        displayName     = authUser?.displayName ?: previewProfileUiState.displayName,
+                        initials        = authUser?.displayName?.toInitials() ?: previewProfileUiState.initials,
+                        email           = authUser?.email ?: previewProfileUiState.email,
+                        totalCO2SavedKg = weeklyTrend.sumOf { it.kgCO2.toDouble() }.toFloat(),
+                        daysTracked     = profileDaysTracked,
+                        todayKgCO2      = todayImpact.kgCO2,
                         preferences = previewProfileUiState.preferences.copy(
                             pushNotificationsEnabled = notificationsEnabled,
                             appearanceMode = appearanceMode,
@@ -698,6 +710,15 @@ fun AtmosApp() {
                 )
             }
         }
+    }
+}
+
+private fun String.toInitials(): String {
+    val words = trim().split(" ").filter { it.isNotEmpty() }
+    return when {
+        words.isEmpty() -> "?"
+        words.size == 1 -> words[0].take(2).uppercase()
+        else            -> "${words[0].first()}${words[1].first()}".uppercase()
     }
 }
 
