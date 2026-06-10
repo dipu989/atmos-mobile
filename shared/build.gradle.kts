@@ -62,7 +62,7 @@ kotlin {
             implementation(libs.kotlinx.datetime)
 
             // Local storage
-            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.no.arg)
 
             // Database
             implementation(libs.sqldelight.runtime)

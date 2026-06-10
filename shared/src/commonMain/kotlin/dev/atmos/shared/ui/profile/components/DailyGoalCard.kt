@@ -1,7 +1,9 @@
 package dev.atmos.shared.ui.profile.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,6 +32,7 @@ import dev.atmos.shared.ui.theme.Sage
 fun DailyGoalCard(
     todayKgCO2: Float,
     dailyGoalKgCO2: Float,
+    onEditGoal: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val fraction = (todayKgCO2 / dailyGoalKgCO2).coerceIn(0f, 1f)
@@ -78,7 +81,9 @@ fun DailyGoalCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .clip(RoundedCornerShape(50))
                     .background(color = colors.chipBg, shape = RoundedCornerShape(50))
+                    .clickable(onClick = onEditGoal)
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             ) {
                 Text(

@@ -118,6 +118,7 @@ fun ProfileScreen(
     onNavigateToActivities: () -> Unit = {},
     onAppearanceChange: (AppearanceMode) -> Unit = {},
     onNotificationsToggle: (Boolean) -> Unit = {},
+    onGoalChange: (Float) -> Unit = {},
     onSignOut: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
     onFabClick: () -> Unit = {},
@@ -149,6 +150,7 @@ fun ProfileScreen(
     var showTransportSheet by remember { mutableStateOf(false) }
     var showUnitsDialog    by remember { mutableStateOf(false) }
     var showEditProfile    by remember { mutableStateOf(false) }
+    var showGoalDialog     by remember { mutableStateOf(false) }
 
     // Local profile state (updated on save)
     var localDisplayName by remember { mutableStateOf(state.displayName) }
@@ -228,6 +230,7 @@ fun ProfileScreen(
                     DailyGoalCard(
                         todayKgCO2     = state.todayKgCO2,
                         dailyGoalKgCO2 = state.dailyGoalKgCO2,
+                        onEditGoal     = { showGoalDialog = true },
                     )
                 }
 
@@ -289,6 +292,15 @@ fun ProfileScreen(
             current   = selectedUnits,
             onSelect  = { units -> selectedUnits = units; showUnitsDialog = false },
             onDismiss = { showUnitsDialog = false },
+        )
+    }
+
+    // ── Goal edit dialog ──────────────────────────────────────────────────────
+    if (showGoalDialog) {
+        GoalEditDialog(
+            current   = state.dailyGoalKgCO2,
+            onSelect  = { goal -> onGoalChange(goal); showGoalDialog = false },
+            onDismiss = { showGoalDialog = false },
         )
     }
 
@@ -483,6 +495,62 @@ private fun TransportSelectionSheet(
             }
         }
     }
+}
+
+// ── Goal edit dialog ──────────────────────────────────────────────────────────
+
+@Composable
+private fun GoalEditDialog(
+    current: Float,
+    onSelect: (Float) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors  = LocalAtmosColors.current
+    val options = listOf(2f, 3f, 5f, 7f, 10f)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title            = { Text("Daily CO₂ goal", color = colors.textPrimary) },
+        text             = {
+            Column {
+                options.forEach { goal ->
+                    val isSelected = goal == current
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(goal) }
+                            .padding(vertical = 12.dp),
+                    ) {
+                        Text(
+                            text     = "${goal.toGoalString()} kg CO₂ / day",
+                            style    = TextStyle(
+                                fontSize   = 16.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color      = if (isSelected) HorizonBlue else colors.textPrimary,
+                            ),
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (isSelected) {
+                            Text("✓", color = HorizonBlue, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton    = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = colors.textSecondary)
+            }
+        },
+        containerColor   = colors.surface,
+    )
+}
+
+private fun Float.toGoalString(): String {
+    if (this % 1f == 0f) return toInt().toString()
+    val intPart = toInt()
+    return "$intPart.${((this - intPart) * 10).toInt()}"
 }
 
 // ── Edit profile sheet ────────────────────────────────────────────────────────
