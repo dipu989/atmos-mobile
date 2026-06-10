@@ -153,12 +153,7 @@ fun ProfileScreen(
     // Local profile state (updated on save)
     var localDisplayName by remember { mutableStateOf(state.displayName) }
     val localInitials = remember(localDisplayName) {
-        localDisplayName
-            .trim().split(" ")
-            .filter { it.isNotEmpty() }
-            .take(2)
-            .joinToString("") { it.first().uppercase() }
-            .ifEmpty { state.initials }
+        localDisplayName.toInitials().ifEmpty { state.initials }
     }
 
     fun showComingSoon() {
@@ -508,12 +503,7 @@ private fun EditProfileSheet(
     var showError by remember { mutableStateOf(false) }
 
     // Derive live initials as the user edits the name field
-    val liveInitials = name
-        .trim().split(" ")
-        .filter { it.isNotEmpty() }
-        .take(2)
-        .joinToString("") { it.first().uppercase() }
-        .ifEmpty { initials }
+    val liveInitials = name.toInitials().ifEmpty { initials }
 
     val borderColor by animateColorAsState(
         targetValue = when {

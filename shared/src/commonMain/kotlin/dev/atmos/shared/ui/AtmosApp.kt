@@ -54,6 +54,7 @@ import dev.atmos.shared.ui.onboarding.OnboardingScreen
 import dev.atmos.shared.ui.profile.AppearanceMode
 import dev.atmos.shared.ui.profile.ProfileScreen
 import dev.atmos.shared.ui.profile.previewProfileUiState
+import dev.atmos.shared.ui.profile.toInitials
 import dev.atmos.shared.ui.tripdetail.TripDetailScreen
 import dev.atmos.shared.ui.theme.AtmosTheme
 import dev.atmos.shared.ui.theme.HorizonBlue
@@ -275,6 +276,9 @@ fun AtmosApp() {
                           locationPermState == LocationPermissionState.BACKGROUND_ONLY
     val permReq = LocalPermissionRequester.current
 
+    // ── Auth user ─────────────────────────────────────────────────────────────
+    val authUser by AuthState.currentUser.collectAsState()
+
     // ── Confirmed sessions from DB ────────────────────────────────────────────
     // TripDetector.init() guarantees DatabaseProvider is ready before we reach here.
     val repo = remember { TripRepositoryImpl(DatabaseProvider.database) }
@@ -286,6 +290,9 @@ fun AtmosApp() {
     val recentActivityEntries = remember(confirmedSessions) {
         confirmedSessions.take(3).map { it.toRecentActivityEntry() }
     }
+    // Profile impact stats — CO₂ from backend weekly data (region-accurate DEFRA factors),
+    // days tracked from local DB confirmed sessions.
+    val profileDaysTracked = groupedActivities.size
 
     // ── Home UI ──────────────────────────────────────────────────────────────
     var appearanceMode by remember { mutableStateOf(AppearanceMode.SYSTEM) }
@@ -551,6 +558,16 @@ fun AtmosApp() {
 
                 Screen.Profile -> ProfileScreen(
                     state = previewProfileUiState.copy(
+                        displayName     = authUser?.displayName ?: "",
+                        initials        = authUser?.let { user ->
+                            user.displayName.takeIf { it.isNotBlank() }?.toInitials()
+                                ?: user.email.firstOrNull()?.uppercaseChar()?.toString()
+                                ?: "?"
+                        } ?: "?",
+                        email           = authUser?.email ?: "",
+                        totalCO2SavedKg = weeklyTrend.sumOf { it.kgCO2.toDouble() }.toFloat(),
+                        daysTracked     = profileDaysTracked,
+                        todayKgCO2      = todayImpact.kgCO2,
                         preferences = previewProfileUiState.preferences.copy(
                             pushNotificationsEnabled = notificationsEnabled,
                             appearanceMode = appearanceMode,

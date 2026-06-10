@@ -29,6 +29,17 @@ data class ProfileUiState(
     val preferences: ProfilePreferences,
 )
 
+// ── Shared initials derivation ────────────────────────────────────────────────
+
+internal fun String.toInitials(): String {
+    val words = trim().split(" ").filter { it.isNotEmpty() }
+    return when {
+        words.isEmpty() -> ""
+        words.size == 1 -> words[0].first().uppercase()
+        else            -> "${words[0].first()}${words[1].first()}".uppercase()
+    }
+}
+
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
 val previewProfileUiState = ProfileUiState(

@@ -62,7 +62,7 @@ fun MyImpactCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column {
-                    Text(text = "Total CO₂ Saved", fontSize = 12.sp, color = colors.textSecondary)
+                    Text(text = "This Week's CO₂", fontSize = 12.sp, color = colors.textSecondary)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "${totalCO2SavedKg.toStatString()} kg",
