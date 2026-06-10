@@ -29,6 +29,7 @@ import dev.atmos.shared.location.LocationPermissionState
 import dev.atmos.shared.location.TripDetectorState
 import dev.atmos.shared.location.createTripDetector
 import dev.atmos.shared.network.ActivityService
+import dev.atmos.shared.network.AuthResponseDto
 import dev.atmos.shared.network.AuthService
 import dev.atmos.shared.network.TimelineService
 import dev.atmos.shared.network.backendMode
@@ -110,11 +111,36 @@ fun AtmosApp() {
         }
     }
 
-    // ── Google Sign-In state ─────────────────────────────────────────────────
+    // ── Auth state (Google + email/password) ────────────────────────────────
     var googleSignInLoading by remember { mutableStateOf(false) }
     var googleSignInError   by remember { mutableStateOf<String?>(null) }
+    var emailSignInLoading  by remember { mutableStateOf(false) }
+    var emailSignInError    by remember { mutableStateOf<String?>(null) }
+    var emailSignUpLoading  by remember { mutableStateOf(false) }
+    var emailSignUpError    by remember { mutableStateOf<String?>(null) }
+
+    // Clear stale auth errors whenever the user navigates to a different screen
+    LaunchedEffect(screen) {
+        emailSignInError  = null
+        emailSignUpError  = null
+        googleSignInError = null
+    }
 
     val scope = rememberCoroutineScope()
+
+    /** Shared helper — persists the response and navigates to Home. */
+    fun onAuthSuccess(response: AuthResponseDto) {
+        tokenStore.save(response)
+        AuthState.onSignedIn(
+            AuthUser(
+                id          = response.user.id,
+                email       = response.user.email,
+                displayName = response.user.displayName,
+                avatarUrl   = response.user.avatarUrl ?: "",
+            )
+        )
+        screen = Screen.Home
+    }
 
     /**
      * Launches the platform Google Sign-In flow, then exchanges the ID token
@@ -141,28 +167,54 @@ fun AtmosApp() {
 
                 // Exchange Google ID token for Atmos JWT
                 scope.launch {
-                    val result = authService.signInWithGoogle(idToken)
-                    result.onSuccess { response ->
-                        // Persist tokens
-                        tokenStore.save(response)
-                        // Update in-memory auth state
-                        AuthState.onSignedIn(
-                            AuthUser(
-                                id          = response.user.id,
-                                email       = response.user.email,
-                                displayName = response.user.displayName,
-                                avatarUrl   = response.user.avatarUrl,
-                            )
-                        )
-                        googleSignInLoading = false
-                        screen = Screen.Home
-                    }.onFailure { e ->
-                        googleSignInLoading = false
-                        googleSignInError   = e.message ?: "Sign-in failed. Please try again."
-                    }
+                    authService.signInWithGoogle(idToken)
+                        .onSuccess { response ->
+                            googleSignInLoading = false
+                            onAuthSuccess(response)
+                        }
+                        .onFailure { e ->
+                            googleSignInLoading = false
+                            googleSignInError   = e.message ?: "Sign-in failed. Please try again."
+                        }
                 }
             }
         })
+    }
+
+    /** Email + password sign-in against POST /api/v1/auth/login. */
+    fun handleEmailSignIn(email: String, password: String) {
+        if (emailSignInLoading) return
+        emailSignInLoading = true
+        emailSignInError   = null
+        scope.launch {
+            authService.signIn(email.trim(), password.trim())
+                .onSuccess { response ->
+                    emailSignInLoading = false
+                    onAuthSuccess(response)
+                }
+                .onFailure { e ->
+                    emailSignInLoading = false
+                    emailSignInError   = e.message ?: "Sign-in failed. Please try again."
+                }
+        }
+    }
+
+    /** Email + password registration against POST /api/v1/auth/register. */
+    fun handleEmailSignUp(name: String, email: String, password: String) {
+        if (emailSignUpLoading) return
+        emailSignUpLoading = true
+        emailSignUpError   = null
+        scope.launch {
+            authService.signUp(displayName = name.trim(), email = email.trim(), password = password.trim())
+                .onSuccess { response ->
+                    emailSignUpLoading = false
+                    onAuthSuccess(response)
+                }
+                .onFailure { e ->
+                    emailSignUpLoading = false
+                    emailSignUpError   = e.message ?: "Sign-up failed. Please try again."
+                }
+        }
     }
 
     fun handleSignOut() {
@@ -381,20 +433,24 @@ fun AtmosApp() {
                 )
 
                 Screen.Login -> LoginScreen(
-                    onSignIn             = { screen = Screen.Home },  // email/password (stub)
-                    onNavigateToSignUp   = { screen = Screen.SignUp },
-                    onForgotPassword     = { screen = Screen.ForgotPassword },
-                    onGoogleSignIn       = { handleGoogleSignIn() },
-                    googleSignInLoading  = googleSignInLoading,
-                    googleSignInError    = googleSignInError,
+                    onSignIn            = { email, password -> handleEmailSignIn(email, password) },
+                    onNavigateToSignUp  = { screen = Screen.SignUp },
+                    onForgotPassword    = { screen = Screen.ForgotPassword },
+                    onGoogleSignIn      = { handleGoogleSignIn() },
+                    googleSignInLoading = googleSignInLoading,
+                    googleSignInError   = googleSignInError,
+                    emailSignInLoading  = emailSignInLoading,
+                    emailSignInError    = emailSignInError,
                 )
 
                 Screen.SignUp -> SignUpScreen(
-                    onCreateAccount    = { screen = Screen.Home },    // email/password (stub)
-                    onNavigateToSignIn = { screen = Screen.Login },
-                    onGoogleSignIn     = { handleGoogleSignIn() },
+                    onCreateAccount     = { name, email, password -> handleEmailSignUp(name, email, password) },
+                    onNavigateToSignIn  = { screen = Screen.Login },
+                    onGoogleSignIn      = { handleGoogleSignIn() },
                     googleSignInLoading = googleSignInLoading,
                     googleSignInError   = googleSignInError,
+                    emailSignUpLoading  = emailSignUpLoading,
+                    emailSignUpError    = emailSignUpError,
                 )
 
                 Screen.ForgotPassword -> ForgotPasswordScreen(

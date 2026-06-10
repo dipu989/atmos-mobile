@@ -249,11 +249,12 @@ fun GoogleSignInButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     loading: Boolean = false,
+    enabled: Boolean = true,
 ) {
     val colors = LocalAtmosColors.current
     OutlinedButton(
         onClick = onClick,
-        enabled = !loading,
+        enabled = enabled && !loading,
         modifier = modifier
             .fillMaxWidth()
             .height(54.dp),

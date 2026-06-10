@@ -46,12 +46,15 @@ import dev.atmos.shared.ui.theme.LocalAtmosColors
 
 @Composable
 fun SignUpScreen(
-    onCreateAccount: () -> Unit = {},
+    /** Called when the user taps "Create Account" with valid form data. */
+    onCreateAccount: (name: String, email: String, password: String) -> Unit = { _, _, _ -> },
     onNavigateToSignIn: () -> Unit = {},
     // Real Google Sign-In callback — wired up in AtmosApp.
     onGoogleSignIn: () -> Unit = {},
     googleSignInLoading: Boolean = false,
     googleSignInError: String? = null,
+    emailSignUpLoading: Boolean = false,
+    emailSignUpError: String? = null,
 ) {
     val colors = LocalAtmosColors.current
     val scrollState = rememberScrollState()
@@ -193,7 +196,7 @@ fun SignUpScreen(
                 keyboardActions = KeyboardActions(
                     onDone = {
                         confirmPasswordTouched = true
-                        if (isFormValid) onCreateAccount()
+                        if (isFormValid) onCreateAccount(name, email, password)
                     },
                 ),
                 modifier = Modifier.fillMaxWidth(),
@@ -250,14 +253,29 @@ fun SignUpScreen(
             // Create Account CTA
             AuthPrimaryButton(
                 text    = "Create Account",
+                loading = emailSignUpLoading,
+                enabled = !googleSignInLoading,
                 onClick = {
                     nameTouched            = true
                     emailTouched           = true
                     passwordTouched        = true
                     confirmPasswordTouched = true
-                    if (isFormValid) onCreateAccount()
+                    if (isFormValid) onCreateAccount(name, email, password)
                 },
             )
+
+            // Show error below the create-account button if it failed
+            if (emailSignUpError != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = emailSignUpError,
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        color = dev.atmos.shared.ui.theme.AlertRed,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             Spacer(Modifier.height(22.dp))
             OrDivider()
@@ -266,8 +284,10 @@ fun SignUpScreen(
             GoogleSignInButton(
                 onClick = onGoogleSignIn,
                 loading = googleSignInLoading,
+                enabled = !emailSignUpLoading,
             )
 
+            // Show error below the Google button if Google sign-in failed
             if (googleSignInError != null) {
                 Spacer(Modifier.height(8.dp))
                 Text(
