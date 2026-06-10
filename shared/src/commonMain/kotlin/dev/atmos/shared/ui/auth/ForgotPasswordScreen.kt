@@ -50,22 +50,20 @@ import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Sage
 
-private sealed interface ForgotState {
-    data object Form    : ForgotState
-    data object Success : ForgotState
-}
-
 @Composable
 fun ForgotPasswordScreen(
     onBack: () -> Unit = {},
     onBackToSignIn: () -> Unit = {},
+    onSendResetLink: (email: String) -> Unit = {},
+    sendLoading: Boolean = false,
+    sendError: String? = null,
+    showSuccess: Boolean = false,
 ) {
     val colors = LocalAtmosColors.current
     val scrollState = rememberScrollState()
 
     var email        by remember { mutableStateOf("") }
     var emailTouched by remember { mutableStateOf(false) }
-    var state        by remember { mutableStateOf<ForgotState>(ForgotState.Form) }
 
     val emailError = if (emailTouched && !email.isValidEmail()) "Enter a valid email address" else null
 
@@ -93,28 +91,34 @@ fun ForgotPasswordScreen(
 
         // ── Animated content: form ↔ success ──────────────────────────────────
         AnimatedContent(
-            targetState = state,
+            targetState = showSuccess,
             transitionSpec = {
                 (slideInVertically { it / 4 } + fadeIn()) togetherWith
                         (slideOutVertically { -it / 4 } + fadeOut())
             },
             label = "forgot-state",
-        ) { currentState ->
-            when (currentState) {
-                ForgotState.Form    -> ForgotForm(
+        ) { isSuccess ->
+            if (!isSuccess) {
+                ForgotForm(
                     email        = email,
                     onEmailChange = { email = it },
                     emailTouched = emailTouched,
                     emailError   = emailError,
                     onFocusLost  = { emailTouched = true },
+                    sendLoading  = sendLoading,
+                    sendError    = sendError,
                     onSend       = {
                         emailTouched = true
-                        if (email.isValidEmail()) state = ForgotState.Success
+                        if (email.isValidEmail()) onSendResetLink(email.trim())
                     },
                 )
-                ForgotState.Success -> ForgotSuccess(
-                    email           = email,
-                    onBackToSignIn  = onBackToSignIn,
+            } else {
+                ForgotSuccess(
+                    email          = email,
+                    sendLoading    = sendLoading,
+                    sendError      = sendError,
+                    onBackToSignIn = onBackToSignIn,
+                    onResend       = { onSendResetLink(email.trim()) },
                 )
             }
         }
@@ -131,6 +135,8 @@ private fun ForgotForm(
     emailError: String?,
     onFocusLost: () -> Unit,
     onSend: () -> Unit,
+    sendLoading: Boolean = false,
+    sendError: String? = null,
 ) {
     val colors = LocalAtmosColors.current
 
@@ -205,8 +211,22 @@ private fun ForgotForm(
 
         AuthPrimaryButton(
             text    = "Send reset link",
+            loading = sendLoading,
             onClick = onSend,
         )
+
+        if (sendError != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = sendError,
+                style = TextStyle(
+                    fontSize = 12.sp,
+                    color = dev.atmos.shared.ui.theme.AlertRed,
+                    textAlign = TextAlign.Center,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
 
         Spacer(Modifier.height(40.dp))
     }
@@ -218,6 +238,9 @@ private fun ForgotForm(
 private fun ForgotSuccess(
     email: String,
     onBackToSignIn: () -> Unit,
+    onResend: () -> Unit = {},
+    sendLoading: Boolean = false,
+    sendError: String? = null,
 ) {
     val colors = LocalAtmosColors.current
 
@@ -292,8 +315,9 @@ private fun ForgotSuccess(
         Spacer(Modifier.height(16.dp))
 
         TextButton(
-            onClick = onBackToSignIn,
-            shape   = RoundedCornerShape(8.dp),
+            onClick  = onResend,
+            enabled  = !sendLoading,
+            shape    = RoundedCornerShape(8.dp),
         ) {
             Text(
                 text = "Resend email",
@@ -302,6 +326,19 @@ private fun ForgotSuccess(
                     fontWeight = FontWeight.Medium,
                     color = HorizonBlue,
                 ),
+            )
+        }
+
+        if (sendError != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = sendError,
+                style = TextStyle(
+                    fontSize = 12.sp,
+                    color = dev.atmos.shared.ui.theme.AlertRed,
+                    textAlign = TextAlign.Center,
+                ),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
 
