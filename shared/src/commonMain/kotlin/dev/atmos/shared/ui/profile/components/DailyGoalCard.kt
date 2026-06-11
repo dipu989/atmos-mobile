@@ -1,7 +1,9 @@
 package dev.atmos.shared.ui.profile.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,11 +27,13 @@ import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.common.CircularProgressRing
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Sage
+import dev.atmos.shared.util.toDisplayString
 
 @Composable
 fun DailyGoalCard(
     todayKgCO2: Float,
     dailyGoalKgCO2: Float,
+    onEditGoal: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val fraction = (todayKgCO2 / dailyGoalKgCO2).coerceIn(0f, 1f)
@@ -57,7 +61,7 @@ fun DailyGoalCard(
                 progressColor = Sage,
             ) {
                 Text(
-                    text = todayKgCO2.toGoalString(),
+                    text = todayKgCO2.toDisplayString(),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.textPrimary,
@@ -68,7 +72,7 @@ fun DailyGoalCard(
                 Text(text = "Current usage", fontSize = 12.sp, color = colors.textSecondary)
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "${todayKgCO2.toGoalString()} kg CO₂",
+                    text = "${todayKgCO2.toDisplayString()} kg CO₂",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = colors.textPrimary,
@@ -78,11 +82,13 @@ fun DailyGoalCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .clip(RoundedCornerShape(50))
                     .background(color = colors.chipBg, shape = RoundedCornerShape(50))
+                    .clickable(onClick = onEditGoal)
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             ) {
                 Text(
-                    text = "${dailyGoalKgCO2.toGoalString()} kg CO₂",
+                    text = "${dailyGoalKgCO2.toDisplayString()} kg CO₂",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     color = colors.textSecondary,
@@ -97,10 +103,4 @@ fun DailyGoalCard(
             }
         }
     }
-}
-
-private fun Float.toGoalString(): String {
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    return "$intPart.${((this - intPart) * 10).toInt()}"
 }

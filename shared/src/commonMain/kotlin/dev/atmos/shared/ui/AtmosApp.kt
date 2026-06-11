@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -55,6 +56,7 @@ import dev.atmos.shared.ui.profile.AppearanceMode
 import dev.atmos.shared.ui.profile.ProfileScreen
 import dev.atmos.shared.ui.profile.previewProfileUiState
 import dev.atmos.shared.ui.profile.toInitials
+import dev.atmos.shared.util.toDisplayString
 import dev.atmos.shared.ui.tripdetail.TripDetailScreen
 import dev.atmos.shared.ui.theme.AtmosTheme
 import dev.atmos.shared.ui.theme.HorizonBlue
@@ -306,10 +308,14 @@ fun AtmosApp() {
     var editingSessionId  by remember { mutableStateOf<String?>(null) }
     var editingTimestampMs by remember { mutableStateOf(0L) }
 
+    // ── Persisted settings ────────────────────────────────────────────────────
+    val settings = remember { Settings() }
+    var dailyGoalKgCO2 by remember { mutableStateOf(settings.getFloat("daily_goal_kg", 5.0f)) }
+
     // ── Timeline data (real CO₂ totals from backend) ──────────────────────────
     // Initialised to neutral zeros — the Home screen skeleton renders while the first fetch runs.
     // Using preview/fake values here would silently display fabricated data on network failure.
-    var todayImpact  by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = 5.0f, percentVsWeeklyAvg = 0)) }
+    var todayImpact  by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = dailyGoalKgCO2, percentVsWeeklyAvg = 0)) }
     var weeklyTrend  by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
 
     LaunchedEffect(Unit) {
@@ -325,7 +331,7 @@ fun AtmosApp() {
         timelineService.getDaily().onSuccess { daily ->
             todayImpact = TodayImpact(
                 kgCO2              = daily.totalKgCo2e,
-                dailyGoalKgCO2     = todayImpact.dailyGoalKgCO2,   // keep user-set goal
+                dailyGoalKgCO2     = dailyGoalKgCO2,
                 percentVsWeeklyAvg = daily.trend.changePct?.toInt() ?: 0,
             )
         }
@@ -568,6 +574,7 @@ fun AtmosApp() {
                         totalCO2SavedKg = weeklyTrend.sumOf { it.kgCO2.toDouble() }.toFloat(),
                         daysTracked     = profileDaysTracked,
                         todayKgCO2      = todayImpact.kgCO2,
+                        dailyGoalKgCO2  = dailyGoalKgCO2,
                         preferences = previewProfileUiState.preferences.copy(
                             pushNotificationsEnabled = notificationsEnabled,
                             appearanceMode = appearanceMode,
@@ -578,6 +585,11 @@ fun AtmosApp() {
                     onNavigateToActivities = { screen = Screen.Activities },
                     onAppearanceChange     = { mode -> appearanceMode = mode },
                     onNotificationsToggle  = { enabled -> notificationsEnabled = enabled },
+                    onGoalChange           = { goal ->
+                        dailyGoalKgCO2 = goal
+                        settings.putFloat("daily_goal_kg", goal)
+                        todayImpact = todayImpact.copy(dailyGoalKgCO2 = goal)
+                    },
                     onSignOut    = { handleSignOut() },
                     onDeleteAccount = { handleSignOut() },
                     onFabClick   = { showLogActivity = true },
@@ -586,7 +598,7 @@ fun AtmosApp() {
                 Screen.TripDetail -> selectedTrip?.let { entry ->
                     TripDetailScreen(
                         entry          = entry,
-                        dailyGoalKgCO2 = previewHomeUiState.todayImpact.dailyGoalKgCO2,
+                        dailyGoalKgCO2 = dailyGoalKgCO2,
                         onBack         = { screen = Screen.Home },
                         onEdit         = {
                             // Capture session identity so onTripLogged can delete-then-replace
@@ -716,11 +728,4 @@ fun AtmosApp() {
             }
         }
     }
-}
-
-private fun Float.toDisplayString(): String {
-    if (this == 0f) return "0"
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    return "$intPart.${((this - intPart) * 10).toInt()}"
 }
