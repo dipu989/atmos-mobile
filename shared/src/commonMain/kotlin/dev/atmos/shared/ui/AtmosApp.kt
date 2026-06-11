@@ -746,9 +746,13 @@ fun AtmosApp() {
                             showLogActivity = true
                         },
                         onDelete = {
+                            // Freeze the snapshot at tap time so a concurrent DB update
+                            // (e.g. a listActivities re-fetch) cannot change which branch
+                            // we take inside the coroutine.
+                            val sessionsAtTapTime = confirmedSessions
                             scope.launch {
                                 try {
-                                    val localSession = confirmedSessions
+                                    val localSession = sessionsAtTapTime
                                         .firstOrNull { it.session.id == entry.sessionId }
 
                                     if (localSession != null) {
