@@ -31,7 +31,21 @@ object AtmosHttpClient {
                 if (call.response.status != HttpStatusCode.Unauthorized) {
                     return@intercept call
                 }
-                if (request.url.buildString().startsWith("$ATMOS_BASE_URL/api/v1/auth/")) {
+                // Exclude unauthenticated auth endpoints that cannot loop-refresh:
+                // login, register, google, refresh, forgot/reset-password, verify-email.
+                // resend-verification is intentionally NOT excluded — it is an authenticated
+                // endpoint and its 401 should trigger a refresh-and-retry like any other.
+                val url = request.url.buildString()
+                val noRefreshPrefixes = listOf(
+                    "$ATMOS_BASE_URL/api/v1/auth/login",
+                    "$ATMOS_BASE_URL/api/v1/auth/register",
+                    "$ATMOS_BASE_URL/api/v1/auth/refresh",
+                    "$ATMOS_BASE_URL/api/v1/auth/google",
+                    "$ATMOS_BASE_URL/api/v1/auth/forgot-password",
+                    "$ATMOS_BASE_URL/api/v1/auth/reset-password",
+                    "$ATMOS_BASE_URL/api/v1/auth/verify-email",
+                )
+                if (noRefreshPrefixes.any { url.startsWith(it) }) {
                     return@intercept call
                 }
                 val failedToken = request.headers[HttpHeaders.Authorization]
