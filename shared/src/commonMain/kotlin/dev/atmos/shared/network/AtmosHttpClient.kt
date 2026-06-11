@@ -31,7 +31,7 @@ object AtmosHttpClient {
                 if (call.response.status != HttpStatusCode.Unauthorized) {
                     return@intercept call
                 }
-                if (request.url.buildString().contains("/api/v1/auth/")) {
+                if (request.url.buildString().startsWith("$ATMOS_BASE_URL/api/v1/auth/")) {
                     return@intercept call
                 }
                 val failedToken = request.headers[HttpHeaders.Authorization]

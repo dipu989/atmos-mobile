@@ -8,6 +8,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
@@ -40,6 +41,10 @@ object TokenRefresher {
      *   (in which case [AuthState.onForceSignOut] has already been called).
      */
     suspend fun tryRefresh(tokenThatFailed: String?): String? = mutex.withLock {
+        // Anonymous requests (no Authorization header) that get 401 should fail, not be retried
+        // with a token — returning one would change the request's intended semantics.
+        if (tokenThatFailed == null) return@withLock null
+
         val store = AppTokenStore.instance
 
         // Another coroutine already refreshed while we were waiting — use the
@@ -73,7 +78,8 @@ object TokenRefresher {
                 )
             )
             dto.accessToken
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
             // Network error — don't force sign-out, let the original request fail
             // with its own error so the user sees a meaningful snackbar.
             null
