@@ -279,6 +279,12 @@ fun AtmosApp() {
         tripDetector.startMonitoring()
     }
 
+    // Navigate to Onboarding when the token refresher forces a sign-out
+    // (expired / revoked refresh token). Tokens are already cleared by TokenRefresher.
+    LaunchedEffect(Unit) {
+        AuthState.forceSignOut.collect { handleSignOut() }
+    }
+
     val ongoingSession      by TripDetectorState.ongoingSession.collectAsState()
     val pendingSession      by TripDetectorState.pendingSession.collectAsState()
     val recentlySaved       by TripDetectorState.recentlySaved.collectAsState()
