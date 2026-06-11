@@ -42,6 +42,9 @@ interface TripRepository {
     /** Hard-delete a session. Legs are removed automatically via ON DELETE CASCADE. */
     suspend fun deleteSession(id: String)
 
+    /** Hard-delete all sessions and their legs. Called on account deletion to wipe local data. */
+    suspend fun deleteAllSessions()
+
     /**
      * Persist the backend activity UUID returned by `POST /api/v1/activities`.
      * No-op if [backendActivityId] is blank.
