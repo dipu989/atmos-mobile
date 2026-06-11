@@ -7,6 +7,7 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.patch
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
@@ -18,6 +19,16 @@ import kotlinx.serialization.Serializable
 @Serializable
 private data class UpdateUserRequest(
     @SerialName("display_name") val displayName: String,
+)
+
+@Serializable
+private data class UpdatePreferencesRequest(
+    @SerialName("daily_goal_kg_co2e") val dailyGoalKgCo2e: Double,
+)
+
+@Serializable
+data class UserPreferencesDto(
+    @SerialName("daily_goal_kg_co2e") val dailyGoalKgCo2e: Double? = null,
 )
 
 @Serializable
@@ -75,6 +86,36 @@ class UserService(
             throw Exception("User fetch failed (${response.status.value})")
         }
         response.body<ApiEnvelope<UserDto>>().data
+            ?: throw Exception("Empty response from server")
+    }
+
+    suspend fun getPreferences(): Result<UserPreferencesDto> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+
+        val response = httpClient.get("$ATMOS_BASE_URL/api/v1/users/me/preferences") {
+            bearerAuth(token)
+        }
+        if (response.status.value !in 200..299) {
+            throw Exception("Preferences fetch failed (${response.status.value})")
+        }
+        response.body<ApiEnvelope<UserPreferencesDto>>().data
+            ?: throw Exception("Empty response from server")
+    }
+
+    suspend fun updatePreferences(dailyGoalKgCO2e: Double): Result<UserPreferencesDto> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+
+        val response = httpClient.put("$ATMOS_BASE_URL/api/v1/users/me/preferences") {
+            contentType(ContentType.Application.Json)
+            bearerAuth(token)
+            setBody(UpdatePreferencesRequest(dailyGoalKgCo2e = dailyGoalKgCO2e))
+        }
+        if (response.status.value !in 200..299) {
+            throw Exception("Preferences update failed (${response.status.value})")
+        }
+        response.body<ApiEnvelope<UserPreferencesDto>>().data
             ?: throw Exception("Empty response from server")
     }
 }

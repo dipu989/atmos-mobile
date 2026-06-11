@@ -16,6 +16,7 @@ import com.russhwolf.settings.Settings
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.collectAsState
@@ -413,13 +414,29 @@ fun AtmosApp() {
             return@LaunchedEffect
         }
         if (!tokenStore.isLoggedIn) return@LaunchedEffect
-        userService.getMe().onSuccess { dto ->
-            AuthState.onSignedIn(AuthUser(
-                id          = dto.id,
-                email       = dto.email,
-                displayName = dto.displayName,
-                avatarUrl   = dto.avatarUrl ?: "",
-            ))
+        supervisorScope {
+            val meDeferred    = async { userService.getMe() }
+            val prefsDeferred = async { userService.getPreferences() }
+            meDeferred.await().onSuccess { dto ->
+                AuthState.onSignedIn(AuthUser(
+                    id          = dto.id,
+                    email       = dto.email,
+                    displayName = dto.displayName,
+                    avatarUrl   = dto.avatarUrl ?: "",
+                ))
+            }
+            prefsDeferred.await().onSuccess { prefs ->
+                if (prefs.dailyGoalKgCo2e != null) {
+                    val goal = prefs.dailyGoalKgCo2e.toFloat()
+                    dailyGoalKgCO2 = goal
+                    settings.putFloat("daily_goal_kg", goal)
+                    todayImpact = todayImpact.copy(dailyGoalKgCO2 = goal)
+                } else {
+                    // Backend has no goal yet — bootstrap it from local default so
+                    // backend features (progress emails, server-side streaks) see a value.
+                    scope.launch { userService.updatePreferences(dailyGoalKgCO2.toDouble()) }
+                }
+            }
         }
     }
 
@@ -768,9 +785,20 @@ fun AtmosApp() {
                     onAppearanceChange     = { mode -> appearanceMode = mode; settings.putString("appearance_mode", mode.name) },
                     onNotificationsToggle  = { enabled -> notificationsEnabled = enabled; settings.putBoolean("notifications_enabled", enabled) },
                     onGoalChange           = { goal ->
+                        val prevGoal = dailyGoalKgCO2
                         dailyGoalKgCO2 = goal
                         settings.putFloat("daily_goal_kg", goal)
                         todayImpact = todayImpact.copy(dailyGoalKgCO2 = goal)
+                        scope.launch {
+                            userService.updatePreferences(goal.toDouble()).onFailure {
+                                // Revert so the stale backend value can't overwrite
+                                // the user's intent on the next app restart.
+                                dailyGoalKgCO2 = prevGoal
+                                settings.putFloat("daily_goal_kg", prevGoal)
+                                todayImpact = todayImpact.copy(dailyGoalKgCO2 = prevGoal)
+                                snackbarHostState.showSnackbar("Could not save goal — please try again")
+                            }
+                        }
                     },
                     onHomeChange      = { addr  -> commuteHome      = addr;  settings.putString("commute_home",      addr)  },
                     onWorkChange      = { addr  -> commuteWork      = addr;  settings.putString("commute_work",      addr)  },
