@@ -334,6 +334,7 @@ fun AtmosApp() {
     // ── Home UI ──────────────────────────────────────────────────────────────
     var appearanceMode by remember { mutableStateOf(AppearanceMode.SYSTEM) }
     var notificationsEnabled by remember { mutableStateOf(true) }
+    var isDeletingAccount by remember { mutableStateOf(false) }
     var showLogActivity by remember { mutableStateOf(false) }
     var tripToEdit       by remember { mutableStateOf<PendingTripEntry?>(null) }
     var selectedTrip     by remember { mutableStateOf<RecentActivityEntry?>(null) }
@@ -722,7 +723,21 @@ fun AtmosApp() {
                         }
                     },
                     onSignOut    = { handleSignOut() },
-                    onDeleteAccount = { handleSignOut() },
+                    onDeleteAccount = {
+                        if (isDeletingAccount) return@ProfileScreen
+                        isDeletingAccount = true
+                        scope.launch {
+                            userService.deleteMe()
+                                .onSuccess {
+                                    repo.deleteAllSessions()
+                                    handleSignOut()
+                                }
+                                .onFailure {
+                                    isDeletingAccount = false
+                                    snackbarHostState.showSnackbar("Could not delete account — please try again")
+                                }
+                        }
+                    },
                     onFabClick   = { showLogActivity = true },
                 )
 

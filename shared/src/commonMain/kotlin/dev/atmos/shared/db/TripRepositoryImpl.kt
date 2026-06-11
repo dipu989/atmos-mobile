@@ -55,6 +55,10 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
         database.sessionsQueries.delete(id = id)
     }
 
+    override suspend fun deleteAllSessions() = withContext(Dispatchers.IO) {
+        database.sessionsQueries.deleteAll()
+    }
+
     override suspend fun updateBackendActivityId(sessionId: String, backendActivityId: String) {
         if (backendActivityId.isBlank()) return
         withContext(Dispatchers.IO) {
