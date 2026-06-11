@@ -70,6 +70,7 @@ data class InsightEntry(
     val type: InsightType,
     val title: String,
     val body: String,
+    val isRead: Boolean = false,
     val streakCount: Int = 0,       // STREAK — days/weeks in streak
     val goalProgressPct: Int = 0,   // MILESTONE — 0-100
     val savingsPct: Int = 0,        // TIP — % CO₂ reduction if followed
