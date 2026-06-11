@@ -124,6 +124,10 @@ fun ProfileScreen(
     onSignOut: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
     onFabClick: () -> Unit = {},
+    onHomeChange: (String) -> Unit = {},
+    onWorkChange: (String) -> Unit = {},
+    onTransportChange: (String) -> Unit = {},
+    onUnitsChange: (String) -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
@@ -272,7 +276,13 @@ fun ProfileScreen(
             title        = if (isEditingHome) "Edit home address" else "Edit work address",
             currentValue = if (isEditingHome) homeAddress else workAddress,
             onSave       = { address ->
-                if (isEditingHome) homeAddress = address else workAddress = address
+                if (isEditingHome) {
+                    homeAddress = address
+                    onHomeChange(address)
+                } else {
+                    workAddress = address
+                    onWorkChange(address)
+                }
                 editingCommute = null
             },
             onDismiss    = { editingCommute = null },
@@ -283,7 +293,12 @@ fun ProfileScreen(
     if (showTransportSheet) {
         TransportSelectionSheet(
             current   = selectedTransport,
-            onSelect  = { mode -> selectedTransport = mode; showTransportSheet = false },
+            onSelect  = { mode ->
+                selectedTransport = mode
+                val label = profileTransportOptions.firstOrNull { it.mode == mode }?.label ?: mode.name
+                onTransportChange(label)
+                showTransportSheet = false
+            },
             onDismiss = { showTransportSheet = false },
         )
     }
@@ -292,7 +307,7 @@ fun ProfileScreen(
     if (showUnitsDialog) {
         UnitsDialog(
             current   = selectedUnits,
-            onSelect  = { units -> selectedUnits = units; showUnitsDialog = false },
+            onSelect  = { units -> selectedUnits = units; onUnitsChange(units); showUnitsDialog = false },
             onDismiss = { showUnitsDialog = false },
         )
     }
