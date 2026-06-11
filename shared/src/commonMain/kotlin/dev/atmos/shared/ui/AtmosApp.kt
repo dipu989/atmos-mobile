@@ -41,8 +41,11 @@ import dev.atmos.shared.network.UserService
 import dev.atmos.shared.network.backendMode
 import dev.atmos.shared.network.toInsightEntry
 import dev.atmos.shared.ui.home.TodayImpact
+import dev.atmos.shared.ui.home.TransportModeEntry
 import dev.atmos.shared.ui.home.UserProfile
 import dev.atmos.shared.ui.home.WeeklyDataPoint
+import dev.atmos.shared.ui.logactivity.displayLabel
+import kotlin.math.roundToInt
 import dev.atmos.shared.ui.activities.ActivitiesScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
 import dev.atmos.shared.ui.auth.LoginScreen
@@ -334,9 +337,10 @@ fun AtmosApp() {
     // ── Timeline data (real CO₂ totals from backend) ──────────────────────────
     // Initialised to neutral zeros — the Home screen skeleton renders while the first fetch runs.
     // Using preview/fake values here would silently display fabricated data on network failure.
-    var todayImpact by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = dailyGoalKgCO2, percentVsWeeklyAvg = 0)) }
-    var weeklyTrend by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
-    var insights    by remember { mutableStateOf(emptyList<InsightEntry>()) }
+    var todayImpact        by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = dailyGoalKgCO2, percentVsWeeklyAvg = 0)) }
+    var weeklyTrend        by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
+    var insights           by remember { mutableStateOf(emptyList<InsightEntry>()) }
+    var transportBreakdown by remember { mutableStateOf(emptyList<TransportModeEntry>()) }
     val unreadInsightsCount = remember(insights) { insights.count { !it.isRead } }
 
     // Fetch user profile once per sign-in. Keyed on authUser so it does NOT re-fire on every
@@ -376,6 +380,21 @@ fun AtmosApp() {
                         dailyGoalKgCO2     = dailyGoalKgCO2,
                         percentVsWeeklyAvg = daily.trend.changePct?.toInt() ?: 0,
                     )
+                    val totalDistKm = daily.breakdown.values.sumOf { it.distanceKm.toDouble() }.toFloat()
+                    transportBreakdown = daily.breakdown.entries
+                        .mapNotNull { (key, dto) ->
+                            val mode = TransportModeType.entries.firstOrNull {
+                                it.name.equals(key, ignoreCase = true)
+                            } ?: return@mapNotNull null
+                            TransportModeEntry(
+                                mode        = mode,
+                                displayName = mode.displayLabel,
+                                distanceKm  = dto.distanceKm,
+                                kgCO2       = dto.kgCo2e,
+                                percentage  = if (totalDistKm > 0f) (dto.distanceKm / totalDistKm * 100).roundToInt() else 0,
+                            )
+                        }
+                        .sortedByDescending { it.distanceKm }
                 }
                 weeklyDeferred.await().onSuccess { weekly ->
                     if (weekly.days.isNotEmpty()) {
@@ -567,6 +586,7 @@ fun AtmosApp() {
                         recentActivity      = recentActivityEntries,
                         todayImpact         = todayImpact,
                         weeklyTrend         = weeklyTrend,
+                        transportBreakdown  = transportBreakdown,
                         insights            = insights,
                         unreadInsightsCount = unreadInsightsCount,
                     ),
