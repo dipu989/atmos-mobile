@@ -9,7 +9,6 @@ import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
-import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -72,7 +71,7 @@ class InsightsService(
             bearerAuth(token)
             parameter("limit", limit)
         }
-        if (response.status == HttpStatusCode.OK) {
+        if (response.status.value in 200..299) {
             response.body<InsightsResponseDto>()
         } else {
             throw Exception("Insights fetch failed (${response.status.value})")

@@ -5,7 +5,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
-import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -34,7 +33,7 @@ class UserService(
         val response = httpClient.get("$ATMOS_BASE_URL/api/v1/users/me") {
             bearerAuth(token)
         }
-        if (response.status == HttpStatusCode.OK) {
+        if (response.status.value in 200..299) {
             response.body<UserDto>()
         } else {
             throw Exception("User fetch failed (${response.status.value})")

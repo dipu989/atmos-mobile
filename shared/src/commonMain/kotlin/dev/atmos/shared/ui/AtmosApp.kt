@@ -337,66 +337,75 @@ fun AtmosApp() {
     var todayImpact by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = dailyGoalKgCO2, percentVsWeeklyAvg = 0)) }
     var weeklyTrend by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
     var insights    by remember { mutableStateOf(emptyList<InsightEntry>()) }
-    // Derived — no separate mutableStateOf needed; recomputed on every recomposition where insights changes.
-    val unreadInsightsCount = insights.count { !it.isRead }
+    val unreadInsightsCount = remember(insights) { insights.count { !it.isRead } }
+
+    // Fetch user profile once per sign-in. Keyed on authUser so it does NOT re-fire on every
+    // trip save (timelineTrigger). On success, updates AuthState so homeUser and ProfileScreen
+    // both recompose from the authoritative server display name.
+    LaunchedEffect(authUser) {
+        if (authUser == null || !tokenStore.isLoggedIn) return@LaunchedEffect
+        userService.getMe().onSuccess { dto ->
+            AuthState.onSignedIn(AuthUser(
+                id          = dto.id,
+                email       = dto.email,
+                displayName = dto.displayName,
+                avatarUrl   = dto.avatarUrl ?: "",
+            ))
+        }
+    }
 
     // Fetch timeline whenever the user is authenticated and lands on Home.
     // Re-fetches automatically after any trip is saved (timelineTrigger counter below).
-    // homeIsLoading is cleared after all three fetches settle, so onRetry (which sets it true
-    // and bumps the trigger) always results in the skeleton being dismissed.
+    // try/finally guarantees homeIsLoading = false even on cancellation (LaunchedEffect restart)
+    // or if the early-return path fires (unauthenticated mid-session).
     var timelineTrigger by remember { mutableStateOf(0) }
     LaunchedEffect(screen, timelineTrigger) {
-        if (screen != Screen.Home || !tokenStore.isLoggedIn) return@LaunchedEffect
-        coroutineScope {
-            val dailyDeferred   = async { timelineService.getDaily() }
-            val weeklyDeferred  = async { timelineService.getWeekly() }
-            val insightDeferred = async { insightsService.getInsights() }
-            val userDeferred    = async { userService.getMe() }
+        if (screen != Screen.Home || !tokenStore.isLoggedIn) {
+            homeIsLoading = false
+            return@LaunchedEffect
+        }
+        try {
+            coroutineScope {
+                val dailyDeferred   = async { timelineService.getDaily() }
+                val weeklyDeferred  = async { timelineService.getWeekly() }
+                val insightDeferred = async { insightsService.getInsights() }
 
-            dailyDeferred.await().onSuccess { daily ->
-                todayImpact = TodayImpact(
-                    kgCO2              = daily.totalKgCo2e,
-                    dailyGoalKgCO2     = dailyGoalKgCO2,
-                    percentVsWeeklyAvg = daily.trend.changePct?.toInt() ?: 0,
-                )
-            }
-            weeklyDeferred.await().onSuccess { weekly ->
-                if (weekly.days.isNotEmpty()) {
-                    // Parse week_start to derive each day's real date — avoids the wrong assumption
-                    // that today is always the last element in the list.
-                    val weekStartDate = try { LocalDate.parse(weekly.weekStart) } catch (_: Exception) { null }
-                    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-                    weeklyTrend = weekly.days.mapIndexed { i, day ->
-                        val dayDate = weekStartDate?.plus(i, DateTimeUnit.DAY)
-                        // ordinal: 0=Mon … 6=Sun (Kotlin enum / java.time.DayOfWeek)
-                        val label = when (dayDate?.dayOfWeek?.ordinal) {
-                            0 -> "Mon"; 1 -> "Tue"; 2 -> "Wed"; 3 -> "Thu"
-                            4 -> "Fri"; 5 -> "Sat"; 6 -> "Sun"
-                            else -> listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun").getOrElse(i) { "D${i + 1}" }
+                dailyDeferred.await().onSuccess { daily ->
+                    todayImpact = TodayImpact(
+                        kgCO2              = daily.totalKgCo2e,
+                        dailyGoalKgCO2     = dailyGoalKgCO2,
+                        percentVsWeeklyAvg = daily.trend.changePct?.toInt() ?: 0,
+                    )
+                }
+                weeklyDeferred.await().onSuccess { weekly ->
+                    if (weekly.days.isNotEmpty()) {
+                        // Parse week_start to derive each day's real date — avoids the wrong assumption
+                        // that today is always the last element in the list.
+                        val weekStartDate = try { LocalDate.parse(weekly.weekStart) } catch (_: Exception) { null }
+                        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                        weeklyTrend = weekly.days.mapIndexed { i, day ->
+                            val dayDate = weekStartDate?.plus(i, DateTimeUnit.DAY)
+                            // ordinal: 0=Mon … 6=Sun (Kotlin enum / java.time.DayOfWeek)
+                            val label = when (dayDate?.dayOfWeek?.ordinal) {
+                                0 -> "Mon"; 1 -> "Tue"; 2 -> "Wed"; 3 -> "Thu"
+                                4 -> "Fri"; 5 -> "Sat"; 6 -> "Sun"
+                                else -> listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun").getOrElse(i) { "D${i + 1}" }
+                            }
+                            WeeklyDataPoint(
+                                dayLabel = label,
+                                kgCO2    = day.totalKgCo2e,
+                                isToday  = dayDate == today,
+                            )
                         }
-                        WeeklyDataPoint(
-                            dayLabel = label,
-                            kgCO2    = day.totalKgCo2e,
-                            isToday  = dayDate == today,
-                        )
                     }
                 }
+                insightDeferred.await().onSuccess { response ->
+                    insights = response.items.map { it.toInsightEntry() }
+                }
             }
-            insightDeferred.await().onSuccess { response ->
-                insights = response.items.map { it.toInsightEntry() }
-            }
-            userDeferred.await().onSuccess { dto ->
-                // Update AuthState with server data so homeUser and ProfileScreen
-                // both recompose automatically from the authoritative display name.
-                AuthState.onSignedIn(AuthUser(
-                    id          = dto.id,
-                    email       = dto.email,
-                    displayName = dto.displayName,
-                    avatarUrl   = dto.avatarUrl ?: "",
-                ))
-            }
+        } finally {
+            homeIsLoading = false
         }
-        homeIsLoading = false
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
