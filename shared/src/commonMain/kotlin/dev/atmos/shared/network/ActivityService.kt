@@ -9,6 +9,7 @@ import dev.atmos.shared.util.formatTimestamp
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
@@ -176,6 +177,18 @@ class ActivityService(
             HttpStatusCode.Created  -> response.body<ActivityDto>()
             HttpStatusCode.Conflict -> ActivityDto(id = "")   // already synced — no-op
             else -> throw Exception(httpErrorMessage(response.status.value))
+        }
+    }
+
+    suspend fun deleteActivity(activityId: String): Result<Unit> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+
+        val response = httpClient.delete("$ATMOS_BASE_URL/api/v1/activities/$activityId") {
+            bearerAuth(token)
+        }
+        if (response.status.value !in 200..299) {
+            throw Exception(httpErrorMessage(response.status.value))
         }
     }
 

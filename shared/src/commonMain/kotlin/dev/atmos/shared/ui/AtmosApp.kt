@@ -742,14 +742,26 @@ fun AtmosApp() {
                             showLogActivity = true
                         },
                         onDelete = {
-                            val sessionId = entry.sessionId
                             scope.launch {
                                 try {
-                                    if (sessionId.isNotEmpty()) repo.deleteSession(sessionId)
-                                    screen = Screen.Home  // navigate only after successful delete
+                                    val localSession = confirmedSessions
+                                        .firstOrNull { it.session.id == entry.sessionId }
+
+                                    if (localSession != null) {
+                                        // Local DB trip: delete from backend first if synced
+                                        val backendId = localSession.session.backend_activity_id
+                                        if (!backendId.isNullOrEmpty()) {
+                                            activityService.deleteActivity(backendId).getOrThrow()
+                                        }
+                                        repo.deleteSession(localSession.session.id)
+                                    } else if (entry.sessionId.isNotEmpty()) {
+                                        // Backend-only trip: sessionId IS the backend activity UUID
+                                        activityService.deleteActivity(entry.sessionId).getOrThrow()
+                                        backendActivities = backendActivities.filter { it.sessionId != entry.sessionId }
+                                    }
+                                    screen = Screen.Home
                                 } catch (e: Exception) {
                                     snackbarHostState.showSnackbar("Could not delete trip — please try again")
-                                    // stay on TripDetailScreen so the user can retry
                                 }
                             }
                         },
