@@ -353,6 +353,7 @@ fun AtmosApp() {
     // Using preview/fake values here would silently display fabricated data on network failure.
     var todayImpact        by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = dailyGoalKgCO2, percentVsWeeklyAvg = 0)) }
     var weeklyTrend        by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
+    var weeklyTotalKgCo2   by remember { mutableStateOf(0f) }
     var insights           by remember { mutableStateOf(emptyList<InsightEntry>()) }
     var transportBreakdown by remember { mutableStateOf(emptyList<TransportModeEntry>()) }
     val unreadInsightsCount = remember(insights) { insights.count { !it.isRead } }
@@ -438,6 +439,9 @@ fun AtmosApp() {
                 }
                 weeklyDeferred.await().onSuccess { weekly ->
                     if (weekly.days.isNotEmpty()) {
+                        // Keep weeklyTotalKgCo2 in sync with weeklyTrend so the Profile
+                        // card and the Home bar chart always reflect the same response.
+                        weeklyTotalKgCo2 = weekly.totalKgCo2e
                         // Parse week_start to derive each day's real date — avoids the wrong assumption
                         // that today is always the last element in the list.
                         val weekStartDate = try { LocalDate.parse(weekly.weekStart) } catch (_: Exception) { null }
@@ -688,7 +692,7 @@ fun AtmosApp() {
                                 ?: "?"
                         } ?: "?",
                         email           = authUser?.email ?: "",
-                        totalCO2SavedKg = weeklyTrend.sumOf { it.kgCO2.toDouble() }.toFloat(),
+                        totalCO2SavedKg = weeklyTotalKgCo2,
                         daysTracked     = profileDaysTracked,
                         todayKgCO2      = todayImpact.kgCO2,
                         dailyGoalKgCO2  = dailyGoalKgCO2,
