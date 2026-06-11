@@ -93,10 +93,10 @@ class InsightsService(
             bearerAuth(token)
             parameter("limit", limit)
         }
-        if (response.status.value in 200..299) {
-            response.body<InsightsResponseDto>()
-        } else {
+        if (response.status.value !in 200..299) {
             throw Exception("Insights fetch failed (${response.status.value})")
         }
+        response.body<ApiEnvelope<InsightsResponseDto>>().data
+            ?: throw Exception("Empty response from server")
     }
 }
