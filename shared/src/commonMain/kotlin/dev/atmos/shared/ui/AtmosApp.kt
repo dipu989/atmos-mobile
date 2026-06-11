@@ -44,7 +44,6 @@ import dev.atmos.shared.ui.home.TodayImpact
 import dev.atmos.shared.ui.home.TransportModeEntry
 import dev.atmos.shared.ui.home.UserProfile
 import dev.atmos.shared.ui.home.WeeklyDataPoint
-import dev.atmos.shared.ui.logactivity.displayLabel
 import kotlin.math.roundToInt
 import dev.atmos.shared.ui.activities.ActivitiesScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
@@ -364,7 +363,8 @@ fun AtmosApp() {
     // or if the early-return path fires (unauthenticated mid-session).
     var timelineTrigger by remember { mutableStateOf(0) }
     LaunchedEffect(screen, timelineTrigger) {
-        if (screen != Screen.Home || !tokenStore.isLoggedIn) {
+        if (screen != Screen.Home) return@LaunchedEffect
+        if (!tokenStore.isLoggedIn) {
             homeIsLoading = false
             return@LaunchedEffect
         }
@@ -388,7 +388,19 @@ fun AtmosApp() {
                             } ?: return@mapNotNull null
                             TransportModeEntry(
                                 mode        = mode,
-                                displayName = mode.displayLabel,
+                                displayName = when (mode) {
+                                    TransportModeType.DRIVING        -> "Driving"
+                                    TransportModeType.CAB            -> "Cab"
+                                    TransportModeType.PUBLIC_TRANSIT -> "Public Transit"
+                                    TransportModeType.BUS            -> "Bus"
+                                    TransportModeType.TRAIN          -> "Train"
+                                    TransportModeType.METRO          -> "Metro"
+                                    TransportModeType.CYCLING        -> "Cycling"
+                                    TransportModeType.WALKING        -> "Walking"
+                                    TransportModeType.TWO_WHEELER    -> "Two-Wheeler"
+                                    TransportModeType.AUTO_RICKSHAW  -> "Auto"
+                                    TransportModeType.FLIGHT         -> "Flight"
+                                },
                                 distanceKm  = dto.distanceKm,
                                 kgCO2       = dto.kgCo2e,
                                 percentage  = if (totalDistKm > 0f) (dto.distanceKm / totalDistKm * 100).roundToInt() else 0,
