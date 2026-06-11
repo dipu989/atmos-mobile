@@ -120,7 +120,7 @@ fun ProfileScreen(
     onAppearanceChange: (AppearanceMode) -> Unit = {},
     onNotificationsToggle: (Boolean) -> Unit = {},
     onGoalChange: (Float) -> Unit = {},
-    onSaveName: (String) -> Unit = {},
+    onSaveName: (name: String, onSuccess: () -> Unit, onError: () -> Unit) -> Unit = { _, _, _ -> },
     onSignOut: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
     onFabClick: () -> Unit = {},
@@ -315,8 +315,11 @@ fun ProfileScreen(
             onSave        = { name ->
                 localDisplayName = name
                 showEditProfile  = false
-                onSaveName(name)
-                scope.launch { snackbarHostState.showSnackbar("Profile updated") }
+                onSaveName(
+                    name,
+                    { scope.launch { snackbarHostState.showSnackbar("Profile updated") } },
+                    { scope.launch { snackbarHostState.showSnackbar("Update failed. Try again.") } },
+                )
             },
             onDismiss     = { showEditProfile = false },
             onChangePhoto = { scope.launch { snackbarHostState.showSnackbar("Photo upload coming soon") } },

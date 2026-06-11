@@ -360,10 +360,10 @@ fun AtmosApp() {
         screen = Screen.InsightDetail
     }
 
-    // Fetch user profile once per sign-in. Keyed on authUser so it does NOT re-fire on every
-    // trip save (timelineTrigger). On success, updates AuthState so homeUser and ProfileScreen
-    // both recompose from the authoritative server display name.
-    LaunchedEffect(authUser) {
+    // Fetch user profile once per sign-in. Keyed on authUser?.id so it fires on sign-in/sign-out
+    // but NOT when updateMe() changes displayName (which would loop: updateMe → authUser change
+    // → getMe → authUser change → ...).
+    LaunchedEffect(authUser?.id) {
         if (authUser == null) {
             backendActivities = emptyList()
             return@LaunchedEffect
@@ -702,16 +702,19 @@ fun AtmosApp() {
                         settings.putFloat("daily_goal_kg", goal)
                         todayImpact = todayImpact.copy(dailyGoalKgCO2 = goal)
                     },
-                    onSaveName             = { name ->
+                    onSaveName             = { name, onSuccess, onError ->
                         scope.launch {
-                            userService.updateMe(name).onSuccess { dto ->
-                                AuthState.onSignedIn(AuthUser(
-                                    id          = dto.id,
-                                    email       = dto.email,
-                                    displayName = dto.displayName,
-                                    avatarUrl   = dto.avatarUrl ?: "",
-                                ))
-                            }
+                            userService.updateMe(name)
+                                .onSuccess { dto ->
+                                    AuthState.onSignedIn(AuthUser(
+                                        id          = dto.id,
+                                        email       = dto.email,
+                                        displayName = dto.displayName,
+                                        avatarUrl   = dto.avatarUrl ?: authUser?.avatarUrl ?: "",
+                                    ))
+                                    onSuccess()
+                                }
+                                .onFailure { onError() }
                         }
                     },
                     onSignOut    = { handleSignOut() },
