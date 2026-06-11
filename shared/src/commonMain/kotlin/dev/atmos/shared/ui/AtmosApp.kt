@@ -62,6 +62,7 @@ import dev.atmos.shared.ui.logactivity.LogActivityPrefill
 import dev.atmos.shared.ui.logactivity.LogActivitySheet
 import dev.atmos.shared.ui.onboarding.OnboardingScreen
 import dev.atmos.shared.ui.profile.AppearanceMode
+import dev.atmos.shared.ui.profile.CommuteLocation
 import dev.atmos.shared.ui.profile.ProfileScreen
 import dev.atmos.shared.ui.profile.previewProfileUiState
 import dev.atmos.shared.ui.profile.toInitials
@@ -352,7 +353,11 @@ fun AtmosApp() {
 
     // ── Persisted settings ────────────────────────────────────────────────────
     val settings = remember { Settings() }
-    var dailyGoalKgCO2 by remember { mutableStateOf(settings.getFloat("daily_goal_kg", 5.0f)) }
+    var dailyGoalKgCO2   by remember { mutableStateOf(settings.getFloat("daily_goal_kg", 5.0f)) }
+    var commuteHome      by remember { mutableStateOf(settings.getString("commute_home", "")) }
+    var commuteWork      by remember { mutableStateOf(settings.getString("commute_work", "")) }
+    var defaultTransport by remember { mutableStateOf(settings.getString("default_transport", "Public Transit")) }
+    var unitsLabel       by remember { mutableStateOf(settings.getString("units_label", "Metric (km)")) }
 
     // ── Timeline data (real CO₂ totals from backend) ──────────────────────────
     // Initialised to neutral zeros — the Home screen skeleton renders while the first fetch runs.
@@ -702,9 +707,13 @@ fun AtmosApp() {
                         daysTracked     = profileDaysTracked,
                         todayKgCO2      = todayImpact.kgCO2,
                         dailyGoalKgCO2  = dailyGoalKgCO2,
+                        home        = CommuteLocation("Home", commuteHome.takeIf { it.isNotBlank() }),
+                        work        = CommuteLocation("Work", commuteWork.takeIf { it.isNotBlank() }),
                         preferences = previewProfileUiState.preferences.copy(
                             pushNotificationsEnabled = notificationsEnabled,
-                            appearanceMode = appearanceMode,
+                            appearanceMode           = appearanceMode,
+                            defaultTransportLabel    = defaultTransport,
+                            unitsLabel               = unitsLabel,
                         ),
                     ),
                     onBack                 = { screen = Screen.Home },
@@ -717,6 +726,10 @@ fun AtmosApp() {
                         settings.putFloat("daily_goal_kg", goal)
                         todayImpact = todayImpact.copy(dailyGoalKgCO2 = goal)
                     },
+                    onHomeChange      = { addr  -> commuteHome      = addr;  settings.putString("commute_home",      addr)  },
+                    onWorkChange      = { addr  -> commuteWork      = addr;  settings.putString("commute_work",      addr)  },
+                    onTransportChange = { label -> defaultTransport = label; settings.putString("default_transport", label) },
+                    onUnitsChange     = { units -> unitsLabel       = units; settings.putString("units_label",       units) },
                     onSaveName             = { name, onSuccess, onError ->
                         scope.launch {
                             userService.updateMe(name)
