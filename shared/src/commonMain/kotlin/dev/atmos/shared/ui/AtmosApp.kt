@@ -341,6 +341,14 @@ fun AtmosApp() {
     var insights           by remember { mutableStateOf(emptyList<InsightEntry>()) }
     var transportBreakdown by remember { mutableStateOf(emptyList<TransportModeEntry>()) }
     val unreadInsightsCount = remember(insights) { insights.count { !it.isRead } }
+    val handleInsightClick: (InsightEntry) -> Unit = { entry ->
+        if (!entry.isRead && entry.id.isNotBlank()) {
+            insights = insights.map { if (it.id == entry.id) it.copy(isRead = true) else it }
+            scope.launch { insightsService.markRead(entry.id) }
+        }
+        selectedInsight = entry.copy(isRead = true)
+        screen = Screen.InsightDetail
+    }
 
     // Fetch user profile once per sign-in. Keyed on authUser so it does NOT re-fire on every
     // trip save (timelineTrigger). On success, updates AuthState so homeUser and ProfileScreen
@@ -640,14 +648,7 @@ fun AtmosApp() {
                         }
                     },
                     onTripClick            = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
-                    onInsightClick         = { entry ->
-                        if (!entry.isRead && entry.id.isNotBlank()) {
-                            insights = insights.map { if (it.id == entry.id) it.copy(isRead = true) else it }
-                            scope.launch { insightsService.markRead(entry.id) }
-                        }
-                        selectedInsight = entry.copy(isRead = true)
-                        screen = Screen.InsightDetail
-                    },
+                    onInsightClick         = handleInsightClick,
                     onStopAndSave          = { tripDetector.manualEndAndSave() },
                     onDiscard              = { tripDetector.discardSession() },
                     onResume               = { tripDetector.resumeLeg() },

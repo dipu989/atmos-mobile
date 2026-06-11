@@ -37,6 +37,9 @@ data class InsightDto(
 )
 
 @Serializable
+private data class MarkReadRequest(@SerialName("is_read") val isRead: Boolean)
+
+@Serializable
 data class InsightsResponseDto(
     val items: List<InsightDto> = emptyList(),
     val total: Int = 0,
@@ -75,7 +78,7 @@ class InsightsService(
         val response = httpClient.patch("$ATMOS_BASE_URL/api/v1/insights/$insightId") {
             contentType(ContentType.Application.Json)
             bearerAuth(token)
-            setBody("""{"is_read":true}""")
+            setBody(MarkReadRequest(isRead = true))
         }
         if (response.status.value !in 200..299) {
             throw Exception("Mark-read failed (${response.status.value})")
