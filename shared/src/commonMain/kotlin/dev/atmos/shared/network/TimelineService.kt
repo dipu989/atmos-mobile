@@ -5,7 +5,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
-import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -77,7 +76,7 @@ class TimelineService(
         val response = httpClient.get("$ATMOS_BASE_URL/api/v1/timeline/daily") {
             bearerAuth(token)
         }
-        if (response.status == HttpStatusCode.OK) {
+        if (response.status.value in 200..299) {
             response.body<DailySummaryDto>()
         } else {
             throw Exception("Timeline fetch failed (${response.status.value})")
@@ -92,7 +91,7 @@ class TimelineService(
         val response = httpClient.get("$ATMOS_BASE_URL/api/v1/timeline/weekly") {
             bearerAuth(token)
         }
-        if (response.status == HttpStatusCode.OK) {
+        if (response.status.value in 200..299) {
             response.body<WeeklySummaryDto>()
         } else {
             throw Exception("Timeline fetch failed (${response.status.value})")
