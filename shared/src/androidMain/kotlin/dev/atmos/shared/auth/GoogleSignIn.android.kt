@@ -6,6 +6,7 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,8 +58,13 @@ class AndroidGoogleSignIn(private val activity: Activity) : GoogleSignInLauncher
             .setAutoSelectEnabled(false)           // always show account picker
             .build()
 
+        // GetSignInWithGoogleOption is a web-based fallback — used automatically by
+        // Credential Manager when no Google account is present on the device.
+        val signInWithGoogleOption = GetSignInWithGoogleOption.Builder(WEB_CLIENT_ID).build()
+
         val request = GetCredentialRequest.Builder()
             .addCredentialOption(googleIdOption)
+            .addCredentialOption(signInWithGoogleOption)
             .build()
 
         CoroutineScope(Dispatchers.Main).launch {

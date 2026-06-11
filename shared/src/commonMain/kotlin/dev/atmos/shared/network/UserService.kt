@@ -45,11 +45,11 @@ class UserService(
             bearerAuth(token)
             setBody(UpdateUserRequest(displayName = displayName))
         }
-        if (response.status.value in 200..299) {
-            response.body<UserDto>()
-        } else {
+        if (response.status.value !in 200..299) {
             throw Exception("Profile update failed (${response.status.value})")
         }
+        response.body<ApiEnvelope<UserDto>>().data
+            ?: throw Exception("Empty response from server")
     }
 
     suspend fun deleteMe(): Result<Unit> = runCatching {
@@ -71,10 +71,10 @@ class UserService(
         val response = httpClient.get("$ATMOS_BASE_URL/api/v1/users/me") {
             bearerAuth(token)
         }
-        if (response.status.value in 200..299) {
-            response.body<UserDto>()
-        } else {
+        if (response.status.value !in 200..299) {
             throw Exception("User fetch failed (${response.status.value})")
         }
+        response.body<ApiEnvelope<UserDto>>().data
+            ?: throw Exception("Empty response from server")
     }
 }

@@ -174,7 +174,8 @@ class ActivityService(
         }
 
         when (response.status) {
-            HttpStatusCode.Created  -> response.body<ActivityDto>()
+            HttpStatusCode.Created  -> response.body<ApiEnvelope<ActivityDto>>().data
+                ?: throw Exception("Empty response from server")
             HttpStatusCode.Conflict -> ActivityDto(id = "")   // already synced — no-op
             else -> throw Exception(httpErrorMessage(response.status.value))
         }
@@ -207,11 +208,11 @@ class ActivityService(
             if (toMs != null)   parameter("to",   Instant.fromEpochMilliseconds(toMs).toDateString())
             parameter("limit", limit)
         }
-        if (response.status.value in 200..299) {
-            response.body<ActivitiesPageDto>()
-        } else {
+        if (response.status.value !in 200..299) {
             throw Exception(httpErrorMessage(response.status.value))
         }
+        response.body<ApiEnvelope<ActivitiesPageDto>>().data
+            ?: throw Exception("Empty response from server")
     }
 
     private fun httpErrorMessage(code: Int): String = when (code) {

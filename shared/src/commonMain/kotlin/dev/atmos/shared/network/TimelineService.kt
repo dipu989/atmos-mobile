@@ -76,11 +76,11 @@ class TimelineService(
         val response = httpClient.get("$ATMOS_BASE_URL/api/v1/timeline/daily") {
             bearerAuth(token)
         }
-        if (response.status.value in 200..299) {
-            response.body<DailySummaryDto>()
-        } else {
+        if (response.status.value !in 200..299) {
             throw Exception("Timeline fetch failed (${response.status.value})")
         }
+        response.body<ApiEnvelope<DailySummaryDto>>().data
+            ?: throw Exception("Empty response from server")
     }
 
     /** Returns the current week's CO₂ total, distance, and trend vs the previous week. */
@@ -91,10 +91,10 @@ class TimelineService(
         val response = httpClient.get("$ATMOS_BASE_URL/api/v1/timeline/weekly") {
             bearerAuth(token)
         }
-        if (response.status.value in 200..299) {
-            response.body<WeeklySummaryDto>()
-        } else {
+        if (response.status.value !in 200..299) {
             throw Exception("Timeline fetch failed (${response.status.value})")
         }
+        response.body<ApiEnvelope<WeeklySummaryDto>>().data
+            ?: throw Exception("Empty response from server")
     }
 }

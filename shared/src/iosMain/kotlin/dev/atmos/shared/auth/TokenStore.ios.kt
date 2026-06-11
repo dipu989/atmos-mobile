@@ -37,6 +37,11 @@ internal class IosTokenStore : TokenStore {
         defaults.setObject(response.user.avatarUrl, forKey = KEY_AVATAR_URL)
     }
 
+    override fun saveTokens(accessToken: String, refreshToken: String) {
+        defaults.setObject(accessToken,  forKey = KEY_ACCESS_TOKEN)
+        defaults.setObject(refreshToken, forKey = KEY_REFRESH_TOKEN)
+    }
+
     override fun clear() {
         listOf(
             KEY_ACCESS_TOKEN, KEY_REFRESH_TOKEN, KEY_USER_ID,

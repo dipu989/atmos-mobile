@@ -48,6 +48,13 @@ internal class AndroidTokenStore(
             .apply()
     }
 
+    override fun saveTokens(accessToken: String, refreshToken: String) {
+        prefs.edit()
+            .putString(KEY_ACCESS_TOKEN,  accessToken)
+            .putString(KEY_REFRESH_TOKEN, refreshToken)
+            .apply()
+    }
+
     override fun clear() {
         prefs.edit()
             .remove(KEY_ACCESS_TOKEN)

@@ -22,6 +22,9 @@ interface TokenStore {
     /** Persist tokens + user info from a successful auth response. */
     fun save(response: AuthResponseDto)
 
+    /** Update only the token pair (used after a silent token refresh — user info unchanged). */
+    fun saveTokens(accessToken: String, refreshToken: String)
+
     /** Wipe all stored tokens (sign-out / delete account). */
     fun clear()
 }

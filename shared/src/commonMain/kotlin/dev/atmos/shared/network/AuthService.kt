@@ -33,6 +33,14 @@ private data class ForgotPasswordRequest(val email: String)
 
 // ── Response DTOs ─────────────────────────────────────────────────────────────
 
+// All Atmos backend responses are wrapped in this envelope.
+@Serializable
+data class ApiEnvelope<T>(
+    val success: Boolean,
+    val data: T? = null,
+    val error: String? = null,
+)
+
 @Serializable
 data class AuthUserDto(
     val id: String,
@@ -48,7 +56,14 @@ data class AuthResponseDto(
     val user: AuthUserDto,
     @SerialName("access_token") val accessToken: String,
     @SerialName("refresh_token") val refreshToken: String,
-    @SerialName("is_new_user") val isNewUser: Boolean,
+    @SerialName("is_new_user") val isNewUser: Boolean = false,
+)
+
+// Used only by the token-refresh endpoint which returns tokens only (no user info).
+@Serializable
+data class TokenPairDto(
+    @SerialName("access_token") val accessToken: String,
+    @SerialName("refresh_token") val refreshToken: String,
 )
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -70,12 +85,11 @@ class AuthService(
             contentType(ContentType.Application.Json)
             setBody(GoogleTokenRequest(idToken))
         }
-        // Fail fast with a clean message instead of letting Ktor try (and fail) to
-        // deserialise an error body into AuthResponseDto.
         if (response.status.value !in 200..299) {
             throw Exception(googleErrorMessage(response.status))
         }
-        response.body<AuthResponseDto>()
+        response.body<ApiEnvelope<AuthResponseDto>>().data
+            ?: throw Exception("Empty response from server")
     }
 
     /**
@@ -91,7 +105,8 @@ class AuthService(
         if (response.status.value !in 200..299) {
             throw Exception(emailSignInErrorMessage(response.status))
         }
-        response.body<AuthResponseDto>()
+        response.body<ApiEnvelope<AuthResponseDto>>().data
+            ?: throw Exception("Empty response from server")
     }
 
     /**
@@ -111,7 +126,8 @@ class AuthService(
         if (response.status.value !in 200..299) {
             throw Exception(emailSignUpErrorMessage(response.status))
         }
-        response.body<AuthResponseDto>()
+        response.body<ApiEnvelope<AuthResponseDto>>().data
+            ?: throw Exception("Empty response from server")
     }
 
     /**
