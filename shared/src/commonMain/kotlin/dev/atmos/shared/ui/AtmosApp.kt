@@ -309,11 +309,15 @@ fun AtmosApp() {
     val confirmedSessions by repo.observeConfirmedSessions().collectAsState(initial = emptyList())
     // Backend activities fetched from GET /api/v1/activities — populated by the timeline LaunchedEffect.
     var backendActivities by remember { mutableStateOf(emptyList<RecentActivityEntry>()) }
+    // IDs of backend-only trips the user has deleted this session. Persists across listActivities
+    // re-fetches so a deleted entry doesn't reappear if the backend read lags behind the delete.
+    var deletedBackendIds by remember { mutableStateOf(emptySet<String>()) }
     // Merge local DB sessions with backend-only trips (trips from other devices / reinstalls).
-    // Dedup: exclude backend entries whose id already appears as a backend_activity_id in local DB.
-    val groupedActivities = remember(confirmedSessions, backendActivities) {
+    // Dedup: exclude backend entries whose id already appears as a backend_activity_id in local DB,
+    // and exclude entries the user has explicitly deleted in this session.
+    val groupedActivities = remember(confirmedSessions, backendActivities, deletedBackendIds) {
         val syncedIds = confirmedSessions.mapNotNull { it.session.backend_activity_id }.toSet()
-        val backendOnly = backendActivities.filter { it.sessionId !in syncedIds }
+        val backendOnly = backendActivities.filter { it.sessionId !in syncedIds && it.sessionId !in deletedBackendIds }
         (confirmedSessions.map { it.toRecentActivityEntry() } + backendOnly)
             .sortedByDescending { it.timestampMs }
             .groupByDateLabel()
@@ -748,16 +752,23 @@ fun AtmosApp() {
                                         .firstOrNull { it.session.id == entry.sessionId }
 
                                     if (localSession != null) {
-                                        // Local DB trip: delete from backend first if synced
+                                        // Local DB trip: delete from backend first if synced.
+                                        // 404 is treated as success (already deleted from another device).
                                         val backendId = localSession.session.backend_activity_id
                                         if (!backendId.isNullOrEmpty()) {
                                             activityService.deleteActivity(backendId).getOrThrow()
                                         }
                                         repo.deleteSession(localSession.session.id)
                                     } else if (entry.sessionId.isNotEmpty()) {
-                                        // Backend-only trip: sessionId IS the backend activity UUID
+                                        // Backend-only trip: sessionId IS the backend activity UUID.
+                                        // Add to the exclusion set before navigating so a concurrent
+                                        // listActivities re-fetch cannot resurrect the deleted entry.
                                         activityService.deleteActivity(entry.sessionId).getOrThrow()
-                                        backendActivities = backendActivities.filter { it.sessionId != entry.sessionId }
+                                        deletedBackendIds = deletedBackendIds + entry.sessionId
+                                    } else {
+                                        // No local row and no backend ID — nothing to delete.
+                                        snackbarHostState.showSnackbar("Could not identify trip — please try again")
+                                        return@launch
                                     }
                                     screen = Screen.Home
                                 } catch (e: Exception) {

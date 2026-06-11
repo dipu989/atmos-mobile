@@ -187,7 +187,8 @@ class ActivityService(
         val response = httpClient.delete("$ATMOS_BASE_URL/api/v1/activities/$activityId") {
             bearerAuth(token)
         }
-        if (response.status.value !in 200..299) {
+        // 404 = activity already gone (deleted from another device) — goal is achieved
+        if (response.status.value !in 200..299 && response.status.value != 404) {
             throw Exception(httpErrorMessage(response.status.value))
         }
     }
