@@ -131,6 +131,19 @@ class AuthService(
     }
 
     /**
+     * Resend the verification email to the currently-authenticated user.
+     * Endpoint: POST /api/v1/auth/resend-verification (Bearer auth required)
+     */
+    suspend fun resendVerification(accessToken: String): Result<Unit> = runCatching {
+        val response = httpClient.post("$ATMOS_BASE_URL/api/v1/auth/resend-verification") {
+            bearerAuth(accessToken)
+        }
+        if (response.status.value !in 200..299) {
+            throw Exception("Could not send verification email. Please try again.")
+        }
+    }
+
+    /**
      * Request a password-reset email.
      * Endpoint: POST /api/v1/auth/forgot-password
      * Body:     { "email": "..." }

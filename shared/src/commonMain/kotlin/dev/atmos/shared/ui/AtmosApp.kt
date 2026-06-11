@@ -47,6 +47,7 @@ import dev.atmos.shared.ui.home.UserProfile
 import dev.atmos.shared.ui.home.WeeklyDataPoint
 import kotlin.math.roundToInt
 import dev.atmos.shared.ui.activities.ActivitiesScreen
+import dev.atmos.shared.ui.auth.EmailVerificationScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
 import dev.atmos.shared.ui.auth.LoginScreen
 import dev.atmos.shared.ui.auth.SignUpScreen
@@ -81,16 +82,18 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
 private sealed class Screen {
-    data object Onboarding     : Screen()
-    data object Login          : Screen()
-    data object SignUp         : Screen()
-    data object ForgotPassword : Screen()
-    data object Home           : Screen()
-    data object Activities     : Screen()
-    data object TripDetail     : Screen()
-    data object InsightDetail  : Screen()
-    data object Profile        : Screen()
-    data object Insights       : Screen()
+    data object Onboarding         : Screen()
+    data object Login              : Screen()
+    data object SignUp             : Screen()
+    data object ForgotPassword     : Screen()
+    /** Carries the email so the screen never needs a separate pendingVerificationEmail var. */
+    data class  EmailVerification(val email: String) : Screen()
+    data object Home               : Screen()
+    data object Activities         : Screen()
+    data object TripDetail         : Screen()
+    data object InsightDetail      : Screen()
+    data object Profile            : Screen()
+    data object Insights           : Screen()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -138,6 +141,10 @@ fun AtmosApp() {
     var forgotError         by remember { mutableStateOf<String?>(null) }
     var forgotSucceeded     by remember { mutableStateOf(false) }
     val forgotJobHolder     = remember { object { var job: Job? = null } }
+    // Holds the signed-in user after signup until the user continues past the verification screen.
+    // Deferring AuthState.onSignedIn() prevents the LaunchedEffect(authUser?.id) from firing
+    // GET /users/me while the user is still on the unverified-email prompt.
+    var pendingVerificationAuthUser by remember { mutableStateOf<AuthUser?>(null) }
 
     // Clear stale auth errors and reset forgot-password state on every screen transition.
     // Also cancels any in-flight password-reset request so it cannot ghost-write state
@@ -235,7 +242,18 @@ fun AtmosApp() {
             authService.signUp(displayName = name.trim(), email = email.trim(), password = password)
                 .onSuccess { response ->
                     emailSignUpLoading = false
-                    onAuthSuccess(response)
+                    // Save tokens so the resend call has a valid Bearer token.
+                    // AuthState.onSignedIn is intentionally deferred to onContinue so that
+                    // LaunchedEffect(authUser?.id) does not fire GET /users/me while the user
+                    // is on the verification screen with an unverified account.
+                    tokenStore.save(response)
+                    pendingVerificationAuthUser = AuthUser(
+                        id          = response.user.id,
+                        email       = response.user.email,
+                        displayName = response.user.displayName,
+                        avatarUrl   = response.user.avatarUrl ?: "",
+                    )
+                    screen = Screen.EmailVerification(email = response.user.email)
                 }
                 .onFailure { e ->
                     emailSignUpLoading = false
@@ -265,6 +283,7 @@ fun AtmosApp() {
     }
 
     fun handleSignOut() {
+        pendingVerificationAuthUser = null
         tokenStore.clear()
         AuthState.onSignedOut()
         screen = Screen.Onboarding
@@ -641,6 +660,25 @@ fun AtmosApp() {
                     sendLoading     = forgotLoading,
                     sendError       = forgotError,
                     showSuccess     = forgotSucceeded,
+                )
+
+                is Screen.EmailVerification -> EmailVerificationScreen(
+                    email     = (screen as Screen.EmailVerification).email,
+                    onResend  = { onSuccess, onError ->
+                        val token = tokenStore.getAccessToken()
+                        if (token == null) { onError("Not authenticated"); return@EmailVerificationScreen }
+                        scope.launch {
+                            authService.resendVerification(token)
+                                .onSuccess { onSuccess() }
+                                .onFailure { e -> onError(e.message ?: "Could not send verification email.") }
+                        }
+                    },
+                    onContinue = {
+                        // Complete the deferred sign-in now that the user is proceeding to Home.
+                        pendingVerificationAuthUser?.let { AuthState.onSignedIn(it) }
+                        pendingVerificationAuthUser = null
+                        screen = Screen.Home
+                    },
                 )
 
                 Screen.Home -> HomeScreen(
