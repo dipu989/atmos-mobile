@@ -69,6 +69,7 @@ fun SignUpScreen(
     var emailTouched           by remember { mutableStateOf(false) }
     var passwordTouched        by remember { mutableStateOf(false) }
     var confirmPasswordTouched by remember { mutableStateOf(false) }
+    var termsTouched           by remember { mutableStateOf(false) }
 
     val nameError =
         if (nameTouched && name.isBlank()) "Please enter your name" else null
@@ -81,6 +82,8 @@ fun SignUpScreen(
         confirmPassword != password      -> "Passwords do not match"
         else                             -> null
     }
+    val termsError =
+        if (termsTouched && !termsAccepted) "You must accept the Terms of Service to continue" else null
 
     val isFormValid = name.isNotBlank()
         && email.isValidEmail()
@@ -196,6 +199,7 @@ fun SignUpScreen(
                 keyboardActions = KeyboardActions(
                     onDone = {
                         confirmPasswordTouched = true
+                        termsTouched = true
                         if (isFormValid) onCreateAccount(name, email, password)
                     },
                 ),
@@ -248,18 +252,28 @@ fun SignUpScreen(
                 )
             }
 
+            if (termsError != null) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text  = termsError,
+                    style = TextStyle(fontSize = 12.sp, color = dev.atmos.shared.ui.theme.AlertRed),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
             Spacer(Modifier.height(28.dp))
 
             // Create Account CTA
             AuthPrimaryButton(
                 text    = "Create Account",
                 loading = emailSignUpLoading,
-                enabled = !googleSignInLoading,
+                enabled = !googleSignInLoading && !emailSignUpLoading,
                 onClick = {
                     nameTouched            = true
                     emailTouched           = true
                     passwordTouched        = true
                     confirmPasswordTouched = true
+                    termsTouched           = true
                     if (isFormValid) onCreateAccount(name, email, password)
                 },
             )
