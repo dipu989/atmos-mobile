@@ -27,6 +27,7 @@ import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.common.CircularProgressRing
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Sage
+import dev.atmos.shared.util.toDisplayString
 
 @Composable
 fun DailyGoalCard(
@@ -60,7 +61,7 @@ fun DailyGoalCard(
                 progressColor = Sage,
             ) {
                 Text(
-                    text = todayKgCO2.toGoalString(),
+                    text = todayKgCO2.toDisplayString(),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.textPrimary,
@@ -71,7 +72,7 @@ fun DailyGoalCard(
                 Text(text = "Current usage", fontSize = 12.sp, color = colors.textSecondary)
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "${todayKgCO2.toGoalString()} kg CO₂",
+                    text = "${todayKgCO2.toDisplayString()} kg CO₂",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = colors.textPrimary,
@@ -87,7 +88,7 @@ fun DailyGoalCard(
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             ) {
                 Text(
-                    text = "${dailyGoalKgCO2.toGoalString()} kg CO₂",
+                    text = "${dailyGoalKgCO2.toDisplayString()} kg CO₂",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     color = colors.textSecondary,
@@ -102,10 +103,4 @@ fun DailyGoalCard(
             }
         }
     }
-}
-
-private fun Float.toGoalString(): String {
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    return "$intPart.${((this - intPart) * 10).toInt()}"
 }

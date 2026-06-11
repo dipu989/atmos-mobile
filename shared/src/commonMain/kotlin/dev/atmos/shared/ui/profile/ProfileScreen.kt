@@ -67,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.home.TransportModeType
+import dev.atmos.shared.util.toDisplayString
 import dev.atmos.shared.ui.home.components.AtmosBottomBar
 import dev.atmos.shared.ui.home.components.AtmosTab
 import dev.atmos.shared.ui.profile.components.AccountCard
@@ -523,7 +524,7 @@ private fun GoalEditDialog(
                             .padding(vertical = 12.dp),
                     ) {
                         Text(
-                            text     = "${goal.toGoalString()} kg CO₂ / day",
+                            text     = "${goal.toDisplayString()} kg CO₂ / day",
                             style    = TextStyle(
                                 fontSize   = 16.sp,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
@@ -538,19 +539,14 @@ private fun GoalEditDialog(
                 }
             }
         },
-        confirmButton    = {
+        confirmButton    = {},
+        dismissButton    = {
             TextButton(onClick = onDismiss) {
                 Text("Cancel", color = colors.textSecondary)
             }
         },
         containerColor   = colors.surface,
     )
-}
-
-private fun Float.toGoalString(): String {
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    return "$intPart.${((this - intPart) * 10).toInt()}"
 }
 
 // ── Edit profile sheet ────────────────────────────────────────────────────────
@@ -814,7 +810,8 @@ private fun UnitsDialog(
                 }
             }
         },
-        confirmButton    = {
+        confirmButton    = {},
+        dismissButton    = {
             TextButton(onClick = onDismiss) {
                 Text("Cancel", color = colors.textSecondary)
             }

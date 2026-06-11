@@ -56,6 +56,7 @@ import dev.atmos.shared.ui.profile.AppearanceMode
 import dev.atmos.shared.ui.profile.ProfileScreen
 import dev.atmos.shared.ui.profile.previewProfileUiState
 import dev.atmos.shared.ui.profile.toInitials
+import dev.atmos.shared.util.toDisplayString
 import dev.atmos.shared.ui.tripdetail.TripDetailScreen
 import dev.atmos.shared.ui.theme.AtmosTheme
 import dev.atmos.shared.ui.theme.HorizonBlue
@@ -727,11 +728,4 @@ fun AtmosApp() {
             }
         }
     }
-}
-
-private fun Float.toDisplayString(): String {
-    if (this == 0f) return "0"
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    return "$intPart.${((this - intPart) * 10).toInt()}"
 }

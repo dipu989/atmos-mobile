@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Sage
+import dev.atmos.shared.util.toDisplayString
 
 @Composable
 fun MyImpactCard(
@@ -65,7 +66,7 @@ fun MyImpactCard(
                     Text(text = "This Week's CO₂", fontSize = 12.sp, color = colors.textSecondary)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "${totalCO2SavedKg.toStatString()} kg",
+                        text = "${totalCO2SavedKg.toDisplayString()} kg",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         color = Sage,
@@ -84,10 +85,4 @@ fun MyImpactCard(
             }
         }
     }
-}
-
-private fun Float.toStatString(): String {
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    return "$intPart.${((this - intPart) * 10).toInt()}"
 }
