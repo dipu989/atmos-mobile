@@ -40,6 +40,7 @@ import dev.atmos.shared.network.TimelineService
 import dev.atmos.shared.network.UserService
 import dev.atmos.shared.network.backendMode
 import dev.atmos.shared.network.toInsightEntry
+import dev.atmos.shared.network.toRecentActivityEntry
 import dev.atmos.shared.ui.home.TodayImpact
 import dev.atmos.shared.ui.home.TransportModeEntry
 import dev.atmos.shared.ui.home.UserProfile
@@ -306,10 +307,19 @@ fun AtmosApp() {
     // TripDetector.init() guarantees DatabaseProvider is ready before we reach here.
     val repo = remember { TripRepositoryImpl(DatabaseProvider.database) }
     val confirmedSessions by repo.observeConfirmedSessions().collectAsState(initial = emptyList())
-    val groupedActivities = remember(confirmedSessions) {
-        confirmedSessions.map { it.toRecentActivityEntry() }.groupByDateLabel()
+    // Backend activities fetched from GET /api/v1/activities — populated by the timeline LaunchedEffect.
+    var backendActivities by remember { mutableStateOf(emptyList<RecentActivityEntry>()) }
+    // Merge local DB sessions with backend-only trips (trips from other devices / reinstalls).
+    // Dedup: exclude backend entries whose id already appears as a backend_activity_id in local DB.
+    val groupedActivities = remember(confirmedSessions, backendActivities) {
+        val syncedIds = confirmedSessions.mapNotNull { it.session.backend_activity_id }.toSet()
+        val backendOnly = backendActivities.filter { it.sessionId !in syncedIds }
+        (confirmedSessions.map { it.toRecentActivityEntry() } + backendOnly)
+            .sortedByDescending { it.timestampMs }
+            .groupByDateLabel()
     }
-    // Most-recent 3 sessions for the HomeScreen "Recent Activity" card
+    // Most-recent 3 sessions for the HomeScreen "Recent Activity" card — local DB only
+    // so just-confirmed trips appear immediately without waiting for the next backend fetch.
     val recentActivityEntries = remember(confirmedSessions) {
         confirmedSessions.take(3).map { it.toRecentActivityEntry() }
     }
@@ -354,7 +364,11 @@ fun AtmosApp() {
     // trip save (timelineTrigger). On success, updates AuthState so homeUser and ProfileScreen
     // both recompose from the authoritative server display name.
     LaunchedEffect(authUser) {
-        if (authUser == null || !tokenStore.isLoggedIn) return@LaunchedEffect
+        if (authUser == null) {
+            backendActivities = emptyList()
+            return@LaunchedEffect
+        }
+        if (!tokenStore.isLoggedIn) return@LaunchedEffect
         userService.getMe().onSuccess { dto ->
             AuthState.onSignedIn(AuthUser(
                 id          = dto.id,
@@ -378,9 +392,10 @@ fun AtmosApp() {
         }
         try {
             coroutineScope {
-                val dailyDeferred   = async { timelineService.getDaily() }
-                val weeklyDeferred  = async { timelineService.getWeekly() }
-                val insightDeferred = async { insightsService.getInsights() }
+                val dailyDeferred      = async { timelineService.getDaily() }
+                val weeklyDeferred     = async { timelineService.getWeekly() }
+                val insightDeferred    = async { insightsService.getInsights() }
+                val activitiesDeferred = async { activityService.listActivities() }
 
                 dailyDeferred.await().onSuccess { daily ->
                     todayImpact = TodayImpact(
@@ -440,6 +455,11 @@ fun AtmosApp() {
                 }
                 insightDeferred.await().onSuccess { response ->
                     insights = response.items.map { it.toInsightEntry() }
+                }
+                activitiesDeferred.await().onSuccess { page ->
+                    backendActivities = page.activities
+                        .map { it.toRecentActivityEntry() }
+                        .filter { it.timestampMs > 0L }
                 }
             }
         } finally {

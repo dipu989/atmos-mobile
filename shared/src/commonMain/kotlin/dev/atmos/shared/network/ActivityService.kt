@@ -1,7 +1,11 @@
 package dev.atmos.shared.network
 
 import dev.atmos.shared.auth.AppTokenStore
+import dev.atmos.shared.ui.home.RecentActivityEntry
 import dev.atmos.shared.ui.home.TransportModeType
+import dev.atmos.shared.ui.home.emissionFactor
+import dev.atmos.shared.util.formatDateGroupLabel
+import dev.atmos.shared.util.formatTimestamp
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
@@ -70,6 +74,56 @@ data class ActivitiesPageDto(
     val offset: Int = 0,
 )
 
+// ── Mapper ────────────────────────────────────────────────────────────────────
+
+private fun String.toTransportModeType(): TransportModeType = when (this) {
+    "car"           -> TransportModeType.DRIVING
+    "cab"           -> TransportModeType.CAB
+    "auto_rickshaw" -> TransportModeType.AUTO_RICKSHAW
+    "bus"           -> TransportModeType.BUS
+    "metro"         -> TransportModeType.METRO
+    "train"         -> TransportModeType.TRAIN
+    "two_wheeler"   -> TransportModeType.TWO_WHEELER
+    "walking", "walk"    -> TransportModeType.WALKING   // "walk" is a legacy backend alias
+    "cycling", "bicycle" -> TransportModeType.CYCLING   // "bicycle" is a legacy backend alias
+    "flight"        -> TransportModeType.FLIGHT
+    else            -> TransportModeType.DRIVING
+}
+
+fun ActivityDto.toRecentActivityEntry(): RecentActivityEntry {
+    val mode        = transportMode?.toTransportModeType() ?: TransportModeType.DRIVING
+    val distKm      = distanceKm?.toFloat() ?: 0f
+    val startMs     = runCatching { Instant.parse(startedAt).toEpochMilliseconds() }.getOrDefault(0L)
+    return RecentActivityEntry(
+        mode           = mode,
+        origin         = mode.displayLabel,
+        destination    = "",
+        timeLabel      = if (startMs > 0L) formatTimestamp(startMs) else "",
+        dateLabel      = if (startMs > 0L) formatDateGroupLabel(startMs) else "Unknown",
+        distanceKm     = distKm,
+        durationMin    = durationMinutes ?: 0,
+        kgCO2          = mode.emissionFactor * distKm,
+        isAutoDetected = false,
+        sessionId      = id,
+        timestampMs    = startMs,
+    )
+}
+
+private val TransportModeType.displayLabel: String
+    get() = when (this) {
+        TransportModeType.DRIVING        -> "Driving"
+        TransportModeType.WALKING        -> "Walking"
+        TransportModeType.CAB            -> "Cab"
+        TransportModeType.TWO_WHEELER    -> "Two-wheeler"
+        TransportModeType.AUTO_RICKSHAW  -> "Auto"
+        TransportModeType.PUBLIC_TRANSIT -> "Transit"
+        TransportModeType.BUS            -> "Bus"
+        TransportModeType.METRO          -> "Metro"
+        TransportModeType.TRAIN          -> "Train"
+        TransportModeType.CYCLING        -> "Cycling"
+        TransportModeType.FLIGHT         -> "Flight"
+    }
+
 // ── Service ───────────────────────────────────────────────────────────────────
 
 /**
@@ -133,12 +187,17 @@ class ActivityService(
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
 
-        httpClient.get("$ATMOS_BASE_URL/api/v1/activities") {
+        val response = httpClient.get("$ATMOS_BASE_URL/api/v1/activities") {
             bearerAuth(token)
             if (fromMs != null) parameter("from", Instant.fromEpochMilliseconds(fromMs).toDateString())
             if (toMs != null)   parameter("to",   Instant.fromEpochMilliseconds(toMs).toDateString())
             parameter("limit", limit)
-        }.body<ActivitiesPageDto>()
+        }
+        if (response.status.value in 200..299) {
+            response.body<ActivitiesPageDto>()
+        } else {
+            throw Exception(httpErrorMessage(response.status.value))
+        }
     }
 
     private fun httpErrorMessage(code: Int): String = when (code) {
