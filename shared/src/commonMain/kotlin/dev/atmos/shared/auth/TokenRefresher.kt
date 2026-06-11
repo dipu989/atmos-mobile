@@ -1,8 +1,9 @@
 package dev.atmos.shared.auth
 
+import dev.atmos.shared.network.ApiEnvelope
 import dev.atmos.shared.network.ATMOS_BASE_URL
 import dev.atmos.shared.network.AtmosHttpClient
-import dev.atmos.shared.network.AuthResponseDto
+import dev.atmos.shared.network.TokenPairDto
 import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -67,17 +68,10 @@ object TokenRefresher {
                 AuthState.onForceSignOut()
                 return@withLock null
             }
-            val dto = response.body<AuthResponseDto>()
-            store.save(dto)
-            AuthState.onSignedIn(
-                AuthUser(
-                    id          = dto.user.id,
-                    email       = dto.user.email,
-                    displayName = dto.user.displayName,
-                    avatarUrl   = dto.user.avatarUrl ?: "",
-                )
-            )
-            dto.accessToken
+            val pair = response.body<ApiEnvelope<TokenPairDto>>().data
+                ?: return@withLock run { store.clear(); AuthState.onForceSignOut(); null }
+            store.saveTokens(pair.accessToken, pair.refreshToken)
+            pair.accessToken
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             // Network error — don't force sign-out, let the original request fail
