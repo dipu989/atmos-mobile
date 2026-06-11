@@ -33,8 +33,10 @@ import dev.atmos.shared.location.createTripDetector
 import dev.atmos.shared.network.ActivityService
 import dev.atmos.shared.network.AuthResponseDto
 import dev.atmos.shared.network.AuthService
+import dev.atmos.shared.network.InsightsService
 import dev.atmos.shared.network.TimelineService
 import dev.atmos.shared.network.backendMode
+import dev.atmos.shared.network.toInsightEntry
 import dev.atmos.shared.ui.home.TodayImpact
 import dev.atmos.shared.ui.home.WeeklyDataPoint
 import dev.atmos.shared.ui.activities.ActivitiesScreen
@@ -90,8 +92,9 @@ fun AtmosApp() {
     // ── Auth — determine initial screen from persisted token ─────────────────
     val tokenStore = remember { AppTokenStore.instance }
     val authService = remember { AuthService() }
-    val activityService = remember { ActivityService() }
-    val timelineService = remember { TimelineService() }
+    val activityService  = remember { ActivityService() }
+    val timelineService  = remember { TimelineService() }
+    val insightsService  = remember { InsightsService() }
     val googleSignInLauncher = remember { createGoogleSignInLauncher() }
 
     var screen by remember {
@@ -315,8 +318,10 @@ fun AtmosApp() {
     // ── Timeline data (real CO₂ totals from backend) ──────────────────────────
     // Initialised to neutral zeros — the Home screen skeleton renders while the first fetch runs.
     // Using preview/fake values here would silently display fabricated data on network failure.
-    var todayImpact  by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = dailyGoalKgCO2, percentVsWeeklyAvg = 0)) }
-    var weeklyTrend  by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
+    var todayImpact         by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = dailyGoalKgCO2, percentVsWeeklyAvg = 0)) }
+    var weeklyTrend         by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
+    var insights            by remember { mutableStateOf(emptyList<InsightEntry>()) }
+    var unreadInsightsCount by remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
         delay(2_000)
@@ -356,6 +361,10 @@ fun AtmosApp() {
                     )
                 }
             }
+        }
+        insightsService.getInsights().onSuccess { response ->
+            insights            = response.items.map { it.toInsightEntry() }
+            unreadInsightsCount = response.items.count { !it.isRead }
         }
     }
 
@@ -509,14 +518,16 @@ fun AtmosApp() {
 
                 Screen.Home -> HomeScreen(
                     state = previewHomeUiState.copy(
-                        greeting        = currentGreeting(),
-                        dateLabel       = currentDateLabel(),
-                        isLoading       = homeIsLoading,
-                        ongoingSession  = ongoingSession,
-                        pendingSession  = pendingSession,
-                        recentActivity  = recentActivityEntries,
-                        todayImpact     = todayImpact,
-                        weeklyTrend     = weeklyTrend,
+                        greeting            = currentGreeting(),
+                        dateLabel           = currentDateLabel(),
+                        isLoading           = homeIsLoading,
+                        ongoingSession      = ongoingSession,
+                        pendingSession      = pendingSession,
+                        recentActivity      = recentActivityEntries,
+                        todayImpact         = todayImpact,
+                        weeklyTrend         = weeklyTrend,
+                        insights            = insights,
+                        unreadInsightsCount = unreadInsightsCount,
                     ),
                     onNavigateToProfile    = { screen = Screen.Profile },
                     onNavigateToActivities = { screen = Screen.Activities },
@@ -645,7 +656,7 @@ fun AtmosApp() {
                 }
 
                 Screen.Insights -> InsightsScreen(
-                    entries        = previewHomeUiState.insights,
+                    entries        = insights,
                     onBack         = { screen = Screen.Home },
                     onInsightClick = { entry -> selectedInsight = entry; screen = Screen.InsightDetail },
                 )
