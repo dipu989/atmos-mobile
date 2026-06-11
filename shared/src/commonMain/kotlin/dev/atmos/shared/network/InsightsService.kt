@@ -3,6 +3,7 @@ package dev.atmos.shared.network
 import dev.atmos.shared.auth.AppTokenStore
 import dev.atmos.shared.ui.home.InsightEntry
 import dev.atmos.shared.ui.home.InsightType
+import kotlin.math.roundToInt
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
@@ -16,10 +17,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class InsightMetadataDto(
-    @SerialName("streak_count")      val streakCount: Int = 0,
-    @SerialName("goal_progress_pct") val goalProgressPct: Int = 0,
-    @SerialName("savings_pct")       val savingsPct: Int = 0,
-    @SerialName("comparison_pct")    val comparisonPct: Int = 0,
+    @SerialName("streak_count")      val streakCount: Float = 0f,
+    @SerialName("goal_progress_pct") val goalProgressPct: Float = 0f,
+    @SerialName("savings_pct")       val savingsPct: Float = 0f,
+    @SerialName("comparison_pct")    val comparisonPct: Float = 0f,
 )
 
 @Serializable
@@ -42,18 +43,19 @@ data class InsightsResponseDto(
 
 fun InsightDto.toInsightEntry(): InsightEntry = InsightEntry(
     type = when (insightType) {
-        "streak"                       -> InsightType.STREAK
-        "milestone"                    -> InsightType.MILESTONE
-        "tip"                          -> InsightType.TIP
+        "streak"                          -> InsightType.STREAK
+        "milestone"                       -> InsightType.MILESTONE
+        "tip"                             -> InsightType.TIP
         "comparison", "weekly_comparison" -> InsightType.COMPARISON
-        else                           -> InsightType.ANOMALY
+        else                              -> InsightType.ANOMALY
     },
     title           = title,
     body            = body,
-    streakCount     = metadata.streakCount,
-    goalProgressPct = metadata.goalProgressPct,
-    savingsPct      = metadata.savingsPct,
-    comparisonPct   = metadata.comparisonPct,
+    isRead          = isRead,
+    streakCount     = metadata.streakCount.roundToInt(),
+    goalProgressPct = metadata.goalProgressPct.roundToInt(),
+    savingsPct      = metadata.savingsPct.roundToInt(),
+    comparisonPct   = metadata.comparisonPct.roundToInt(),
 )
 
 // ── Service ───────────────────────────────────────────────────────────────────

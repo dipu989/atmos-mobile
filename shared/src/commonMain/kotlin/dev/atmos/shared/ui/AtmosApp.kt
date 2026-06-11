@@ -14,6 +14,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.collectAsState
@@ -205,7 +207,7 @@ fun AtmosApp() {
         emailSignInLoading = true
         emailSignInError   = null
         scope.launch {
-            authService.signIn(email.trim(), password.trim())
+            authService.signIn(email.trim(), password)
                 .onSuccess { response ->
                     emailSignInLoading = false
                     onAuthSuccess(response)
@@ -223,7 +225,7 @@ fun AtmosApp() {
         emailSignUpLoading = true
         emailSignUpError   = null
         scope.launch {
-            authService.signUp(displayName = name.trim(), email = email.trim(), password = password.trim())
+            authService.signUp(displayName = name.trim(), email = email.trim(), password = password)
                 .onSuccess { response ->
                     emailSignUpLoading = false
                     onAuthSuccess(response)
@@ -318,54 +320,58 @@ fun AtmosApp() {
     // ── Timeline data (real CO₂ totals from backend) ──────────────────────────
     // Initialised to neutral zeros — the Home screen skeleton renders while the first fetch runs.
     // Using preview/fake values here would silently display fabricated data on network failure.
-    var todayImpact         by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = dailyGoalKgCO2, percentVsWeeklyAvg = 0)) }
-    var weeklyTrend         by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
-    var insights            by remember { mutableStateOf(emptyList<InsightEntry>()) }
-    var unreadInsightsCount by remember { mutableStateOf(0) }
-
-    LaunchedEffect(Unit) {
-        delay(2_000)
-        homeIsLoading = false
-    }
+    var todayImpact by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = dailyGoalKgCO2, percentVsWeeklyAvg = 0)) }
+    var weeklyTrend by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
+    var insights    by remember { mutableStateOf(emptyList<InsightEntry>()) }
+    // Derived — no separate mutableStateOf needed; recomputed on every recomposition where insights changes.
+    val unreadInsightsCount = insights.count { !it.isRead }
 
     // Fetch timeline whenever the user is authenticated and lands on Home.
-    // Re-fetches automatically after any trip is saved (triggeredBy counter below).
+    // Re-fetches automatically after any trip is saved (timelineTrigger counter below).
+    // homeIsLoading is cleared after all three fetches settle, so onRetry (which sets it true
+    // and bumps the trigger) always results in the skeleton being dismissed.
     var timelineTrigger by remember { mutableStateOf(0) }
     LaunchedEffect(screen, timelineTrigger) {
         if (screen != Screen.Home || !tokenStore.isLoggedIn) return@LaunchedEffect
-        timelineService.getDaily().onSuccess { daily ->
-            todayImpact = TodayImpact(
-                kgCO2              = daily.totalKgCo2e,
-                dailyGoalKgCO2     = dailyGoalKgCO2,
-                percentVsWeeklyAvg = daily.trend.changePct?.toInt() ?: 0,
-            )
-        }
-        timelineService.getWeekly().onSuccess { weekly ->
-            if (weekly.days.isNotEmpty()) {
-                // Parse week_start to derive each day's real date — avoids the wrong assumption
-                // that today is always the last element in the list.
-                val weekStartDate = try { LocalDate.parse(weekly.weekStart) } catch (_: Exception) { null }
-                val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-                weeklyTrend = weekly.days.mapIndexed { i, day ->
-                    val dayDate = weekStartDate?.plus(i, DateTimeUnit.DAY)
-                    // ordinal: 0=Mon … 6=Sun (Kotlin enum / java.time.DayOfWeek)
-                    val label = when (dayDate?.dayOfWeek?.ordinal) {
-                        0 -> "Mon"; 1 -> "Tue"; 2 -> "Wed"; 3 -> "Thu"
-                        4 -> "Fri"; 5 -> "Sat"; 6 -> "Sun"
-                        else -> listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun").getOrElse(i) { "D${i + 1}" }
+        coroutineScope {
+            val dailyDeferred   = async { timelineService.getDaily() }
+            val weeklyDeferred  = async { timelineService.getWeekly() }
+            val insightDeferred = async { insightsService.getInsights() }
+
+            dailyDeferred.await().onSuccess { daily ->
+                todayImpact = TodayImpact(
+                    kgCO2              = daily.totalKgCo2e,
+                    dailyGoalKgCO2     = dailyGoalKgCO2,
+                    percentVsWeeklyAvg = daily.trend.changePct?.toInt() ?: 0,
+                )
+            }
+            weeklyDeferred.await().onSuccess { weekly ->
+                if (weekly.days.isNotEmpty()) {
+                    // Parse week_start to derive each day's real date — avoids the wrong assumption
+                    // that today is always the last element in the list.
+                    val weekStartDate = try { LocalDate.parse(weekly.weekStart) } catch (_: Exception) { null }
+                    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    weeklyTrend = weekly.days.mapIndexed { i, day ->
+                        val dayDate = weekStartDate?.plus(i, DateTimeUnit.DAY)
+                        // ordinal: 0=Mon … 6=Sun (Kotlin enum / java.time.DayOfWeek)
+                        val label = when (dayDate?.dayOfWeek?.ordinal) {
+                            0 -> "Mon"; 1 -> "Tue"; 2 -> "Wed"; 3 -> "Thu"
+                            4 -> "Fri"; 5 -> "Sat"; 6 -> "Sun"
+                            else -> listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun").getOrElse(i) { "D${i + 1}" }
+                        }
+                        WeeklyDataPoint(
+                            dayLabel = label,
+                            kgCO2    = day.totalKgCo2e,
+                            isToday  = dayDate == today,
+                        )
                     }
-                    WeeklyDataPoint(
-                        dayLabel = label,
-                        kgCO2    = day.totalKgCo2e,
-                        isToday  = dayDate == today,
-                    )
                 }
             }
+            insightDeferred.await().onSuccess { response ->
+                insights = response.items.map { it.toInsightEntry() }
+            }
         }
-        insightsService.getInsights().onSuccess { response ->
-            insights            = response.items.map { it.toInsightEntry() }
-            unreadInsightsCount = response.items.count { !it.isRead }
-        }
+        homeIsLoading = false
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -532,7 +538,7 @@ fun AtmosApp() {
                     onNavigateToProfile    = { screen = Screen.Profile },
                     onNavigateToActivities = { screen = Screen.Activities },
                     onNavigateToInsights   = { screen = Screen.Insights },
-                    onRetry                = { homeIsLoading = true },
+                    onRetry                = { homeIsLoading = true; timelineTrigger++ },
                     onFabClick             = { tripToEdit = null; showLogActivity = true },
                     onConfirmPendingSession = {
                         pendingSession?.let { s ->
