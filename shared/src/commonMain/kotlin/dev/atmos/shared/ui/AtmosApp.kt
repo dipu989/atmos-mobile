@@ -37,9 +37,11 @@ import dev.atmos.shared.network.AuthResponseDto
 import dev.atmos.shared.network.AuthService
 import dev.atmos.shared.network.InsightsService
 import dev.atmos.shared.network.TimelineService
+import dev.atmos.shared.network.UserService
 import dev.atmos.shared.network.backendMode
 import dev.atmos.shared.network.toInsightEntry
 import dev.atmos.shared.ui.home.TodayImpact
+import dev.atmos.shared.ui.home.UserProfile
 import dev.atmos.shared.ui.home.WeeklyDataPoint
 import dev.atmos.shared.ui.activities.ActivitiesScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
@@ -97,6 +99,7 @@ fun AtmosApp() {
     val activityService  = remember { ActivityService() }
     val timelineService  = remember { TimelineService() }
     val insightsService  = remember { InsightsService() }
+    val userService      = remember { UserService() }
     val googleSignInLauncher = remember { createGoogleSignInLauncher() }
 
     var screen by remember {
@@ -286,6 +289,17 @@ fun AtmosApp() {
     // ── Auth user ─────────────────────────────────────────────────────────────
     val authUser by AuthState.currentUser.collectAsState()
 
+    // Derived from authUser — instant from cached token, refreshed after GET /users/me.
+    // No separate mutableStateOf needed: updating AuthState re-emits currentUser and
+    // triggers recomposition, so homeUser and profileScreen both update automatically.
+    val homeUser = authUser?.let { u ->
+        UserProfile(
+            displayName = u.displayName,
+            initials    = u.displayName.takeIf { it.isNotBlank() }?.toInitials()
+                ?: u.email.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+        )
+    } ?: UserProfile(displayName = "", initials = "?")
+
     // ── Confirmed sessions from DB ────────────────────────────────────────────
     // TripDetector.init() guarantees DatabaseProvider is ready before we reach here.
     val repo = remember { TripRepositoryImpl(DatabaseProvider.database) }
@@ -337,6 +351,7 @@ fun AtmosApp() {
             val dailyDeferred   = async { timelineService.getDaily() }
             val weeklyDeferred  = async { timelineService.getWeekly() }
             val insightDeferred = async { insightsService.getInsights() }
+            val userDeferred    = async { userService.getMe() }
 
             dailyDeferred.await().onSuccess { daily ->
                 todayImpact = TodayImpact(
@@ -369,6 +384,16 @@ fun AtmosApp() {
             }
             insightDeferred.await().onSuccess { response ->
                 insights = response.items.map { it.toInsightEntry() }
+            }
+            userDeferred.await().onSuccess { dto ->
+                // Update AuthState with server data so homeUser and ProfileScreen
+                // both recompose automatically from the authoritative display name.
+                AuthState.onSignedIn(AuthUser(
+                    id          = dto.id,
+                    email       = dto.email,
+                    displayName = dto.displayName,
+                    avatarUrl   = dto.avatarUrl ?: "",
+                ))
             }
         }
         homeIsLoading = false
@@ -526,6 +551,7 @@ fun AtmosApp() {
                     state = previewHomeUiState.copy(
                         greeting            = currentGreeting(),
                         dateLabel           = currentDateLabel(),
+                        user                = homeUser,
                         isLoading           = homeIsLoading,
                         ongoingSession      = ongoingSession,
                         pendingSession      = pendingSession,
