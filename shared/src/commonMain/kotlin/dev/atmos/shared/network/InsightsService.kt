@@ -9,6 +9,10 @@ import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.patch
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -41,6 +45,7 @@ data class InsightsResponseDto(
 )
 
 fun InsightDto.toInsightEntry(): InsightEntry = InsightEntry(
+    id   = id,
     type = when (insightType) {
         "streak"                          -> InsightType.STREAK
         "milestone"                       -> InsightType.MILESTONE
@@ -62,6 +67,20 @@ fun InsightDto.toInsightEntry(): InsightEntry = InsightEntry(
 class InsightsService(
     private val httpClient: HttpClient = AtmosHttpClient.instance,
 ) {
+
+    suspend fun markRead(insightId: String): Result<Unit> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+
+        val response = httpClient.patch("$ATMOS_BASE_URL/api/v1/insights/$insightId") {
+            contentType(ContentType.Application.Json)
+            bearerAuth(token)
+            setBody("""{"is_read":true}""")
+        }
+        if (response.status.value !in 200..299) {
+            throw Exception("Mark-read failed (${response.status.value})")
+        }
+    }
 
     suspend fun getInsights(limit: Int = 20): Result<InsightsResponseDto> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()

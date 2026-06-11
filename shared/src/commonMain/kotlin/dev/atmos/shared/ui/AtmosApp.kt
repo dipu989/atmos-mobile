@@ -640,7 +640,14 @@ fun AtmosApp() {
                         }
                     },
                     onTripClick            = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
-                    onInsightClick         = { entry -> selectedInsight = entry; screen = Screen.InsightDetail },
+                    onInsightClick         = { entry ->
+                        if (!entry.isRead && entry.id.isNotBlank()) {
+                            insights = insights.map { if (it.id == entry.id) it.copy(isRead = true) else it }
+                            scope.launch { insightsService.markRead(entry.id) }
+                        }
+                        selectedInsight = entry.copy(isRead = true)
+                        screen = Screen.InsightDetail
+                    },
                     onStopAndSave          = { tripDetector.manualEndAndSave() },
                     onDiscard              = { tripDetector.discardSession() },
                     onResume               = { tripDetector.resumeLeg() },
@@ -731,7 +738,14 @@ fun AtmosApp() {
                 Screen.Insights -> InsightsScreen(
                     entries        = insights,
                     onBack         = { screen = Screen.Home },
-                    onInsightClick = { entry -> selectedInsight = entry; screen = Screen.InsightDetail },
+                    onInsightClick = { entry ->
+                        if (!entry.isRead && entry.id.isNotBlank()) {
+                            insights = insights.map { if (it.id == entry.id) it.copy(isRead = true) else it }
+                            scope.launch { insightsService.markRead(entry.id) }
+                        }
+                        selectedInsight = entry.copy(isRead = true)
+                        screen = Screen.InsightDetail
+                    },
                 )
             }
 

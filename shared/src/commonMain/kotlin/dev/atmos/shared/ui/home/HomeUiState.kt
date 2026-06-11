@@ -67,6 +67,7 @@ enum class InsightType {
 }
 
 data class InsightEntry(
+    val id: String = "",
     val type: InsightType,
     val title: String,
     val body: String,
