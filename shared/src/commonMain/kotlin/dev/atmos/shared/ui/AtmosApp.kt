@@ -702,6 +702,18 @@ fun AtmosApp() {
                         settings.putFloat("daily_goal_kg", goal)
                         todayImpact = todayImpact.copy(dailyGoalKgCO2 = goal)
                     },
+                    onSaveName             = { name ->
+                        scope.launch {
+                            userService.updateMe(name).onSuccess { dto ->
+                                AuthState.onSignedIn(AuthUser(
+                                    id          = dto.id,
+                                    email       = dto.email,
+                                    displayName = dto.displayName,
+                                    avatarUrl   = dto.avatarUrl ?: "",
+                                ))
+                            }
+                        }
+                    },
                     onSignOut    = { handleSignOut() },
                     onDeleteAccount = { handleSignOut() },
                     onFabClick   = { showLogActivity = true },

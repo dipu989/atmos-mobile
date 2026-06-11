@@ -120,6 +120,7 @@ fun ProfileScreen(
     onAppearanceChange: (AppearanceMode) -> Unit = {},
     onNotificationsToggle: (Boolean) -> Unit = {},
     onGoalChange: (Float) -> Unit = {},
+    onSaveName: (String) -> Unit = {},
     onSignOut: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
     onFabClick: () -> Unit = {},
@@ -314,6 +315,7 @@ fun ProfileScreen(
             onSave        = { name ->
                 localDisplayName = name
                 showEditProfile  = false
+                onSaveName(name)
                 scope.launch { snackbarHostState.showSnackbar("Profile updated") }
             },
             onDismiss     = { showEditProfile = false },

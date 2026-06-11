@@ -5,10 +5,19 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
+import io.ktor.client.request.patch
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// ── Response DTO ──────────────────────────────────────────────────────────────
+// ── DTOs ──────────────────────────────────────────────────────────────────────
+
+@Serializable
+private data class UpdateUserRequest(
+    @SerialName("display_name") val displayName: String,
+)
 
 @Serializable
 data class UserDto(
@@ -25,6 +34,22 @@ data class UserDto(
 class UserService(
     private val httpClient: HttpClient = AtmosHttpClient.instance,
 ) {
+
+    suspend fun updateMe(displayName: String): Result<UserDto> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+
+        val response = httpClient.patch("$ATMOS_BASE_URL/api/v1/users/me") {
+            contentType(ContentType.Application.Json)
+            bearerAuth(token)
+            setBody(UpdateUserRequest(displayName = displayName))
+        }
+        if (response.status.value in 200..299) {
+            response.body<UserDto>()
+        } else {
+            throw Exception("Profile update failed (${response.status.value})")
+        }
+    }
 
     suspend fun getMe(): Result<UserDto> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
