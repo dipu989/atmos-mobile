@@ -339,8 +339,7 @@ fun AtmosApp() {
     val profileDaysTracked = groupedActivities.size
 
     // ── Home UI ──────────────────────────────────────────────────────────────
-    var appearanceMode by remember { mutableStateOf(AppearanceMode.SYSTEM) }
-    var notificationsEnabled by remember { mutableStateOf(true) }
+    // appearanceMode and notificationsEnabled are initialised below after settings is created.
     var isDeletingAccount by remember { mutableStateOf(false) }
     var showLogActivity by remember { mutableStateOf(false) }
     var tripToEdit       by remember { mutableStateOf<PendingTripEntry?>(null) }
@@ -356,8 +355,17 @@ fun AtmosApp() {
     var dailyGoalKgCO2   by remember { mutableStateOf(settings.getFloat("daily_goal_kg", 5.0f)) }
     var commuteHome      by remember { mutableStateOf(settings.getString("commute_home", "")) }
     var commuteWork      by remember { mutableStateOf(settings.getString("commute_work", "")) }
-    var defaultTransport by remember { mutableStateOf(settings.getString("default_transport", "Public Transit")) }
+    // "Bus" is the label that profileTransportOptions assigns to PUBLIC_TRANSIT — must match exactly.
+    var defaultTransport by remember { mutableStateOf(settings.getString("default_transport", "Bus")) }
     var unitsLabel       by remember { mutableStateOf(settings.getString("units_label", "Metric (km)")) }
+    var appearanceMode   by remember {
+        mutableStateOf(
+            settings.getStringOrNull("appearance_mode")
+                ?.let { name -> AppearanceMode.entries.firstOrNull { it.name == name } }
+                ?: AppearanceMode.SYSTEM
+        )
+    }
+    var notificationsEnabled by remember { mutableStateOf(settings.getBoolean("notifications_enabled", true)) }
 
     // ── Timeline data (real CO₂ totals from backend) ──────────────────────────
     // Initialised to neutral zeros — the Home screen skeleton renders while the first fetch runs.
@@ -719,8 +727,8 @@ fun AtmosApp() {
                     onBack                 = { screen = Screen.Home },
                     onNavigateToHome       = { screen = Screen.Home },
                     onNavigateToActivities = { screen = Screen.Activities },
-                    onAppearanceChange     = { mode -> appearanceMode = mode },
-                    onNotificationsToggle  = { enabled -> notificationsEnabled = enabled },
+                    onAppearanceChange     = { mode -> appearanceMode = mode; settings.putString("appearance_mode", mode.name) },
+                    onNotificationsToggle  = { enabled -> notificationsEnabled = enabled; settings.putBoolean("notifications_enabled", enabled) },
                     onGoalChange           = { goal ->
                         dailyGoalKgCO2 = goal
                         settings.putFloat("daily_goal_kg", goal)
