@@ -438,11 +438,10 @@ fun AtmosApp() {
                         .sortedByDescending { it.distanceKm }
                 }
                 weeklyDeferred.await().onSuccess { weekly ->
-                    // Store the backend-computed weekly total for the Profile card.
-                    // Prefer this over summing the daily bars (weeklyTrend) to avoid
-                    // any floating-point drift and to use the authoritative server value.
-                    weeklyTotalKgCo2 = weekly.totalKgCo2e
                     if (weekly.days.isNotEmpty()) {
+                        // Keep weeklyTotalKgCo2 in sync with weeklyTrend so the Profile
+                        // card and the Home bar chart always reflect the same response.
+                        weeklyTotalKgCo2 = weekly.totalKgCo2e
                         // Parse week_start to derive each day's real date — avoids the wrong assumption
                         // that today is always the last element in the list.
                         val weekStartDate = try { LocalDate.parse(weekly.weekStart) } catch (_: Exception) { null }
