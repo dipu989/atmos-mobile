@@ -4,6 +4,7 @@ import dev.atmos.shared.auth.AppTokenStore
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.patch
 import io.ktor.client.request.setBody
@@ -48,6 +49,18 @@ class UserService(
             response.body<UserDto>()
         } else {
             throw Exception("Profile update failed (${response.status.value})")
+        }
+    }
+
+    suspend fun deleteMe(): Result<Unit> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+
+        val response = httpClient.delete("$ATMOS_BASE_URL/api/v1/users/me") {
+            bearerAuth(token)
+        }
+        if (response.status.value !in 200..299) {
+            throw Exception("Account deletion failed (${response.status.value})")
         }
     }
 

@@ -722,7 +722,15 @@ fun AtmosApp() {
                         }
                     },
                     onSignOut    = { handleSignOut() },
-                    onDeleteAccount = { handleSignOut() },
+                    onDeleteAccount = {
+                        scope.launch {
+                            userService.deleteMe()
+                                .onSuccess { handleSignOut() }
+                                .onFailure {
+                                    snackbarHostState.showSnackbar("Could not delete account — please try again")
+                                }
+                        }
+                    },
                     onFabClick   = { showLogActivity = true },
                 )
 
