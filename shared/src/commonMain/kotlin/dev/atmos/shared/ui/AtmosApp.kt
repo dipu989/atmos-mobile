@@ -364,7 +364,11 @@ fun AtmosApp() {
     // trip save (timelineTrigger). On success, updates AuthState so homeUser and ProfileScreen
     // both recompose from the authoritative server display name.
     LaunchedEffect(authUser) {
-        if (authUser == null || !tokenStore.isLoggedIn) return@LaunchedEffect
+        if (authUser == null) {
+            backendActivities = emptyList()
+            return@LaunchedEffect
+        }
+        if (!tokenStore.isLoggedIn) return@LaunchedEffect
         userService.getMe().onSuccess { dto ->
             AuthState.onSignedIn(AuthUser(
                 id          = dto.id,
@@ -453,7 +457,9 @@ fun AtmosApp() {
                     insights = response.items.map { it.toInsightEntry() }
                 }
                 activitiesDeferred.await().onSuccess { page ->
-                    backendActivities = page.activities.map { it.toRecentActivityEntry() }
+                    backendActivities = page.activities
+                        .map { it.toRecentActivityEntry() }
+                        .filter { it.timestampMs > 0L }
                 }
             }
         } finally {

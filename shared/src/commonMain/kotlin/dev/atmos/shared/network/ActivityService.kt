@@ -84,8 +84,8 @@ private fun String.toTransportModeType(): TransportModeType = when (this) {
     "metro"         -> TransportModeType.METRO
     "train"         -> TransportModeType.TRAIN
     "two_wheeler"   -> TransportModeType.TWO_WHEELER
-    "walking"       -> TransportModeType.WALKING
-    "cycling"       -> TransportModeType.CYCLING
+    "walking", "walk"    -> TransportModeType.WALKING   // "walk" is a legacy backend alias
+    "cycling", "bicycle" -> TransportModeType.CYCLING   // "bicycle" is a legacy backend alias
     "flight"        -> TransportModeType.FLIGHT
     else            -> TransportModeType.DRIVING
 }
@@ -187,12 +187,17 @@ class ActivityService(
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
 
-        httpClient.get("$ATMOS_BASE_URL/api/v1/activities") {
+        val response = httpClient.get("$ATMOS_BASE_URL/api/v1/activities") {
             bearerAuth(token)
             if (fromMs != null) parameter("from", Instant.fromEpochMilliseconds(fromMs).toDateString())
             if (toMs != null)   parameter("to",   Instant.fromEpochMilliseconds(toMs).toDateString())
             parameter("limit", limit)
-        }.body<ActivitiesPageDto>()
+        }
+        if (response.status.value in 200..299) {
+            response.body<ActivitiesPageDto>()
+        } else {
+            throw Exception(httpErrorMessage(response.status.value))
+        }
     }
 
     private fun httpErrorMessage(code: Int): String = when (code) {
