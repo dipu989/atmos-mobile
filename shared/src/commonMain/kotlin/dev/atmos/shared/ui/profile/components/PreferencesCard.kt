@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.ModeNight
 import androidx.compose.material.icons.outlined.NotificationsNone
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -44,6 +46,8 @@ import dev.atmos.shared.ui.theme.LocalAtmosColors
 fun PreferencesCard(
     preferences: ProfilePreferences,
     onNotificationsToggle: (Boolean) -> Unit = {},
+    onWeeklyReportToggle: (Boolean) -> Unit = {},
+    onDataSharingToggle: (Boolean) -> Unit = {},
     onAppearanceChange: (AppearanceMode) -> Unit = {},
     onTransportClick: () -> Unit = {},
     onUnitsClick: () -> Unit = {},
@@ -67,6 +71,24 @@ fun PreferencesCard(
             label = "Push Notifications",
             checked = preferences.pushNotificationsEnabled,
             onCheckedChange = onNotificationsToggle,
+        )
+
+        RowDivider()
+
+        PreferenceToggleRow(
+            icon = Icons.Outlined.BarChart,
+            label = "Weekly Report",
+            checked = preferences.weeklyReportEnabled,
+            onCheckedChange = onWeeklyReportToggle,
+        )
+
+        RowDivider()
+
+        PreferenceToggleRow(
+            icon = Icons.Outlined.Share,
+            label = "Data Sharing",
+            checked = preferences.dataSharingEnabled,
+            onCheckedChange = onDataSharingToggle,
         )
 
         RowDivider()

@@ -11,6 +11,9 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -27,14 +30,21 @@ private data class DeleteAccountRequest(
     val confirmation: String,
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 private data class UpdatePreferencesRequest(
-    @SerialName("daily_goal_kg_co2e") val dailyGoalKgCo2e: Double,
+    @SerialName("daily_goal_kg_co2e")         @EncodeDefault(EncodeDefault.Mode.NEVER) val dailyGoalKgCo2e: Double? = null,
+    @SerialName("push_notifications_enabled") @EncodeDefault(EncodeDefault.Mode.NEVER) val pushNotificationsEnabled: Boolean? = null,
+    @SerialName("weekly_report_enabled")      @EncodeDefault(EncodeDefault.Mode.NEVER) val weeklyReportEnabled: Boolean? = null,
+    @SerialName("data_sharing_enabled")       @EncodeDefault(EncodeDefault.Mode.NEVER) val dataSharingEnabled: Boolean? = null,
 )
 
 @Serializable
 data class UserPreferencesDto(
-    @SerialName("daily_goal_kg_co2e") val dailyGoalKgCo2e: Double? = null,
+    @SerialName("daily_goal_kg_co2e")         val dailyGoalKgCo2e: Double? = null,
+    @SerialName("push_notifications_enabled") val pushNotificationsEnabled: Boolean? = null,
+    @SerialName("weekly_report_enabled")      val weeklyReportEnabled: Boolean? = null,
+    @SerialName("data_sharing_enabled")       val dataSharingEnabled: Boolean? = null,
 )
 
 @Serializable
@@ -112,19 +122,32 @@ class UserService(
             ?: throw Exception("Empty response from server")
     }
 
-    suspend fun updatePreferences(dailyGoalKgCO2e: Double): Result<UserPreferencesDto> = runCatching {
+    suspend fun updatePreferences(
+        dailyGoalKgCO2e: Double? = null,
+        pushNotificationsEnabled: Boolean? = null,
+        weeklyReportEnabled: Boolean? = null,
+        dataSharingEnabled: Boolean? = null,
+    ): Result<UserPreferencesDto> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
 
         val response = httpClient.put("$ATMOS_BASE_URL/api/v1/users/me/preferences") {
             contentType(ContentType.Application.Json)
             bearerAuth(token)
-            setBody(UpdatePreferencesRequest(dailyGoalKgCo2e = dailyGoalKgCO2e))
+            setBody(UpdatePreferencesRequest(
+                dailyGoalKgCo2e          = dailyGoalKgCO2e,
+                pushNotificationsEnabled = pushNotificationsEnabled,
+                weeklyReportEnabled      = weeklyReportEnabled,
+                dataSharingEnabled       = dataSharingEnabled,
+            ))
         }
         if (response.status.value !in 200..299) {
             throw Exception("Preferences update failed (${response.status.value})")
         }
         response.body<ApiEnvelope<UserPreferencesDto>>().data
             ?: throw Exception("Empty response from server")
+    }.also { result ->
+        // Propagate cancellation so a cancelled toggle job doesn't trigger the .onFailure revert.
+        result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
     }
 }

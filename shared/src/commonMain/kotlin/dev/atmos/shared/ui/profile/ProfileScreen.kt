@@ -120,7 +120,9 @@ fun ProfileScreen(
     onNavigateToHome: () -> Unit = {},
     onNavigateToActivities: () -> Unit = {},
     onAppearanceChange: (AppearanceMode) -> Unit = {},
-    onNotificationsToggle: (Boolean) -> Unit = {},
+    onNotificationsToggle: (Boolean, onError: (String) -> Unit) -> Unit = { _, _ -> },
+    onWeeklyReportToggle: (Boolean, onError: (String) -> Unit) -> Unit = { _, _ -> },
+    onDataSharingToggle: (Boolean, onError: (String) -> Unit) -> Unit = { _, _ -> },
     onGoalChange: (Float) -> Unit = {},
     onSaveName: (name: String, onSuccess: () -> Unit, onError: () -> Unit) -> Unit = { _, _, _ -> },
     onSignOut: () -> Unit = {},
@@ -256,7 +258,21 @@ fun ProfileScreen(
                 item {
                     PreferencesCard(
                         preferences           = effectivePreferences,
-                        onNotificationsToggle = onNotificationsToggle,
+                        onNotificationsToggle = { enabled ->
+                            onNotificationsToggle(enabled) { msg ->
+                                scope.launch { snackbarHostState.showSnackbar(msg) }
+                            }
+                        },
+                        onWeeklyReportToggle  = { enabled ->
+                            onWeeklyReportToggle(enabled) { msg ->
+                                scope.launch { snackbarHostState.showSnackbar(msg) }
+                            }
+                        },
+                        onDataSharingToggle   = { enabled ->
+                            onDataSharingToggle(enabled) { msg ->
+                                scope.launch { snackbarHostState.showSnackbar(msg) }
+                            }
+                        },
                         onAppearanceChange    = onAppearanceChange,
                         onTransportClick      = { showTransportSheet = true },
                         onUnitsClick          = { showUnitsDialog = true },
