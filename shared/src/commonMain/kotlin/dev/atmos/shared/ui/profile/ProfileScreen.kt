@@ -122,7 +122,7 @@ fun ProfileScreen(
     onGoalChange: (Float) -> Unit = {},
     onSaveName: (name: String, onSuccess: () -> Unit, onError: () -> Unit) -> Unit = { _, _, _ -> },
     onSignOut: () -> Unit = {},
-    onDeleteAccount: () -> Unit = {},
+    onDeleteAccount: (password: String, onError: (String) -> Unit) -> Unit = { _, _ -> },
     onFabClick: () -> Unit = {},
     onHomeChange: (String) -> Unit = {},
     onWorkChange: (String) -> Unit = {},
@@ -263,7 +263,7 @@ fun ProfileScreen(
                     AccountCard(
                         onExportData    = { showComingSoon() },
                         onSignOut       = onSignOut,
-                        onDeleteAccount = onDeleteAccount,
+                        onDeleteAccount = { password, onError -> onDeleteAccount(password, onError) },
                     )
                 }
         }

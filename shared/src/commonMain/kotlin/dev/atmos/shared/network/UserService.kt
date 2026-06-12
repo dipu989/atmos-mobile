@@ -22,6 +22,12 @@ private data class UpdateUserRequest(
 )
 
 @Serializable
+private data class DeleteAccountRequest(
+    val password: String,
+    val confirmation: String,
+)
+
+@Serializable
 private data class UpdatePreferencesRequest(
     @SerialName("daily_goal_kg_co2e") val dailyGoalKgCo2e: Double,
 )
@@ -63,15 +69,18 @@ class UserService(
             ?: throw Exception("Empty response from server")
     }
 
-    suspend fun deleteMe(): Result<Unit> = runCatching {
+    suspend fun deleteMe(password: String = "", confirmation: String = "delete my account"): Result<Unit> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
 
         val response = httpClient.delete("$ATMOS_BASE_URL/api/v1/users/me") {
+            contentType(ContentType.Application.Json)
             bearerAuth(token)
+            setBody(DeleteAccountRequest(password = password, confirmation = confirmation))
         }
         if (response.status.value !in 200..299) {
-            throw Exception("Account deletion failed (${response.status.value})")
+            val errorMsg = try { response.body<ApiEnvelope<Unit>>().error } catch (_: Exception) { null }
+            throw Exception(errorMsg ?: "Account deletion failed (${response.status.value})")
         }
     }
 
