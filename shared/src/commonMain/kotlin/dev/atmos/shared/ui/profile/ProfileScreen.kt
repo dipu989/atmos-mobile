@@ -128,10 +128,10 @@ fun ProfileScreen(
     onSignOut: () -> Unit = {},
     onDeleteAccount: (password: String, onError: (String) -> Unit) -> Unit = { _, _ -> },
     onFabClick: () -> Unit = {},
-    onHomeChange: (String) -> Unit = {},
-    onWorkChange: (String) -> Unit = {},
-    onTransportChange: (String) -> Unit = {},
-    onUnitsChange: (String) -> Unit = {},
+    onHomeChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
+    onWorkChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
+    onTransportChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
+    onUnitsChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
@@ -141,14 +141,14 @@ fun ProfileScreen(
     // ── Local preference state (doesn't need to escape to AtmosApp) ──────────
     var homeAddress       by remember { mutableStateOf(state.home.address ?: "") }
     var workAddress       by remember { mutableStateOf(state.work.address ?: "") }
-    var selectedTransport by remember {
+    var selectedTransport by remember(state.preferences.defaultTransportLabel) {
         mutableStateOf(
             profileTransportOptions
                 .firstOrNull { it.label.equals(state.preferences.defaultTransportLabel, ignoreCase = true) }
                 ?.mode ?: TransportModeType.PUBLIC_TRANSIT,
         )
     }
-    var selectedUnits by remember {
+    var selectedUnits by remember(state.preferences.unitsLabel) {
         mutableStateOf(
             if (state.preferences.unitsLabel.startsWith("Metric", ignoreCase = true)) "Metric (km)"
             else "Imperial (mi)",
@@ -305,11 +305,19 @@ fun ProfileScreen(
             currentValue = if (isEditingHome) homeAddress else workAddress,
             onSave       = { address ->
                 if (isEditingHome) {
+                    val prev = homeAddress
                     homeAddress = address
-                    onHomeChange(address)
+                    onHomeChange(address) { msg ->
+                        homeAddress = prev
+                        scope.launch { snackbarHostState.showSnackbar(msg) }
+                    }
                 } else {
+                    val prev = workAddress
                     workAddress = address
-                    onWorkChange(address)
+                    onWorkChange(address) { msg ->
+                        workAddress = prev
+                        scope.launch { snackbarHostState.showSnackbar(msg) }
+                    }
                 }
                 editingCommute = null
             },
@@ -322,9 +330,13 @@ fun ProfileScreen(
         TransportSelectionSheet(
             current   = selectedTransport,
             onSelect  = { mode ->
+                val prevMode = selectedTransport
                 selectedTransport = mode
                 val label = profileTransportOptions.firstOrNull { it.mode == mode }?.label ?: mode.name
-                onTransportChange(label)
+                onTransportChange(label) { msg ->
+                    selectedTransport = prevMode
+                    scope.launch { snackbarHostState.showSnackbar(msg) }
+                }
                 showTransportSheet = false
             },
             onDismiss = { showTransportSheet = false },
@@ -335,7 +347,15 @@ fun ProfileScreen(
     if (showUnitsDialog) {
         UnitsDialog(
             current   = selectedUnits,
-            onSelect  = { units -> selectedUnits = units; onUnitsChange(units); showUnitsDialog = false },
+            onSelect  = { units ->
+                val prev = selectedUnits
+                selectedUnits = units
+                onUnitsChange(units) { msg ->
+                    selectedUnits = prev
+                    scope.launch { snackbarHostState.showSnackbar(msg) }
+                }
+                showUnitsDialog = false
+            },
             onDismiss = { showUnitsDialog = false },
         )
     }
