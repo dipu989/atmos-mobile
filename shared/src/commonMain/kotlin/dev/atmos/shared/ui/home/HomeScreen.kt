@@ -66,6 +66,7 @@ fun HomeScreen(
     state: HomeUiState = previewHomeUiState,
     onNavigateToProfile: () -> Unit = {},
     onNavigateToActivities: () -> Unit = {},
+    onNavigateToStats: () -> Unit = {},
     onNavigateToInsights: () -> Unit = {},
     onRetry: () -> Unit = {},
     onFabClick: () -> Unit = {},
@@ -178,7 +179,7 @@ fun HomeScreen(
             } else {
                 // ── Populated state ───────────────────────────────────────────
                 item { TodayImpactCard(impact = state.todayImpact) }
-                item { WeeklyTrendCard(data = state.weeklyTrend) }
+                item { WeeklyTrendCard(data = state.weeklyTrend, onViewStats = onNavigateToStats) }
                 item { TransportBreakdownCard(entries = state.transportBreakdown) }
                 item {
                     RecentActivityCard(

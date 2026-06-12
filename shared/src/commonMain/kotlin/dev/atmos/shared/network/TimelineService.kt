@@ -26,6 +26,18 @@ data class TrendDto(
 
 @Serializable
 data class DailySummaryDto(
+    @SerialName("date_local")        val dateLocal: String = "",
+    @SerialName("total_kg_co2e")     val totalKgCo2e: Float = 0f,
+    @SerialName("total_distance_km") val totalDistanceKm: Float = 0f,
+    @SerialName("activity_count")    val activityCount: Int = 0,
+    val breakdown: Map<String, ModeBreakdownDto> = emptyMap(),
+    val trend: TrendDto = TrendDto(),
+)
+
+@Serializable
+data class MonthlySummaryDto(
+    val year: Int = 0,
+    val month: Int = 0,
     @SerialName("total_kg_co2e")     val totalKgCo2e: Float = 0f,
     @SerialName("total_distance_km") val totalDistanceKm: Float = 0f,
     @SerialName("activity_count")    val activityCount: Int = 0,
@@ -68,13 +80,15 @@ class TimelineService(
     private val httpClient: HttpClient = AtmosHttpClient.instance,
 ) {
 
-    /** Returns today's CO₂ total, distance, and trend vs the previous day. */
-    suspend fun getDaily(): Result<DailySummaryDto> = runCatching {
+    /** Returns a day's CO₂ total, distance, and trend vs the previous day.
+     *  [date] is "YYYY-MM-DD"; defaults to today when null. */
+    suspend fun getDaily(date: String? = null): Result<DailySummaryDto> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
 
         val response = httpClient.get("$ATMOS_BASE_URL/api/v1/timeline/daily") {
             bearerAuth(token)
+            if (date != null) url { parameters.append("date", date) }
         }
         if (response.status.value !in 200..299) {
             throw Exception("Timeline fetch failed (${response.status.value})")
@@ -83,18 +97,60 @@ class TimelineService(
             ?: throw Exception("Empty response from server")
     }
 
-    /** Returns the current week's CO₂ total, distance, and trend vs the previous week. */
-    suspend fun getWeekly(): Result<WeeklySummaryDto> = runCatching {
+    /** Returns a week's CO₂ total, distance, and trend vs the previous week.
+     *  [weekStart] is a Monday in "YYYY-MM-DD"; defaults to current week when null. */
+    suspend fun getWeekly(weekStart: String? = null): Result<WeeklySummaryDto> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
 
         val response = httpClient.get("$ATMOS_BASE_URL/api/v1/timeline/weekly") {
             bearerAuth(token)
+            if (weekStart != null) url { parameters.append("week_start", weekStart) }
         }
         if (response.status.value !in 200..299) {
             throw Exception("Timeline fetch failed (${response.status.value})")
         }
         response.body<ApiEnvelope<WeeklySummaryDto>>().data
             ?: throw Exception("Empty response from server")
+    }
+
+    /** Returns a month's CO₂ total, distance, and trend vs the previous month. */
+    suspend fun getMonthly(year: Int, month: Int): Result<MonthlySummaryDto> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+
+        val response = httpClient.get("$ATMOS_BASE_URL/api/v1/timeline/monthly") {
+            bearerAuth(token)
+            url {
+                parameters.append("year", year.toString())
+                parameters.append("month", month.toString())
+            }
+        }
+        if (response.status.value !in 200..299) {
+            throw Exception("Timeline fetch failed (${response.status.value})")
+        }
+        response.body<ApiEnvelope<MonthlySummaryDto>>().data
+            ?: throw Exception("Empty response from server")
+    }
+
+    /** Returns daily summaries for a date range (max 90 days).
+     *  [from] and [to] are "YYYY-MM-DD". Results are ordered oldest-first. */
+    suspend fun getRange(from: String, to: String): Result<List<DailySummaryDto>> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+
+        val response = httpClient.get("$ATMOS_BASE_URL/api/v1/timeline/range") {
+            bearerAuth(token)
+            url {
+                parameters.append("from", from)
+                parameters.append("to", to)
+            }
+        }
+        if (response.status.value !in 200..299) {
+            throw Exception("Timeline fetch failed (${response.status.value})")
+        }
+        // Backend returns DESC order; reverse for chronological (oldest-first) display.
+        (response.body<ApiEnvelope<List<DailySummaryDto>>>().data
+            ?: throw Exception("Empty response from server")).reversed()
     }
 }
