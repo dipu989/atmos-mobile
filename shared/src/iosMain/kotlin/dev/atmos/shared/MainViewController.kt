@@ -6,10 +6,15 @@ import androidx.compose.ui.window.ComposeUIViewController
 import dev.atmos.shared.location.IosPermissionRequester
 import dev.atmos.shared.location.LocalPermissionRequester
 import dev.atmos.shared.ui.AtmosApp
+import dev.atmos.shared.ui.common.LocalShareLauncher
 
 fun MainViewController() = ComposeUIViewController {
     val permissionRequester = remember { IosPermissionRequester() }
-    CompositionLocalProvider(LocalPermissionRequester provides permissionRequester) {
+    val shareLauncher       = remember { IosShareLauncher() }
+    CompositionLocalProvider(
+        LocalPermissionRequester provides permissionRequester,
+        LocalShareLauncher       provides shareLauncher,
+    ) {
         AtmosApp()
     }
 }

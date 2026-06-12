@@ -70,9 +70,11 @@ import dev.atmos.shared.ui.home.TransportModeType
 import dev.atmos.shared.util.toDisplayString
 import dev.atmos.shared.ui.home.components.AtmosBottomBar
 import dev.atmos.shared.ui.home.components.AtmosTab
+import dev.atmos.shared.network.ActivityService
 import dev.atmos.shared.ui.profile.components.AccountCard
 import dev.atmos.shared.ui.profile.components.CommuteCard
 import dev.atmos.shared.ui.profile.components.DailyGoalCard
+import dev.atmos.shared.ui.profile.components.ExportDataSheet
 import dev.atmos.shared.ui.profile.components.MyImpactCard
 import dev.atmos.shared.ui.profile.components.PreferencesCard
 import dev.atmos.shared.ui.profile.components.ProfileHeaderCard
@@ -157,6 +159,8 @@ fun ProfileScreen(
     var showUnitsDialog    by remember { mutableStateOf(false) }
     var showEditProfile    by remember { mutableStateOf(false) }
     var showGoalDialog     by remember { mutableStateOf(false) }
+    var showExportSheet    by remember { mutableStateOf(false) }
+    val activityService    = remember { ActivityService() }
 
     // Local profile state (updated on save)
     var localDisplayName by remember { mutableStateOf(state.displayName) }
@@ -261,12 +265,20 @@ fun ProfileScreen(
 
                 item {
                     AccountCard(
-                        onExportData    = { showComingSoon() },
+                        onExportData    = { showExportSheet = true },
                         onSignOut       = onSignOut,
                         onDeleteAccount = { password, onError -> onDeleteAccount(password, onError) },
                     )
                 }
         }
+    }
+
+    // ── Export data bottom sheet ──────────────────────────────────────────────
+    if (showExportSheet) {
+        ExportDataSheet(
+            activityService = activityService,
+            onDismiss       = { showExportSheet = false },
+        )
     }
 
     // ── Commute edit bottom sheet ─────────────────────────────────────────────

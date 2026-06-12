@@ -20,6 +20,7 @@ import dev.atmos.shared.location.PermissionRequester
 import dev.atmos.shared.location.TripDetectorHolder
 import dev.atmos.shared.location.TripDetectorState
 import dev.atmos.shared.ui.AtmosApp
+import dev.atmos.shared.ui.common.LocalShareLauncher
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,7 +87,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            CompositionLocalProvider(LocalPermissionRequester provides permReq) {
+            val shareLauncher = remember { AndroidShareLauncher(applicationContext) }
+            CompositionLocalProvider(
+                LocalPermissionRequester provides permReq,
+                LocalShareLauncher       provides shareLauncher,
+            ) {
                 AtmosApp()
             }
         }

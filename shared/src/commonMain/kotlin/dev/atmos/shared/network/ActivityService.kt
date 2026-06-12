@@ -64,6 +64,7 @@ data class ActivityDto(
     @SerialName("distance_km")      val distanceKm: Double? = null,
     @SerialName("duration_minutes") val durationMinutes: Int? = null,
     @SerialName("started_at")       val startedAt: String = "",
+    val source: String? = null,
     val status: String = "pending",
 )
 
@@ -198,6 +199,7 @@ class ActivityService(
         fromMs: Long? = null,
         toMs: Long? = null,
         limit: Int = 50,
+        offset: Int = 0,
     ): Result<ActivitiesPageDto> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
@@ -207,12 +209,28 @@ class ActivityService(
             if (fromMs != null) parameter("from", Instant.fromEpochMilliseconds(fromMs).toDateString())
             if (toMs != null)   parameter("to",   Instant.fromEpochMilliseconds(toMs).toDateString())
             parameter("limit", limit)
+            if (offset > 0) parameter("offset", offset)
         }
         if (response.status.value !in 200..299) {
             throw Exception(httpErrorMessage(response.status.value))
         }
         response.body<ApiEnvelope<ActivitiesPageDto>>().data
             ?: throw Exception("Empty response from server")
+    }
+
+    suspend fun listAllActivities(): Result<List<ActivityDto>> = runCatching {
+        val allActivities = mutableListOf<ActivityDto>()
+        val pageSize = 100  // backend hard cap is 100; exceeding it resets to 50 silently
+        var offset = 0
+        // 2020-01-01T00:00:00Z — before any possible trip
+        val fromMs = 1577836800000L
+        while (true) {
+            val page = listActivities(fromMs = fromMs, limit = pageSize, offset = offset).getOrThrow()
+            allActivities += page.activities
+            if (page.activities.isEmpty() || allActivities.size >= page.total) break
+            offset += page.activities.size  // advance by items actually received, not requested
+        }
+        allActivities
     }
 
     private fun httpErrorMessage(code: Int): String = when (code) {
