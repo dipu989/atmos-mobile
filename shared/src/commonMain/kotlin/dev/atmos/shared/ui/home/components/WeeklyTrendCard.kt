@@ -1,6 +1,8 @@
 package dev.atmos.shared.ui.home.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,8 +10,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -21,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
+import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.home.WeeklyDataPoint
 import dev.atmos.shared.ui.theme.AverageDash
 import dev.atmos.shared.ui.theme.ChartFillBottom
@@ -32,24 +40,54 @@ import dev.atmos.shared.ui.theme.LocalAtmosColors
 @Composable
 fun WeeklyTrendCard(
     data: List<WeeklyDataPoint>,
+    onViewStats: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
 
     AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
-        Text(
-            text = "Weekly Trend",
-            fontSize = 17.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = colors.textPrimary,
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = "Last 7 days of activity",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Normal,
-            color = colors.textSecondary,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text(
+                    text = "Weekly Trend",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.textPrimary,
+                )
+                Text(
+                    text = "Last 7 days of activity",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = colors.textSecondary,
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onViewStats,
+                    ),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.BarChart,
+                    contentDescription = "View stats",
+                    tint = HorizonBlue,
+                    modifier = Modifier.padding(end = 4.dp),
+                )
+                Text(
+                    text = "All stats",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = HorizonBlue,
+                )
+            }
+        }
 
         Spacer(Modifier.height(20.dp))
 

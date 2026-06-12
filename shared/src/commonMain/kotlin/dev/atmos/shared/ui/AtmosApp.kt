@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.russhwolf.settings.Settings
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -69,6 +70,11 @@ import dev.atmos.shared.ui.profile.ProfileScreen
 import dev.atmos.shared.ui.profile.previewProfileUiState
 import dev.atmos.shared.ui.profile.toInitials
 import dev.atmos.shared.util.toDisplayString
+import dev.atmos.shared.ui.stats.StatsPeriod
+import dev.atmos.shared.ui.stats.StatsScreen
+import dev.atmos.shared.ui.stats.StatsSummary
+import dev.atmos.shared.ui.stats.StatsBarPoint
+import dev.atmos.shared.ui.stats.StatsUiState
 import dev.atmos.shared.ui.tripdetail.TripDetailScreen
 import dev.atmos.shared.ui.theme.AtmosTheme
 import dev.atmos.shared.ui.theme.HorizonBlue
@@ -81,6 +87,20 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+
+private fun TransportModeType.toDisplayName(): String = when (this) {
+    TransportModeType.DRIVING        -> "Driving"
+    TransportModeType.CAB            -> "Cab"
+    TransportModeType.PUBLIC_TRANSIT -> "Public Transit"
+    TransportModeType.BUS            -> "Bus"
+    TransportModeType.TRAIN          -> "Train"
+    TransportModeType.METRO          -> "Metro"
+    TransportModeType.CYCLING        -> "Cycling"
+    TransportModeType.WALKING        -> "Walking"
+    TransportModeType.TWO_WHEELER    -> "Two-Wheeler"
+    TransportModeType.AUTO_RICKSHAW  -> "Auto"
+    TransportModeType.FLIGHT         -> "Flight"
+}
 
 private fun String.toDistanceUnit(): String = when (this) {
     "Metric (km)"   -> "km"
@@ -103,6 +123,7 @@ private sealed class Screen {
     data class  EmailVerification(val email: String) : Screen()
     data object Home               : Screen()
     data object Activities         : Screen()
+    data object Stats              : Screen()
     data object TripDetail         : Screen()
     data object InsightDetail      : Screen()
     data object Profile            : Screen()
@@ -408,6 +429,12 @@ fun AtmosApp() {
     var weeklyReportEnabled  by remember { mutableStateOf(settings.getBoolean("weekly_report", true)) }
     var dataSharingEnabled   by remember { mutableStateOf(settings.getBoolean("data_sharing", false)) }
 
+    // ── Stats screen state ────────────────────────────────────────────────────
+    var statsPeriod        by remember { mutableStateOf(StatsPeriod.WEEK) }
+    var statsPeriodOffset  by remember { mutableStateOf(0) }  // 0=current, -1=prev, etc.
+    var statsState         by remember { mutableStateOf(StatsUiState()) }
+    var statsRetryTrigger  by remember { mutableStateOf(0) }
+
     // ── Timeline data (real CO₂ totals from backend) ──────────────────────────
     // Initialised to neutral zeros — the Home screen skeleton renders while the first fetch runs.
     // Using preview/fake values here would silently display fabricated data on network failure.
@@ -541,19 +568,7 @@ fun AtmosApp() {
                             } ?: return@mapNotNull null
                             TransportModeEntry(
                                 mode        = mode,
-                                displayName = when (mode) {
-                                    TransportModeType.DRIVING        -> "Driving"
-                                    TransportModeType.CAB            -> "Cab"
-                                    TransportModeType.PUBLIC_TRANSIT -> "Public Transit"
-                                    TransportModeType.BUS            -> "Bus"
-                                    TransportModeType.TRAIN          -> "Train"
-                                    TransportModeType.METRO          -> "Metro"
-                                    TransportModeType.CYCLING        -> "Cycling"
-                                    TransportModeType.WALKING        -> "Walking"
-                                    TransportModeType.TWO_WHEELER    -> "Two-Wheeler"
-                                    TransportModeType.AUTO_RICKSHAW  -> "Auto"
-                                    TransportModeType.FLIGHT         -> "Flight"
-                                },
+                                displayName = mode.toDisplayName(),
                                 distanceKm  = dto.distanceKm,
                                 kgCO2       = dto.kgCo2e,
                                 percentage  = if (totalDistKm > 0f) (dto.distanceKm / totalDistKm * 100).roundToInt() else 0,
@@ -597,6 +612,171 @@ fun AtmosApp() {
             }
         } finally {
             homeIsLoading = false
+        }
+    }
+
+    // Fetch stats data whenever the user navigates to Screen.Stats, changes period/offset, or retries.
+    LaunchedEffect(screen, statsPeriod, statsPeriodOffset, statsRetryTrigger) {
+        if (screen != Screen.Stats) return@LaunchedEffect
+        if (!tokenStore.isLoggedIn) return@LaunchedEffect
+
+        statsState = statsState.copy(isLoading = true, isError = false)
+
+        val tz    = TimeZone.currentSystemDefault()
+        val today = Clock.System.now().toLocalDateTime(tz).date
+
+        try {
+            when (statsPeriod) {
+                StatsPeriod.DAY -> {
+                    val target = today.plus(statsPeriodOffset, DateTimeUnit.DAY)
+                    val dateStr = "${target.year}-${target.monthNumber.toString().padStart(2,'0')}-${target.dayOfMonth.toString().padStart(2,'0')}"
+                    val periodLabel = when (statsPeriodOffset) {
+                        0    -> "Today"
+                        -1   -> "Yesterday"
+                        else -> "${target.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)} ${target.dayOfMonth}"
+                    }
+                    timelineService.getDaily(date = dateStr).onSuccess { daily ->
+                        val totalDist = daily.breakdown.values.sumOf { it.distanceKm.toDouble() }.toFloat()
+                        statsState = StatsUiState(
+                            period      = StatsPeriod.DAY,
+                            periodLabel = periodLabel,
+                            summary = StatsSummary(
+                                totalKgCo2     = daily.totalKgCo2e,
+                                totalDistKm    = totalDist,
+                                activityCount  = daily.activityCount,
+                                breakdown      = daily.breakdown.entries
+                                    .mapNotNull { (key, dto) ->
+                                        val mode = TransportModeType.entries.firstOrNull { it.name.equals(key, ignoreCase = true) } ?: return@mapNotNull null
+                                        TransportModeEntry(mode, mode.toDisplayName(), dto.distanceKm, dto.kgCo2e,
+                                            if (totalDist > 0f) (dto.distanceKm / totalDist * 100).roundToInt() else 0)
+                                    }
+                                    .sortedByDescending { it.distanceKm },
+                                trendDirection = daily.trend.direction,
+                                trendPct       = daily.trend.changePct,
+                                prevTotalKgCo2 = daily.trend.prevTotalKgCo2e,
+                            ),
+                            barPoints   = emptyList(),
+                            canGoPrev   = true,
+                            isLoading   = false,
+                        )
+                    }.onFailure {
+                        statsState = statsState.copy(isLoading = false, isError = true)
+                    }
+                }
+
+                StatsPeriod.WEEK -> {
+                    val dayOfWeek   = today.dayOfWeek.ordinal  // Mon=0 … Sun=6
+                    val currentMonday = today.plus(-dayOfWeek, DateTimeUnit.DAY)
+                    val weekStart   = currentMonday.plus(statsPeriodOffset * 7, DateTimeUnit.DAY)
+                    val weekEnd     = weekStart.plus(6, DateTimeUnit.DAY)
+                    fun LocalDate.toApiString() = "${year}-${monthNumber.toString().padStart(2,'0')}-${dayOfMonth.toString().padStart(2,'0')}"
+                    val weekStartStr = weekStart.toApiString()
+                    val weekEndStr   = weekEnd.toApiString()
+                    val periodLabel  = when (statsPeriodOffset) {
+                        0  -> "This week"
+                        -1 -> "Last week"
+                        else -> "${weekStart.month.name.lowercase().replaceFirstChar{it.uppercase()}.take(3)} ${weekStart.dayOfMonth} – ${weekEnd.month.name.lowercase().replaceFirstChar{it.uppercase()}.take(3)} ${weekEnd.dayOfMonth}"
+                    }
+
+                    coroutineScope {
+                        val weeklyDeferred = async { timelineService.getWeekly(weekStart = weekStartStr) }
+                        val rangeDeferred  = async { timelineService.getRange(from = weekStartStr, to = weekEndStr) }
+
+                        val weeklyResult = weeklyDeferred.await()
+                        val rangeResult  = rangeDeferred.await()
+
+                        weeklyResult.onSuccess { weekly ->
+                            val totalDist = weekly.breakdown.values.sumOf { it.distanceKm.toDouble() }.toFloat()
+                            // Build per-day bars from range response (keyed by date_local).
+                            // If the range call failed, omit bar points entirely so the chart
+                            // doesn't render flat-zero bars contradicting the weekly total.
+                            val dayNames = listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
+                            val barPoints = if (rangeResult.isSuccess) {
+                                val rangeByDate = rangeResult.getOrThrow().associateBy { it.dateLocal }
+                                (0..6).map { i ->
+                                    val date = weekStart.plus(i, DateTimeUnit.DAY)
+                                    StatsBarPoint(
+                                        label     = dayNames[i],
+                                        kgCo2     = rangeByDate[date.toApiString()]?.totalKgCo2e ?: 0f,
+                                        isCurrent = date == today,
+                                    )
+                                }
+                            } else {
+                                emptyList()
+                            }
+                            statsState = StatsUiState(
+                                period      = StatsPeriod.WEEK,
+                                periodLabel = periodLabel,
+                                summary = StatsSummary(
+                                    totalKgCo2     = weekly.totalKgCo2e,
+                                    totalDistKm    = totalDist,
+                                    activityCount  = weekly.activityCount,
+                                    breakdown      = weekly.breakdown.entries
+                                        .mapNotNull { (key, dto) ->
+                                            val mode = TransportModeType.entries.firstOrNull { it.name.equals(key, ignoreCase = true) } ?: return@mapNotNull null
+                                            TransportModeEntry(mode, mode.toDisplayName(), dto.distanceKm, dto.kgCo2e,
+                                                if (totalDist > 0f) (dto.distanceKm / totalDist * 100).roundToInt() else 0)
+                                        }
+                                        .sortedByDescending { it.distanceKm },
+                                    trendDirection = weekly.trend.direction,
+                                    trendPct       = weekly.trend.changePct,
+                                    prevTotalKgCo2 = weekly.trend.prevTotalKgCo2e,
+                                ),
+                                barPoints   = barPoints,
+                                canGoPrev   = true,
+                                isLoading   = false,
+                            )
+                        }.onFailure {
+                            statsState = statsState.copy(isLoading = false, isError = true)
+                        }
+                    }
+                }
+
+                StatsPeriod.MONTH -> {
+                    var targetYear  = today.year
+                    var targetMonth = today.monthNumber + statsPeriodOffset
+                    while (targetMonth <= 0)  { targetYear--; targetMonth += 12 }
+                    while (targetMonth > 12)  { targetYear++; targetMonth -= 12 }
+                    val monthNames = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+                    val periodLabel = when (statsPeriodOffset) {
+                        0    -> "This month"
+                        -1   -> "Last month"
+                        else -> "${monthNames[targetMonth - 1]} $targetYear"
+                    }
+
+                    timelineService.getMonthly(year = targetYear, month = targetMonth).onSuccess { monthly ->
+                        val totalDist = monthly.breakdown.values.sumOf { it.distanceKm.toDouble() }.toFloat()
+                        statsState = StatsUiState(
+                            period      = StatsPeriod.MONTH,
+                            periodLabel = periodLabel,
+                            summary = StatsSummary(
+                                totalKgCo2     = monthly.totalKgCo2e,
+                                totalDistKm    = totalDist,
+                                activityCount  = monthly.activityCount,
+                                breakdown      = monthly.breakdown.entries
+                                    .mapNotNull { (key, dto) ->
+                                        val mode = TransportModeType.entries.firstOrNull { it.name.equals(key, ignoreCase = true) } ?: return@mapNotNull null
+                                        TransportModeEntry(mode, mode.toDisplayName(), dto.distanceKm, dto.kgCo2e,
+                                            if (totalDist > 0f) (dto.distanceKm / totalDist * 100).roundToInt() else 0)
+                                    }
+                                    .sortedByDescending { it.distanceKm },
+                                trendDirection = monthly.trend.direction,
+                                trendPct       = monthly.trend.changePct,
+                                prevTotalKgCo2 = monthly.trend.prevTotalKgCo2e,
+                            ),
+                            barPoints   = emptyList(),
+                            canGoPrev   = true,
+                            isLoading   = false,
+                        )
+                    }.onFailure {
+                        statsState = statsState.copy(isLoading = false, isError = true)
+                    }
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            statsState = statsState.copy(isLoading = false, isError = true)
         }
     }
 
@@ -784,6 +964,7 @@ fun AtmosApp() {
                     ),
                     onNavigateToProfile    = { screen = Screen.Profile },
                     onNavigateToActivities = { screen = Screen.Activities },
+                    onNavigateToStats      = { statsPeriod = StatsPeriod.WEEK; statsPeriodOffset = 0; screen = Screen.Stats },
                     onNavigateToInsights   = { screen = Screen.Insights },
                     onRetry                = { homeIsLoading = true; timelineTrigger++ },
                     onFabClick             = { tripToEdit = null; showLogActivity = true },
@@ -824,6 +1005,20 @@ fun AtmosApp() {
                     onStopAndSave          = { tripDetector.manualEndAndSave() },
                     onDiscard              = { tripDetector.discardSession() },
                     onResume               = { tripDetector.resumeLeg() },
+                )
+
+                Screen.Stats -> StatsScreen(
+                    state        = statsState,
+                    onBack       = { screen = Screen.Home },
+                    onPeriodChange = { period ->
+                        statsPeriod       = period
+                        statsPeriodOffset = 0
+                        statsState        = StatsUiState(period = period, isLoading = true)
+                    },
+                    onPrev    = { statsPeriodOffset-- },
+                    onNext    = { if (statsPeriodOffset < 0) statsPeriodOffset++ },
+                    canGoNext = statsPeriodOffset < 0,
+                    onRetry   = { statsRetryTrigger++ },
                 )
 
                 Screen.Profile -> ProfileScreen(
