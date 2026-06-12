@@ -37,6 +37,10 @@ private data class UpdatePreferencesRequest(
     @SerialName("push_notifications_enabled") @EncodeDefault(EncodeDefault.Mode.NEVER) val pushNotificationsEnabled: Boolean? = null,
     @SerialName("weekly_report_enabled")      @EncodeDefault(EncodeDefault.Mode.NEVER) val weeklyReportEnabled: Boolean? = null,
     @SerialName("data_sharing_enabled")       @EncodeDefault(EncodeDefault.Mode.NEVER) val dataSharingEnabled: Boolean? = null,
+    @SerialName("distance_unit")              @EncodeDefault(EncodeDefault.Mode.NEVER) val distanceUnit: String? = null,
+    @SerialName("home_address")               @EncodeDefault(EncodeDefault.Mode.NEVER) val homeAddress: String? = null,
+    @SerialName("work_address")               @EncodeDefault(EncodeDefault.Mode.NEVER) val workAddress: String? = null,
+    @SerialName("default_transport")          @EncodeDefault(EncodeDefault.Mode.NEVER) val defaultTransport: String? = null,
 )
 
 @Serializable
@@ -45,6 +49,10 @@ data class UserPreferencesDto(
     @SerialName("push_notifications_enabled") val pushNotificationsEnabled: Boolean? = null,
     @SerialName("weekly_report_enabled")      val weeklyReportEnabled: Boolean? = null,
     @SerialName("data_sharing_enabled")       val dataSharingEnabled: Boolean? = null,
+    @SerialName("distance_unit")              val distanceUnit: String? = null,
+    @SerialName("home_address")               val homeAddress: String? = null,
+    @SerialName("work_address")               val workAddress: String? = null,
+    @SerialName("default_transport")          val defaultTransport: String? = null,
 )
 
 @Serializable
@@ -127,6 +135,10 @@ class UserService(
         pushNotificationsEnabled: Boolean? = null,
         weeklyReportEnabled: Boolean? = null,
         dataSharingEnabled: Boolean? = null,
+        distanceUnit: String? = null,
+        homeAddress: String? = null,
+        workAddress: String? = null,
+        defaultTransport: String? = null,
     ): Result<UserPreferencesDto> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
@@ -139,6 +151,10 @@ class UserService(
                 pushNotificationsEnabled = pushNotificationsEnabled,
                 weeklyReportEnabled      = weeklyReportEnabled,
                 dataSharingEnabled       = dataSharingEnabled,
+                distanceUnit             = distanceUnit,
+                homeAddress              = homeAddress,
+                workAddress              = workAddress,
+                defaultTransport         = defaultTransport,
             ))
         }
         if (response.status.value !in 200..299) {

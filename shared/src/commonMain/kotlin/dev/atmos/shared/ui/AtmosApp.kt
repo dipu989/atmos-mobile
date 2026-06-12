@@ -82,6 +82,18 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
+private fun String.toDistanceUnit(): String = when (this) {
+    "Metric (km)"   -> "km"
+    "Imperial (mi)" -> "miles"
+    else            -> "km"
+}
+
+private fun String.toUnitsLabel(): String = when (this) {
+    "km"    -> "Metric (km)"
+    "miles" -> "Imperial (mi)"
+    else    -> "Metric (km)"
+}
+
 private sealed class Screen {
     data object Onboarding         : Screen()
     data object Login              : Screen()
@@ -361,9 +373,13 @@ fun AtmosApp() {
     // ── Home UI ──────────────────────────────────────────────────────────────
     // appearanceMode and notificationsEnabled are initialised below after settings is created.
     var isDeletingAccount    by remember { mutableStateOf(false) }
-    var notificationsJob: Job? by remember { mutableStateOf(null) }
-    var weeklyReportJob:  Job? by remember { mutableStateOf(null) }
-    var dataSharingJob:   Job? by remember { mutableStateOf(null) }
+    var notificationsJob:  Job? by remember { mutableStateOf(null) }
+    var weeklyReportJob:   Job? by remember { mutableStateOf(null) }
+    var dataSharingJob:    Job? by remember { mutableStateOf(null) }
+    var homeAddressJob:    Job? by remember { mutableStateOf(null) }
+    var workAddressJob:    Job? by remember { mutableStateOf(null) }
+    var transportJob:      Job? by remember { mutableStateOf(null) }
+    var unitsJob:          Job? by remember { mutableStateOf(null) }
     var showLogActivity by remember { mutableStateOf(false) }
     var tripToEdit       by remember { mutableStateOf<PendingTripEntry?>(null) }
     var selectedTrip     by remember { mutableStateOf<RecentActivityEntry?>(null) }
@@ -449,17 +465,43 @@ fun AtmosApp() {
                     dataSharingEnabled = prefs.dataSharingEnabled
                     settings.putBoolean("data_sharing", prefs.dataSharingEnabled)
                 }
+                // distance_unit is always non-null on backend (defaults to "km") — always authoritative.
+                val backendUnitsLabel = prefs.distanceUnit?.toUnitsLabel() ?: "Metric (km)"
+                unitsLabel = backendUnitsLabel
+                settings.putString("units_label", backendUnitsLabel)
+                // Commute fields are nullable — only overwrite local if backend has a value.
+                if (prefs.homeAddress != null) {
+                    commuteHome = prefs.homeAddress
+                    settings.putString("commute_home", prefs.homeAddress)
+                }
+                if (prefs.workAddress != null) {
+                    commuteWork = prefs.workAddress
+                    settings.putString("commute_work", prefs.workAddress)
+                }
+                if (prefs.defaultTransport != null) {
+                    defaultTransport = prefs.defaultTransport
+                    settings.putString("default_transport", prefs.defaultTransport)
+                }
                 // Single batched PUT for any fields not yet stored on the backend.
                 // Uses launch (not scope.launch) so it is cancelled if the user signs out
                 // before the request completes, preventing a write against a stale token.
-                if (prefs.dailyGoalKgCo2e == null || prefs.pushNotificationsEnabled == null ||
-                        prefs.weeklyReportEnabled == null || prefs.dataSharingEnabled == null) {
+                val needsBootstrap = prefs.dailyGoalKgCo2e == null ||
+                    prefs.pushNotificationsEnabled == null ||
+                    prefs.weeklyReportEnabled == null ||
+                    prefs.dataSharingEnabled == null ||
+                    (prefs.homeAddress == null && commuteHome.isNotBlank()) ||
+                    (prefs.workAddress == null && commuteWork.isNotBlank()) ||
+                    prefs.defaultTransport == null
+                if (needsBootstrap) {
                     launch {
                         userService.updatePreferences(
                             dailyGoalKgCO2e          = if (prefs.dailyGoalKgCo2e == null) dailyGoalKgCO2.toDouble() else null,
                             pushNotificationsEnabled = if (prefs.pushNotificationsEnabled == null) notificationsEnabled else null,
                             weeklyReportEnabled      = if (prefs.weeklyReportEnabled == null) weeklyReportEnabled else null,
                             dataSharingEnabled       = if (prefs.dataSharingEnabled == null) dataSharingEnabled else null,
+                            homeAddress              = if (prefs.homeAddress == null && commuteHome.isNotBlank()) commuteHome else null,
+                            workAddress              = if (prefs.workAddress == null && commuteWork.isNotBlank()) commuteWork else null,
+                            defaultTransport         = if (prefs.defaultTransport == null) defaultTransport else null,
                         )
                     }
                 }
@@ -865,10 +907,58 @@ fun AtmosApp() {
                             }
                         }
                     },
-                    onHomeChange      = { addr  -> commuteHome      = addr;  settings.putString("commute_home",      addr)  },
-                    onWorkChange      = { addr  -> commuteWork      = addr;  settings.putString("commute_work",      addr)  },
-                    onTransportChange = { label -> defaultTransport = label; settings.putString("default_transport", label) },
-                    onUnitsChange     = { units -> unitsLabel       = units; settings.putString("units_label",       units) },
+                    onHomeChange      = { addr, onError ->
+                        homeAddressJob?.cancel()
+                        val prev = commuteHome
+                        commuteHome = addr
+                        settings.putString("commute_home", addr)
+                        homeAddressJob = scope.launch {
+                            userService.updatePreferences(homeAddress = addr).onFailure {
+                                commuteHome = prev
+                                settings.putString("commute_home", prev)
+                                onError("Could not save home address — please try again")
+                            }
+                        }
+                    },
+                    onWorkChange      = { addr, onError ->
+                        workAddressJob?.cancel()
+                        val prev = commuteWork
+                        commuteWork = addr
+                        settings.putString("commute_work", addr)
+                        workAddressJob = scope.launch {
+                            userService.updatePreferences(workAddress = addr).onFailure {
+                                commuteWork = prev
+                                settings.putString("commute_work", prev)
+                                onError("Could not save work address — please try again")
+                            }
+                        }
+                    },
+                    onTransportChange = { label, onError ->
+                        transportJob?.cancel()
+                        val prev = defaultTransport
+                        defaultTransport = label
+                        settings.putString("default_transport", label)
+                        transportJob = scope.launch {
+                            userService.updatePreferences(defaultTransport = label).onFailure {
+                                defaultTransport = prev
+                                settings.putString("default_transport", prev)
+                                onError("Could not save transport mode — please try again")
+                            }
+                        }
+                    },
+                    onUnitsChange     = { units, onError ->
+                        unitsJob?.cancel()
+                        val prev = unitsLabel
+                        unitsLabel = units
+                        settings.putString("units_label", units)
+                        unitsJob = scope.launch {
+                            userService.updatePreferences(distanceUnit = units.toDistanceUnit()).onFailure {
+                                unitsLabel = prev
+                                settings.putString("units_label", prev)
+                                onError("Could not save units — please try again")
+                            }
+                        }
+                    },
                     onSaveName             = { name, onSuccess, onError ->
                         scope.launch {
                             userService.updateMe(name)
