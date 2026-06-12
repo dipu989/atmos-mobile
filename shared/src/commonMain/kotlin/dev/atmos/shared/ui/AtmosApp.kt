@@ -820,18 +820,21 @@ fun AtmosApp() {
                         }
                     },
                     onSignOut    = { handleSignOut() },
-                    onDeleteAccount = {
+                    onDeleteAccount = { password, onError ->
                         if (isDeletingAccount) return@ProfileScreen
                         isDeletingAccount = true
                         scope.launch {
-                            userService.deleteMe()
+                            userService.deleteMe(password = password)
                                 .onSuccess {
-                                    repo.deleteAllSessions()
+                                    runCatching { repo.deleteAllSessions() }
+                                    isDeletingAccount = false
                                     handleSignOut()
                                 }
-                                .onFailure {
+                                .onFailure { e ->
                                     isDeletingAccount = false
-                                    snackbarHostState.showSnackbar("Could not delete account — please try again")
+                                    val msg = e.message ?: "Could not delete account — please try again"
+                                    onError(msg)
+                                    snackbarHostState.showSnackbar(msg)
                                 }
                         }
                     },
