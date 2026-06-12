@@ -360,7 +360,10 @@ fun AtmosApp() {
 
     // ── Home UI ──────────────────────────────────────────────────────────────
     // appearanceMode and notificationsEnabled are initialised below after settings is created.
-    var isDeletingAccount by remember { mutableStateOf(false) }
+    var isDeletingAccount    by remember { mutableStateOf(false) }
+    var notificationsJob: Job? by remember { mutableStateOf(null) }
+    var weeklyReportJob:  Job? by remember { mutableStateOf(null) }
+    var dataSharingJob:   Job? by remember { mutableStateOf(null) }
     var showLogActivity by remember { mutableStateOf(false) }
     var tripToEdit       by remember { mutableStateOf<PendingTripEntry?>(null) }
     var selectedTrip     by remember { mutableStateOf<RecentActivityEntry?>(null) }
@@ -386,6 +389,8 @@ fun AtmosApp() {
         )
     }
     var notificationsEnabled by remember { mutableStateOf(settings.getBoolean("notifications_enabled", true)) }
+    var weeklyReportEnabled  by remember { mutableStateOf(settings.getBoolean("weekly_report", true)) }
+    var dataSharingEnabled   by remember { mutableStateOf(settings.getBoolean("data_sharing", false)) }
 
     // ── Timeline data (real CO₂ totals from backend) ──────────────────────────
     // Initialised to neutral zeros — the Home screen skeleton renders while the first fetch runs.
@@ -431,10 +436,32 @@ fun AtmosApp() {
                     dailyGoalKgCO2 = goal
                     settings.putFloat("daily_goal_kg", goal)
                     todayImpact = todayImpact.copy(dailyGoalKgCO2 = goal)
-                } else {
-                    // Backend has no goal yet — bootstrap it from local default so
-                    // backend features (progress emails, server-side streaks) see a value.
-                    scope.launch { userService.updatePreferences(dailyGoalKgCO2.toDouble()) }
+                }
+                if (prefs.pushNotificationsEnabled != null) {
+                    notificationsEnabled = prefs.pushNotificationsEnabled
+                    settings.putBoolean("notifications_enabled", prefs.pushNotificationsEnabled)
+                }
+                if (prefs.weeklyReportEnabled != null) {
+                    weeklyReportEnabled = prefs.weeklyReportEnabled
+                    settings.putBoolean("weekly_report", prefs.weeklyReportEnabled)
+                }
+                if (prefs.dataSharingEnabled != null) {
+                    dataSharingEnabled = prefs.dataSharingEnabled
+                    settings.putBoolean("data_sharing", prefs.dataSharingEnabled)
+                }
+                // Single batched PUT for any fields not yet stored on the backend.
+                // Uses launch (not scope.launch) so it is cancelled if the user signs out
+                // before the request completes, preventing a write against a stale token.
+                if (prefs.dailyGoalKgCo2e == null || prefs.pushNotificationsEnabled == null ||
+                        prefs.weeklyReportEnabled == null || prefs.dataSharingEnabled == null) {
+                    launch {
+                        userService.updatePreferences(
+                            dailyGoalKgCO2e          = if (prefs.dailyGoalKgCo2e == null) dailyGoalKgCO2.toDouble() else null,
+                            pushNotificationsEnabled = if (prefs.pushNotificationsEnabled == null) notificationsEnabled else null,
+                            weeklyReportEnabled      = if (prefs.weeklyReportEnabled == null) weeklyReportEnabled else null,
+                            dataSharingEnabled       = if (prefs.dataSharingEnabled == null) dataSharingEnabled else null,
+                        )
+                    }
                 }
             }
         }
@@ -774,6 +801,8 @@ fun AtmosApp() {
                         work        = CommuteLocation("Work", commuteWork.takeIf { it.isNotBlank() }),
                         preferences = previewProfileUiState.preferences.copy(
                             pushNotificationsEnabled = notificationsEnabled,
+                            weeklyReportEnabled      = weeklyReportEnabled,
+                            dataSharingEnabled       = dataSharingEnabled,
                             appearanceMode           = appearanceMode,
                             defaultTransportLabel    = defaultTransport,
                             unitsLabel               = unitsLabel,
@@ -783,16 +812,52 @@ fun AtmosApp() {
                     onNavigateToHome       = { screen = Screen.Home },
                     onNavigateToActivities = { screen = Screen.Activities },
                     onAppearanceChange     = { mode -> appearanceMode = mode; settings.putString("appearance_mode", mode.name) },
-                    onNotificationsToggle  = { enabled -> notificationsEnabled = enabled; settings.putBoolean("notifications_enabled", enabled) },
+                    onNotificationsToggle  = { enabled, onError ->
+                        notificationsJob?.cancel()
+                        val prev = notificationsEnabled
+                        notificationsEnabled = enabled
+                        settings.putBoolean("notifications_enabled", enabled)
+                        notificationsJob = scope.launch {
+                            userService.updatePreferences(pushNotificationsEnabled = enabled).onFailure {
+                                notificationsEnabled = prev
+                                settings.putBoolean("notifications_enabled", prev)
+                                onError("Could not save preference — please try again")
+                            }
+                        }
+                    },
+                    onWeeklyReportToggle   = { enabled, onError ->
+                        weeklyReportJob?.cancel()
+                        val prev = weeklyReportEnabled
+                        weeklyReportEnabled = enabled
+                        settings.putBoolean("weekly_report", enabled)
+                        weeklyReportJob = scope.launch {
+                            userService.updatePreferences(weeklyReportEnabled = enabled).onFailure {
+                                weeklyReportEnabled = prev
+                                settings.putBoolean("weekly_report", prev)
+                                onError("Could not save preference — please try again")
+                            }
+                        }
+                    },
+                    onDataSharingToggle    = { enabled, onError ->
+                        dataSharingJob?.cancel()
+                        val prev = dataSharingEnabled
+                        dataSharingEnabled = enabled
+                        settings.putBoolean("data_sharing", enabled)
+                        dataSharingJob = scope.launch {
+                            userService.updatePreferences(dataSharingEnabled = enabled).onFailure {
+                                dataSharingEnabled = prev
+                                settings.putBoolean("data_sharing", prev)
+                                onError("Could not save preference — please try again")
+                            }
+                        }
+                    },
                     onGoalChange           = { goal ->
                         val prevGoal = dailyGoalKgCO2
                         dailyGoalKgCO2 = goal
                         settings.putFloat("daily_goal_kg", goal)
                         todayImpact = todayImpact.copy(dailyGoalKgCO2 = goal)
                         scope.launch {
-                            userService.updatePreferences(goal.toDouble()).onFailure {
-                                // Revert so the stale backend value can't overwrite
-                                // the user's intent on the next app restart.
+                            userService.updatePreferences(dailyGoalKgCO2e = goal.toDouble()).onFailure {
                                 dailyGoalKgCO2 = prevGoal
                                 settings.putFloat("daily_goal_kg", prevGoal)
                                 todayImpact = todayImpact.copy(dailyGoalKgCO2 = prevGoal)

@@ -11,6 +11,8 @@ enum class AppearanceMode { LIGHT, DARK, SYSTEM }
 
 data class ProfilePreferences(
     val pushNotificationsEnabled: Boolean,
+    val weeklyReportEnabled: Boolean,
+    val dataSharingEnabled: Boolean,
     val appearanceMode: AppearanceMode,
     val defaultTransportLabel: String,
     val unitsLabel: String,
@@ -54,8 +56,10 @@ val previewProfileUiState = ProfileUiState(
     work = CommuteLocation("Work", "456 Office Plaza, Manhattan NY"),
     preferences = ProfilePreferences(
         pushNotificationsEnabled = true,
-        appearanceMode = AppearanceMode.SYSTEM,
-        defaultTransportLabel = "Public Transit",
-        unitsLabel = "Metric",
+        weeklyReportEnabled      = true,
+        dataSharingEnabled       = false,
+        appearanceMode           = AppearanceMode.SYSTEM,
+        defaultTransportLabel    = "Public Transit",
+        unitsLabel               = "Metric",
     ),
 )
