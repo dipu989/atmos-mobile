@@ -339,6 +339,7 @@ fun AtmosApp() {
 
     fun handleSignOut() {
         pendingVerificationAuthUser = null
+        NotificationState.pendingInsightId.value = null
         tokenStore.clear()
         AuthState.onSignedOut()
         screen = Screen.Onboarding

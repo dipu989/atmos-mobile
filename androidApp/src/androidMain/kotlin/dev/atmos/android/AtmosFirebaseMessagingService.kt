@@ -27,9 +27,10 @@ class AtmosFirebaseMessagingService : FirebaseMessagingService() {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             if (!insightId.isNullOrEmpty()) putExtra("insight_id", insightId)
         }
+        val notifId = insightId?.hashCode() ?: 0
         val pi = PendingIntent.getActivity(
             this,
-            insightId?.hashCode() ?: 0,
+            notifId,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -42,8 +43,7 @@ class AtmosFirebaseMessagingService : FirebaseMessagingService() {
             .setAutoCancel(true)
             .build()
 
-        NotificationManagerCompat.from(this)
-            .notify(insightId?.hashCode() ?: System.currentTimeMillis().toInt(), notification)
+        NotificationManagerCompat.from(this).notify(notifId, notification)
     }
 
     companion object {
