@@ -14,7 +14,11 @@ import platform.UserNotifications.UNAuthorizationOptionBadge
 import platform.UserNotifications.UNAuthorizationOptionSound
 import platform.UserNotifications.UNAuthorizationStatusAuthorized
 import platform.UserNotifications.UNAuthorizationStatusProvisional
+import platform.UserNotifications.UNNotification
+import platform.UserNotifications.UNNotificationPresentationOptionBanner
+import platform.UserNotifications.UNNotificationPresentationOptionSound
 import platform.UserNotifications.UNUserNotificationCenter
+import platform.UserNotifications.UNUserNotificationCenterDelegateProtocol
 import platform.darwin.NSObject
 
 // ── Shared CLAuthorizationStatus → LocationPermissionState mapping ────────────
@@ -70,7 +74,15 @@ class IosPermissionRequester : PermissionRequester {
     private val locationDelegate = PermissionLocationDelegate()
     private val locationManager = CLLocationManager().also { it.delegate = locationDelegate }
 
+    // Retained strongly — UNUserNotificationCenter holds the delegate weakly.
+    private val notificationDelegate = AtmosNotificationDelegate()
+
     init {
+        // Must be set before any notification is posted so foreground banners are not
+        // silently suppressed (iOS drops notifications in the foreground unless a delegate
+        // is present and opts in to .banner presentation).
+        UNUserNotificationCenter.currentNotificationCenter().delegate = notificationDelegate
+
         // Sync whatever authorization state the OS already has on app launch.
         locationManager.syncPermissionStateToStore()
 
@@ -105,6 +117,26 @@ class IosPermissionRequester : PermissionRequester {
                     TripDetectorState.updateNotificationsGranted(granted)
                 }
             }
+    }
+}
+
+// ── AtmosNotificationDelegate ─────────────────────────────────────────────────
+
+/**
+ * Allows Atmos notifications to be displayed as banners even when the app is in the
+ * foreground. Without this delegate iOS silently suppresses all local notifications.
+ */
+@OptIn(ExperimentalForeignApi::class)
+private class AtmosNotificationDelegate : NSObject(), UNUserNotificationCenterDelegateProtocol {
+
+    override fun userNotificationCenter(
+        center: UNUserNotificationCenter,
+        willPresentNotification: UNNotification,
+        withCompletionHandler: (ULong) -> Unit,
+    ) {
+        withCompletionHandler(
+            UNNotificationPresentationOptionBanner or UNNotificationPresentationOptionSound
+        )
     }
 }
 
