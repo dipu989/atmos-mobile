@@ -64,6 +64,10 @@ kotlin {
             // Local storage
             implementation(libs.multiplatform.settings.no.arg)
 
+            // Image loading (avatar display)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor)
+
             // Database
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines)

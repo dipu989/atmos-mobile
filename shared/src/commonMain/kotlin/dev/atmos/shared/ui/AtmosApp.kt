@@ -30,7 +30,11 @@ import dev.atmos.shared.db.DatabaseProvider
 import dev.atmos.shared.db.TripRepositoryImpl
 import dev.atmos.shared.db.groupByDateLabel
 import dev.atmos.shared.db.toRecentActivityEntry
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.network.ktor3.KtorNetworkFetcherFactory
 import dev.atmos.shared.location.LocalPermissionRequester
+import dev.atmos.shared.ui.common.LocalAvatarUploader
 import dev.atmos.shared.location.LocationPermissionState
 import dev.atmos.shared.location.TripDetectorState
 import dev.atmos.shared.location.createTripDetector
@@ -348,6 +352,18 @@ fun AtmosApp() {
     LaunchedEffect(Unit) {
         tripDetector.startMonitoring()
     }
+
+    // Configure Coil once with a Ktor-backed network fetcher so AsyncImage can load
+    // avatar URLs on both Android (OkHttp engine) and iOS (Darwin engine).
+    LaunchedEffect(Unit) {
+        SingletonImageLoader.setSafe { context ->
+            ImageLoader.Builder(context)
+                .components { add(KtorNetworkFetcherFactory()) }
+                .build()
+        }
+    }
+
+    val avatarUploader = LocalAvatarUploader.current
 
     // Navigate to Onboarding when the token refresher forces a sign-out
     // (expired / revoked refresh token). Tokens are already cleared by TokenRefresher.
@@ -1096,6 +1112,7 @@ fun AtmosApp() {
                                 ?: "?"
                         } ?: "?",
                         email           = authUser?.email ?: "",
+                        avatarUrl       = authUser?.avatarUrl ?: "",
                         totalCO2SavedKg = weeklyTotalKgCo2,
                         daysTracked     = profileDaysTracked,
                         todayKgCO2      = todayImpact.kgCO2,
@@ -1112,6 +1129,33 @@ fun AtmosApp() {
                         ),
                     ),
                     onBack                 = { screen = Screen.Home },
+                    onAvatarClick          = {
+                        val userId = authUser?.id?.takeIf { it.isNotEmpty() } ?: return@ProfileScreen
+                        avatarUploader.launch(userId) { result ->
+                            result.onSuccess { url ->
+                                scope.launch {
+                                    userService.updateAvatarUrl(url)
+                                        .onSuccess { dto ->
+                                            AuthState.onSignedIn(AuthUser(
+                                                id          = dto.id,
+                                                email       = dto.email,
+                                                displayName = dto.displayName,
+                                                avatarUrl   = dto.avatarUrl ?: url,
+                                            ))
+                                            snackbarHostState.showSnackbar("Profile photo updated")
+                                        }
+                                        .onFailure {
+                                            snackbarHostState.showSnackbar("Could not save photo — try again")
+                                        }
+                                }
+                            }
+                            result.onFailure { e ->
+                                if (e.message != "Photo selection cancelled") {
+                                    scope.launch { snackbarHostState.showSnackbar("Upload failed — try again") }
+                                }
+                            }
+                        }
+                    },
                     onNavigateToHome       = { screen = Screen.Home },
                     onNavigateToActivities = { screen = Screen.Activities },
                     onAppearanceChange     = { mode -> appearanceMode = mode; settings.putString("appearance_mode", mode.name) },
