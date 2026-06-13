@@ -109,7 +109,9 @@ private val InsightType.heroSubtitle: String
 fun InsightDetailScreen(
     entry: InsightEntry,
     onBack: () -> Unit = {},
-    onLogTrip: () -> Unit = {},      // used by TIP insights
+    onLogTrip: () -> Unit = {},           // TIP insights — open LogActivitySheet
+    onNavigateToActivities: () -> Unit = {}, // ANOMALY insights — review trips
+    onNavigateToProfile: () -> Unit = {}, // MILESTONE insights — view goals
 ) {
     val colors      = LocalAtmosColors.current
     val scrollState = rememberScrollState()
@@ -254,7 +256,12 @@ fun InsightDetailScreen(
                 }
 
                 // ── CTA ───────────────────────────────────────────────────────
-                InsightCTA(entry = entry, onLogTrip = onLogTrip, heroColor = heroColor)
+                InsightCTA(
+                    entry                  = entry,
+                    onLogTrip              = onLogTrip,
+                    onNavigateToActivities = onNavigateToActivities,
+                    onNavigateToProfile    = onNavigateToProfile,
+                )
             }
         }
     }
@@ -477,7 +484,8 @@ private fun AnomalyVisual() {
 private fun InsightCTA(
     entry: InsightEntry,
     onLogTrip: () -> Unit,
-    heroColor: Color,
+    onNavigateToActivities: () -> Unit,
+    onNavigateToProfile: () -> Unit,
 ) {
     when (entry.type) {
         InsightType.TIP -> {
@@ -498,13 +506,13 @@ private fun InsightCTA(
 
         InsightType.MILESTONE -> {
             OutlinedButton(
-                onClick  = {},
+                onClick  = onNavigateToProfile,
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(14.dp),
                 colors   = ButtonDefaults.outlinedButtonColors(contentColor = HorizonBlue),
             ) {
                 Text(
-                    text       = "View all goals",
+                    text       = "View daily goal",
                     fontSize   = 15.sp,
                     fontWeight = FontWeight.Medium,
                     modifier   = Modifier.padding(vertical = 5.dp),
@@ -514,13 +522,13 @@ private fun InsightCTA(
 
         InsightType.ANOMALY -> {
             OutlinedButton(
-                onClick  = {},
+                onClick  = onNavigateToActivities,
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(14.dp),
                 colors   = ButtonDefaults.outlinedButtonColors(contentColor = Peach),
             ) {
                 Text(
-                    text       = "Review this week's trips",
+                    text       = "Review trips",
                     fontSize   = 15.sp,
                     fontWeight = FontWeight.Medium,
                     modifier   = Modifier.padding(vertical = 5.dp),
