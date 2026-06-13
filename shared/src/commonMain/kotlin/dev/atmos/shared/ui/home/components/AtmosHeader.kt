@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,10 +15,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import dev.atmos.shared.ui.home.UserProfile
 import dev.atmos.shared.ui.theme.AvatarBg
 import dev.atmos.shared.ui.theme.LocalAtmosColors
@@ -54,13 +58,14 @@ fun AtmosHeader(
             )
         }
 
-        UserAvatar(initials = user.initials, onClick = onAvatarClick)
+        UserAvatar(initials = user.initials, avatarUrl = user.avatarUrl, onClick = onAvatarClick)
     }
 }
 
 @Composable
 private fun UserAvatar(
     initials: String,
+    avatarUrl: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -68,14 +73,24 @@ private fun UserAvatar(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(44.dp)
-            .background(color = AvatarBg, shape = CircleShape)
+            .clip(CircleShape)
+            .background(color = AvatarBg)
             .clickable(onClick = onClick),
     ) {
+        // Initials are always rendered — serve as loading placeholder and error fallback
         Text(
             text = initials,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             color = Color.White,
         )
+        if (avatarUrl.isNotBlank()) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = "Profile photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }

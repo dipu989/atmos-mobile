@@ -49,6 +49,7 @@ import dev.atmos.shared.network.UserService
 import dev.atmos.shared.network.backendMode
 import dev.atmos.shared.network.toInsightEntry
 import dev.atmos.shared.network.toRecentActivityEntry
+import dev.atmos.shared.ui.NotificationState
 import dev.atmos.shared.ui.home.TodayImpact
 import dev.atmos.shared.ui.home.TransportModeEntry
 import dev.atmos.shared.ui.home.UserProfile
@@ -338,6 +339,7 @@ fun AtmosApp() {
 
     fun handleSignOut() {
         pendingVerificationAuthUser = null
+        NotificationState.pendingInsightId.value = null
         tokenStore.clear()
         AuthState.onSignedOut()
         screen = Screen.Onboarding
@@ -392,6 +394,7 @@ fun AtmosApp() {
             displayName = u.displayName,
             initials    = u.displayName.takeIf { it.isNotBlank() }?.toInitials()
                 ?: u.email.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+            avatarUrl   = u.avatarUrl,
         )
     } ?: UserProfile(displayName = "", initials = "?")
 
@@ -488,6 +491,24 @@ fun AtmosApp() {
         }
         selectedInsight = entry.copy(isRead = true)
         screen = Screen.InsightDetail
+    }
+
+    // Navigate to InsightDetail when the user taps a push notification.
+    // Waits for the insight to appear in the loaded list — if it's not there yet,
+    // navigating to Home triggers the timeline fetch which populates insights,
+    // and this effect re-runs when insights changes.
+    val pendingInsightId by NotificationState.pendingInsightId.collectAsState()
+    LaunchedEffect(pendingInsightId, insights, authUser?.id) {
+        val id = pendingInsightId ?: return@LaunchedEffect
+        if (authUser == null) return@LaunchedEffect  // wait until signed in
+        // Ensure Home is the active screen so the timeline fetch fires
+        if (screen != Screen.Home && screen != Screen.InsightDetail) screen = Screen.Home
+        val insight = insights.firstOrNull { it.id == id } ?: return@LaunchedEffect
+        NotificationState.pendingInsightId.value = null
+        insights = insights.map { if (it.id == id) it.copy(isRead = true) else it }
+        selectedInsight = insight.copy(isRead = true)
+        screen = Screen.InsightDetail
+        scope.launch { insightsService.markRead(id) }
     }
 
     // Fetch user profile once per sign-in. Keyed on authUser?.id so it fires on sign-in/sign-out

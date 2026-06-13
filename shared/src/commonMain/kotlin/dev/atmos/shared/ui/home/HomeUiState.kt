@@ -9,6 +9,7 @@ import dev.atmos.shared.location.PendingSessionEntry
 data class UserProfile(
     val displayName: String,
     val initials: String,
+    val avatarUrl: String = "",
 )
 
 data class TodayImpact(
