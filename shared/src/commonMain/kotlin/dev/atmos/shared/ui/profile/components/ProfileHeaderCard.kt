@@ -22,10 +22,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.theme.AvatarBg
 import dev.atmos.shared.ui.theme.HorizonBlue
@@ -38,6 +41,8 @@ fun ProfileHeaderCard(
     email: String,
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    onAvatarClick: () -> Unit = onEdit,
+    avatarUrl: String = "",
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
@@ -79,29 +84,39 @@ fun ProfileHeaderCard(
                 .fillMaxWidth()
                 .padding(bottom = 24.dp),
         ) {
-            // Avatar with camera badge — tapping opens the edit sheet
             Box(
                 modifier = Modifier
-                    .clickable(onClick = onEdit)
+                    .clickable(onClick = onAvatarClick)
                     .padding(4.dp),
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(80.dp)
-                        .background(color = AvatarBg, shape = CircleShape),
-                ) {
-                    Text(
-                        text       = initials,
-                        fontSize   = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color      = Color.White,
+                if (avatarUrl.isNotBlank()) {
+                    AsyncImage(
+                        model             = avatarUrl,
+                        contentDescription = "Profile photo",
+                        contentScale      = ContentScale.Crop,
+                        modifier          = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape),
                     )
+                } else {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier         = Modifier
+                            .size(80.dp)
+                            .background(color = AvatarBg, shape = CircleShape),
+                    ) {
+                        Text(
+                            text       = initials,
+                            fontSize   = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color      = Color.White,
+                        )
+                    }
                 }
-                // Camera badge bottom-right
+                // Camera badge — always visible so photo can always be changed
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier
+                    modifier         = Modifier
                         .align(Alignment.BottomEnd)
                         .size(26.dp)
                         .background(HorizonBlue, CircleShape)
@@ -109,7 +124,7 @@ fun ProfileHeaderCard(
                 ) {
                     Icon(
                         imageVector        = Icons.Outlined.CameraAlt,
-                        contentDescription = "Edit profile photo",
+                        contentDescription = "Change profile photo",
                         tint               = Color.White,
                         modifier           = Modifier.size(13.dp),
                     )
@@ -117,17 +132,17 @@ fun ProfileHeaderCard(
             }
             Spacer(Modifier.height(12.dp))
             Text(
-                text = displayName,
-                fontSize = 20.sp,
+                text       = displayName,
+                fontSize   = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = colors.textPrimary,
+                color      = colors.textPrimary,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = email,
-                fontSize = 13.sp,
+                text       = email,
+                fontSize   = 13.sp,
                 fontWeight = FontWeight.Normal,
-                color = colors.textSecondary,
+                color      = colors.textSecondary,
             )
         }
     }

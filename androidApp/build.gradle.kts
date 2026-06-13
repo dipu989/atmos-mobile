@@ -27,6 +27,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.storage.ktx)
+    implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.multiplatform.settings.no.arg)
 }
 

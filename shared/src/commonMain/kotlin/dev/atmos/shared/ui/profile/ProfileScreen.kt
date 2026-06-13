@@ -124,6 +124,7 @@ fun ProfileScreen(
     onWeeklyReportToggle: (Boolean, onError: (String) -> Unit) -> Unit = { _, _ -> },
     onDataSharingToggle: (Boolean, onError: (String) -> Unit) -> Unit = { _, _ -> },
     onGoalChange: (Float) -> Unit = {},
+    onAvatarClick: () -> Unit = {},
     onSaveName: (name: String, onSuccess: () -> Unit, onError: () -> Unit) -> Unit = { _, _, _ -> },
     onSignOut: () -> Unit = {},
     onDeleteAccount: (password: String, onError: (String) -> Unit) -> Unit = { _, _ -> },
@@ -223,11 +224,13 @@ fun ProfileScreen(
         ) {
             item {
                     ProfileHeaderCard(
-                        displayName = localDisplayName,
-                        initials    = localInitials,
-                        email       = state.email,
-                        onBack      = onBack,
-                        onEdit      = { showEditProfile = true },
+                        displayName   = localDisplayName,
+                        initials      = localInitials,
+                        email         = state.email,
+                        avatarUrl     = state.avatarUrl,
+                        onBack        = onBack,
+                        onEdit        = { showEditProfile = true },
+                        onAvatarClick = onAvatarClick,
                     )
                 }
 
@@ -385,7 +388,7 @@ fun ProfileScreen(
                 )
             },
             onDismiss     = { showEditProfile = false },
-            onChangePhoto = { scope.launch { snackbarHostState.showSnackbar("Photo upload coming soon") } },
+            onChangePhoto = { showEditProfile = false; onAvatarClick() },
         )
     }
 }

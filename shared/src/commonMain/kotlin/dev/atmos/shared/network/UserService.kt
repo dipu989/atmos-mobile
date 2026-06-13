@@ -19,9 +19,11 @@ import kotlinx.serialization.Serializable
 
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 private data class UpdateUserRequest(
-    @SerialName("display_name") val displayName: String,
+    @SerialName("display_name") @EncodeDefault(EncodeDefault.Mode.NEVER) val displayName: String? = null,
+    @SerialName("avatar_url")   @EncodeDefault(EncodeDefault.Mode.NEVER) val avatarUrl: String? = null,
 )
 
 @Serializable
@@ -82,6 +84,22 @@ class UserService(
         }
         if (response.status.value !in 200..299) {
             throw Exception("Profile update failed (${response.status.value})")
+        }
+        response.body<ApiEnvelope<UserDto>>().data
+            ?: throw Exception("Empty response from server")
+    }
+
+    suspend fun updateAvatarUrl(url: String): Result<UserDto> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+
+        val response = httpClient.patch("$ATMOS_BASE_URL/api/v1/users/me") {
+            contentType(ContentType.Application.Json)
+            bearerAuth(token)
+            setBody(UpdateUserRequest(avatarUrl = url))
+        }
+        if (response.status.value !in 200..299) {
+            throw Exception("Avatar update failed (${response.status.value})")
         }
         response.body<ApiEnvelope<UserDto>>().data
             ?: throw Exception("Empty response from server")

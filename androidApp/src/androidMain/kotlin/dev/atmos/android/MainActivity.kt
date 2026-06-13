@@ -8,9 +8,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.content.ContextCompat
 import com.google.firebase.messaging.FirebaseMessaging
 import com.russhwolf.settings.Settings
@@ -23,7 +26,10 @@ import dev.atmos.shared.location.PermissionRequester
 import dev.atmos.shared.location.TripDetectorHolder
 import dev.atmos.shared.location.TripDetectorState
 import dev.atmos.shared.ui.AtmosApp
+import dev.atmos.shared.ui.common.AvatarUploader
+import dev.atmos.shared.ui.common.LocalAvatarUploader
 import dev.atmos.shared.ui.common.LocalShareLauncher
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +68,40 @@ class MainActivity : ComponentActivity() {
         TripDetectorState.updateNotificationsGranted(notifAlreadyGranted)
 
         setContent {
+            val scope = rememberCoroutineScope()
+
+            // ── Avatar photo picker ───────────────────────────────────────────
+            // pendingUpload holds the (userId, callback) pair set by AvatarUploader.launch()
+            // and consumed by the photo picker result handler.
+            val pendingUpload = remember {
+                mutableStateOf<Pair<String, (Result<String>) -> Unit>?>(null)
+            }
+            val photoPickerLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.PickVisualMedia()
+            ) { uri ->
+                val pending = pendingUpload.value ?: return@rememberLauncherForActivityResult
+                pendingUpload.value = null
+                if (uri == null) {
+                    pending.second(Result.failure(Exception("Photo selection cancelled")))
+                    return@rememberLauncherForActivityResult
+                }
+                scope.launch {
+                    pending.second(uploadAvatarToFirebase(applicationContext, pending.first, uri))
+                }
+            }
+            val avatarUploader: AvatarUploader = remember {
+                object : AvatarUploader {
+                    override fun launch(userId: String, onComplete: (Result<String>) -> Unit) {
+                        // Guard against a second tap while the picker is already open.
+                        if (pendingUpload.value != null) return
+                        pendingUpload.value = Pair(userId, onComplete)
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
+                }
+            }
+
             // ── Location permission launcher ──────────────────────────────────
             val locationLauncher = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions()
@@ -105,6 +145,7 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(
                 LocalPermissionRequester provides permReq,
                 LocalShareLauncher       provides shareLauncher,
+                LocalAvatarUploader      provides avatarUploader,
             ) {
                 AtmosApp()
             }

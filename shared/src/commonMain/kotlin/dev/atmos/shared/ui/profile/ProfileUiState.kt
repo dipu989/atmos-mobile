@@ -22,6 +22,7 @@ data class ProfileUiState(
     val displayName: String,
     val initials: String,
     val email: String,
+    val avatarUrl: String = "",
     val totalCO2SavedKg: Float,
     val daysTracked: Int,
     val todayKgCO2: Float,
