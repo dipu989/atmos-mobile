@@ -1388,9 +1388,11 @@ fun AtmosApp() {
 
                 Screen.InsightDetail -> selectedInsight?.let { entry ->
                     InsightDetailScreen(
-                        entry     = entry,
-                        onBack    = { screen = Screen.Home },
-                        onLogTrip = { showLogActivity = true },
+                        entry                  = entry,
+                        onBack                 = { screen = Screen.Home },
+                        onLogTrip              = { showLogActivity = true },
+                        onNavigateToActivities = { screen = Screen.Activities },
+                        onNavigateToProfile    = { screen = Screen.Profile },
                     )
                 }
 
