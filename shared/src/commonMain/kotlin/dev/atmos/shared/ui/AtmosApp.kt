@@ -1433,17 +1433,43 @@ fun AtmosApp() {
                         val originalTimestampMs = editingTimestampMs
                         editingSessionId   = null
                         editingTimestampMs = 0L
+                        // Snapshot so the coroutine sees a stable view of confirmed sessions
+                        // even if a DB flow emission arrives mid-edit.
+                        val sessionsAtEditTime = confirmedSessions
                         scope.launch {
                             try {
                                 if (sessionBeingEdited != null) {
                                     // Edit flow: atomic delete + replace inside one DB transaction
                                     val editNowMs = Clock.System.now().toEpochMilliseconds()
+
+                                    // Resolve the old backend activity ID before mutating local DB.
+                                    // For a local session it lives in session.backend_activity_id.
+                                    // For a backend-only trip (no local row) the sessionBeingEdited
+                                    // IS the backend UUID — that record must be deleted directly.
+                                    val localSession = sessionsAtEditTime
+                                        .firstOrNull { it.session.id == sessionBeingEdited }
+                                    val oldBackendId = localSession?.session?.backend_activity_id
+                                        ?: sessionBeingEdited.takeIf { localSession == null && it.isNotEmpty() }
+
                                     val newId = repo.updateManualTrip(
                                         oldSessionId = sessionBeingEdited,
                                         mode         = trip.mode.name,
                                         distanceKm   = trip.distanceKm,
                                         timestampMs  = originalTimestampMs,
                                     )
+
+                                    // Best-effort: remove the old backend record so it does not
+                                    // appear as a duplicate on the next Activities fetch.
+                                    // 404 = already gone from another device — both are success.
+                                    if (!oldBackendId.isNullOrEmpty()) {
+                                        activityService.deleteActivity(oldBackendId)
+                                        // Add to the exclusion set so the old record does not
+                                        // reappear from the in-memory cache during the window
+                                        // before the next timeline fetch. This applies to both
+                                        // local trips (backend_activity_id) and backend-only trips.
+                                        deletedBackendIds = deletedBackendIds + oldBackendId
+                                    }
+
                                     syncToBackend(
                                         sessionId   = newId,
                                         mode        = trip.mode,
