@@ -221,16 +221,22 @@ class ActivityService(
     suspend fun listAllActivities(): Result<List<ActivityDto>> = runCatching {
         val allActivities = mutableListOf<ActivityDto>()
         val pageSize = 100  // backend hard cap is 100; exceeding it resets to 50 silently
+        val maxPages  = 50  // safety cap: 50 × 100 = 5 000 activities max; guards against infinite loop on bad total
         var offset = 0
-        // 2020-01-01T00:00:00Z — before any possible trip
-        val fromMs = 1577836800000L
-        while (true) {
-            val page = listActivities(fromMs = fromMs, limit = pageSize, offset = offset).getOrThrow()
+        repeat(maxPages) {
+            // On a mid-pagination failure, return whatever we have rather than losing all prior pages.
+            val page = listActivities(limit = pageSize, offset = offset)
+                .getOrElse { return@runCatching allActivities.toList() }
             allActivities += page.activities
-            if (page.activities.isEmpty() || allActivities.size >= page.total) break
+            // Primary exit: empty page means no more data.
+            // Secondary exit: honour backend total only when it's a positive value — guards against
+            // total=0 (count query failure) which would otherwise trigger an immediate early exit.
+            if (page.activities.isEmpty() || (page.total > 0L && allActivities.size >= page.total)) {
+                return@runCatching allActivities.toList()
+            }
             offset += page.activities.size  // advance by items actually received, not requested
         }
-        allActivities
+        allActivities.toList()
     }
 
     private fun httpErrorMessage(code: Int): String = when (code) {
