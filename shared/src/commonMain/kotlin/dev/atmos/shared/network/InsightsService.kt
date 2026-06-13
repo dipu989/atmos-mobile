@@ -54,6 +54,7 @@ fun InsightDto.toInsightEntry(): InsightEntry = InsightEntry(
         "milestone"                       -> InsightType.MILESTONE
         "tip"                             -> InsightType.TIP
         "comparison", "weekly_comparison" -> InsightType.COMPARISON
+        "mode_spike", "mode_summary"      -> InsightType.TIP
         else                              -> InsightType.ANOMALY
     },
     title           = title,

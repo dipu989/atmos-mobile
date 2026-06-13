@@ -257,11 +257,10 @@ fun InsightDetailScreen(
 
                 // ── CTA ───────────────────────────────────────────────────────
                 InsightCTA(
-                    entry                = entry,
-                    onLogTrip            = onLogTrip,
+                    entry                  = entry,
+                    onLogTrip              = onLogTrip,
                     onNavigateToActivities = onNavigateToActivities,
-                    onNavigateToProfile  = onNavigateToProfile,
-                    heroColor            = heroColor,
+                    onNavigateToProfile    = onNavigateToProfile,
                 )
             }
         }
@@ -487,7 +486,6 @@ private fun InsightCTA(
     onLogTrip: () -> Unit,
     onNavigateToActivities: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    heroColor: Color,
 ) {
     when (entry.type) {
         InsightType.TIP -> {
