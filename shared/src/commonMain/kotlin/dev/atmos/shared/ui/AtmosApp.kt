@@ -897,6 +897,7 @@ fun AtmosApp() {
         durationMin: Int,
         startedAtMs: Long,
         endedAtMs: Long,
+        source: String = "manual",
     ) {
         if (!tokenStore.isLoggedIn || sessionId.isEmpty()) return
         scope.launch {
@@ -907,6 +908,7 @@ fun AtmosApp() {
                 durationMin = durationMin,
                 startedAtMs = startedAtMs,
                 endedAtMs   = endedAtMs,
+                source      = source,
             ).onSuccess { dto ->
                 if (dto.id.isNotEmpty()) {
                     repo.updateBackendActivityId(sessionId, dto.id)
@@ -949,6 +951,7 @@ fun AtmosApp() {
             durationMin = 0,
             startedAtMs = saved.startedAtMs,
             endedAtMs   = nowMs,
+            source      = "auto_detect",
         )
         val result = snackbarHostState.showSnackbar(
             message     = "Trip saved · ${saved.totalDistKm.toDisplayString()} km",
@@ -1108,6 +1111,7 @@ fun AtmosApp() {
                                 durationMin = s.totalDurationMin,
                                 startedAtMs = s.startedAtMs,
                                 endedAtMs   = nowMs,
+                                source      = "auto_detect",
                             )
                         }
                     },
