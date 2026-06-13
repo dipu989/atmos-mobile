@@ -1463,12 +1463,11 @@ fun AtmosApp() {
                                     // 404 = already gone from another device — both are success.
                                     if (!oldBackendId.isNullOrEmpty()) {
                                         activityService.deleteActivity(oldBackendId)
-                                        // For backend-only trips, add to the exclusion set so the
-                                        // old record does not reappear from the in-memory cache
-                                        // during the window before the next timeline fetch.
-                                        if (localSession == null) {
-                                            deletedBackendIds = deletedBackendIds + oldBackendId
-                                        }
+                                        // Add to the exclusion set so the old record does not
+                                        // reappear from the in-memory cache during the window
+                                        // before the next timeline fetch. This applies to both
+                                        // local trips (backend_activity_id) and backend-only trips.
+                                        deletedBackendIds = deletedBackendIds + oldBackendId
                                     }
 
                                     syncToBackend(
