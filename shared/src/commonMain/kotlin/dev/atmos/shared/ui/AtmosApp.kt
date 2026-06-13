@@ -37,6 +37,8 @@ import dev.atmos.shared.location.createTripDetector
 import dev.atmos.shared.network.ActivityService
 import dev.atmos.shared.network.AuthResponseDto
 import dev.atmos.shared.network.AuthService
+import dev.atmos.shared.network.DeviceService
+import dev.atmos.shared.network.FcmTokenStore
 import dev.atmos.shared.network.InsightsService
 import dev.atmos.shared.network.TimelineService
 import dev.atmos.shared.network.UserService
@@ -47,7 +49,9 @@ import dev.atmos.shared.ui.home.TodayImpact
 import dev.atmos.shared.ui.home.TransportModeEntry
 import dev.atmos.shared.ui.home.UserProfile
 import dev.atmos.shared.ui.home.WeeklyDataPoint
+import dev.atmos.shared.platformId
 import kotlin.math.roundToInt
+import kotlin.random.Random
 import dev.atmos.shared.ui.activities.ActivitiesScreen
 import dev.atmos.shared.ui.auth.EmailVerificationScreen
 import dev.atmos.shared.ui.auth.ForgotPasswordScreen
@@ -114,6 +118,17 @@ private fun String.toUnitsLabel(): String = when (this) {
     else    -> "Metric (km)"
 }
 
+// Generates a UUID v4-shaped string for stable device identification.
+// Persisted in Settings["device_stable_id"] on first run and reused thereafter.
+private fun generateDeviceStableId(): String = buildString {
+    val rng = Random.Default
+    repeat(8)  { append(rng.nextInt(16).toString(16)) }; append('-')
+    repeat(4)  { append(rng.nextInt(16).toString(16)) }; append('-')
+    append('4'); repeat(3) { append(rng.nextInt(16).toString(16)) }; append('-')
+    append((8 + rng.nextInt(4)).toString(16)); repeat(3) { append(rng.nextInt(16).toString(16)) }; append('-')
+    repeat(12) { append(rng.nextInt(16).toString(16)) }
+}
+
 private sealed class Screen {
     data object Onboarding         : Screen()
     data object Login              : Screen()
@@ -141,6 +156,7 @@ fun AtmosApp() {
     val timelineService  = remember { TimelineService() }
     val insightsService  = remember { InsightsService() }
     val userService      = remember { UserService() }
+    val deviceService    = remember { DeviceService() }
     val googleSignInLauncher = remember { createGoogleSignInLauncher() }
 
     var screen by remember {
@@ -430,6 +446,10 @@ fun AtmosApp() {
     var weeklyReportEnabled  by remember { mutableStateOf(settings.getBoolean("weekly_report", true)) }
     var dataSharingEnabled   by remember { mutableStateOf(settings.getBoolean("data_sharing", false)) }
 
+    // FCM push token — updated reactively by FcmTokenStore (seeded by MainActivity on cold start,
+    // updated by AtmosFirebaseMessagingService on token rotation). Null on iOS (FCM is Android-only).
+    val fcmToken by FcmTokenStore.token.collectAsState()
+
     // ── Stats screen state ────────────────────────────────────────────────────
     var statsPeriod        by remember { mutableStateOf(StatsPeriod.WEEK) }
     var statsPeriodOffset  by remember { mutableStateOf(0) }  // 0=current, -1=prev, etc.
@@ -534,6 +554,30 @@ fun AtmosApp() {
                     }
                 }
             }
+
+        }
+    }
+
+    // Register (or re-register) this device with the backend whenever the user or push token changes.
+    // Keyed on both authUser?.id and fcmToken so it fires on login AND on FCM token rotation.
+    // iOS: fcmToken is always null (Firebase is Android-only) so this block is a no-op there.
+    LaunchedEffect(authUser?.id, fcmToken) {
+        if (authUser == null) return@LaunchedEffect
+        if (!tokenStore.isLoggedIn) return@LaunchedEffect
+        val token = fcmToken ?: return@LaunchedEffect
+
+        val stableId = settings.getStringOrNull("device_stable_id") ?: run {
+            val newId = generateDeviceStableId()
+            settings.putString("device_stable_id", newId)
+            newId
+        }
+        deviceService.registerDevice(
+            deviceToken  = stableId,
+            pushToken    = token,
+            platform     = platformId,
+            pushProvider = "fcm",
+        ).onSuccess { dto ->
+            if (dto.id.isNotBlank()) settings.putString("device_id", dto.id)
         }
     }
 

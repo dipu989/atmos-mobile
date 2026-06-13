@@ -10,6 +10,8 @@ datetime                = "0.6.1"
 multiplatform-settings  = "1.2.0"
 androidx-activity       = "1.13.0"
 play-services-location  = "21.3.0"
+firebase-bom            = "33.7.0"
+google-services         = "4.4.2"
 sqldelight              = "2.0.2"
 credentials             = "1.6.0"
 googleid                = "1.1.1"
@@ -44,6 +46,8 @@ multiplatform-settings-no-arg   = { module = "com.russhwolf:multiplatform-settin
 # Android
 androidx-activity-compose   = { module = "androidx.activity:activity-compose",                           version.ref = "androidx-activity" }
 play-services-location       = { module = "com.google.android.gms:play-services-location",               version.ref = "play-services-location" }
+firebase-bom                 = { module = "com.google.firebase:firebase-bom",                                version.ref = "firebase-bom" }
+firebase-messaging-ktx       = { module = "com.google.firebase:firebase-messaging-ktx" }
 androidx-credentials                 = { module = "androidx.credentials:credentials",                                          version.ref = "credentials" }
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth",                   version.ref = "credentials" }
 googleid                             = { module = "com.google.android.libraries.identity.googleid:googleid",                   version.ref = "googleid" }
@@ -64,3 +68,4 @@ compose-compiler        = { id = "org.jetbrains.kotlin.plugin.compose",         
 android-application     = { id = "com.android.application",                     version.ref = "agp" }
 android-library         = { id = "com.android.library",                         version.ref = "agp" }
 sqldelight              = { id = "app.cash.sqldelight",                          version.ref = "sqldelight" }
+google-services         = { id = "com.google.gms.google-services",               version.ref = "google-services" }

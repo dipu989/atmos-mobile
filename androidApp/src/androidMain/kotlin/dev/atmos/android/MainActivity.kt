@@ -12,7 +12,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.core.content.ContextCompat
+import com.google.firebase.messaging.FirebaseMessaging
+import com.russhwolf.settings.Settings
 import dev.atmos.shared.auth.GoogleSignInHolder
+import dev.atmos.shared.network.FcmTokenStore
 import dev.atmos.shared.location.LocalPermissionRequester
 import dev.atmos.shared.location.LocationPermissionState
 import dev.atmos.shared.location.NoOpPermissionRequester
@@ -31,6 +34,17 @@ class MainActivity : ComponentActivity() {
         // inside AtmosApp can access context and the activity reference.
         TripDetectorHolder.init(applicationContext)
         GoogleSignInHolder.init(this)
+
+        // Seed FcmTokenStore from persisted Settings immediately (synchronous) so that
+        // AtmosApp's device-registration LaunchedEffect sees the token on first composition.
+        // Then ask Firebase for the current token — this refreshes it if it has rotated since
+        // the last launch, writing the fresh value to both Settings and FcmTokenStore.
+        val settings = Settings()
+        FcmTokenStore.update(settings.getStringOrNull("fcm_token"))
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+            settings.putString("fcm_token", token)
+            FcmTokenStore.update(token)
+        }
 
         // Sync permission state with TripDetectorState so the onboarding pills
         // reflect real grant status even on subsequent app launches.

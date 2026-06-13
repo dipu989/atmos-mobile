@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "954511789487",
+    "project_id": "atoms-90643",
+    "storage_bucket": "atoms-90643.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:954511789487:android:c5df3e9ef8f8a2d587f35a",
+        "android_client_info": {
+          "package_name": "dev.atmos.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA--zVR8SW3oNOUydxQaK5lDU3DtrLBvmU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
