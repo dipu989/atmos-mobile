@@ -5,6 +5,8 @@ import dev.atmos.shared.db.DatabaseProvider
 import dev.atmos.shared.db.TripRepository
 import dev.atmos.shared.db.TripRepositoryImpl
 import dev.atmos.shared.ui.home.TransportModeType
+import dev.atmos.shared.ui.logactivity.displayLabel
+import dev.atmos.shared.util.toDisplayString
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +27,10 @@ import platform.CoreMotion.CMMotionActivityManager
 import platform.Foundation.NSUUID
 import platform.Foundation.NSOperationQueue
 import platform.Foundation.NSUserDefaults
+import platform.UserNotifications.UNMutableNotificationContent
+import platform.UserNotifications.UNNotificationRequest
+import platform.UserNotifications.UNTimeIntervalNotificationTrigger
+import platform.UserNotifications.UNUserNotificationCenter
 import platform.darwin.NSObject
 
 // ── actual factory ────────────────────────────────────────────────────────────
@@ -138,6 +144,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
         scope.launch {
             repo.confirmSession(sessionId)
             TripDetectorState.emitPendingSession(null)
+            cancelNotification(NOTIF_ID_DETECTED)
         }
     }
 
@@ -145,6 +152,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
         scope.launch {
             repo.deleteSession(sessionId)
             TripDetectorState.emitPendingSession(null)
+            cancelNotification(NOTIF_ID_DETECTED)
         }
     }
 
@@ -222,6 +230,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
                 }
                 currentPhase = SessionPhase.Active(TransportModeType.DRIVING)
                 publishOngoingSession()
+                postTrackingNotification(TransportModeType.DRIVING)
             }
             is SessionPhase.Active -> {
                 if (phase.currentMode == TransportModeType.WALKING) {
@@ -229,6 +238,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
                     startNewLeg(TransportModeType.DRIVING)
                     currentPhase = SessionPhase.Active(TransportModeType.DRIVING)
                     publishOngoingSession()
+                    postTrackingNotification(TransportModeType.DRIVING)
                 }
             }
             else -> Unit
@@ -270,6 +280,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
                 startNewLeg(TransportModeType.WALKING)
                 currentPhase = SessionPhase.Active(TransportModeType.WALKING)
                 publishOngoingSession()
+                postTrackingNotification(TransportModeType.WALKING)
             }
             is SessionPhase.Active -> {
                 if (phase.currentMode == TransportModeType.DRIVING) {
@@ -277,6 +288,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
                     startNewLeg(TransportModeType.WALKING)
                     currentPhase = SessionPhase.Active(TransportModeType.WALKING)
                     publishOngoingSession()
+                    postTrackingNotification(TransportModeType.WALKING)
                 }
             }
             else -> Unit
@@ -321,6 +333,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
         currentPhase = SessionPhase.Active(mode)
         persistPartialSession()
         publishOngoingSession()
+        postTrackingNotification(mode)
     }
 
     private suspend fun completeCurrentLeg() {
@@ -379,6 +392,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
                     firstLegMode = session.legs.firstOrNull()?.mode,
                 )
             )
+            postTripSavedNotification(totalDist)
             scope.launch {
                 delay(5_000L)
                 TripDetectorState.emitRecentlySaved(null)
@@ -391,6 +405,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
                 totalDurationMin = totalDurationMin,
             )
             TripDetectorState.emitPendingSession(pending)
+            postTripDetectedNotification(totalDist)
         }
 
         resetToIdle()
@@ -406,6 +421,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
         switchToLowPower()
         clearPersistedSession()
         TripDetectorState.emitOngoingSession(null)
+        cancelNotification(NOTIF_ID_TRACKING)
     }
 
     // ── GPS tracking ──────────────────────────────────────────────────────────
@@ -530,6 +546,7 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
 
             switchToHighAccuracy()
             publishOngoingSession()
+            postTrackingNotification(mode)
         } catch (_: Exception) {
             clearPersistedSession()
         }
@@ -550,6 +567,64 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
         defaults.removeObjectForKey(KEY_LEG_SORT_ORDER)
     }
 
+    // ── Notifications ─────────────────────────────────────────────────────────
+
+    private fun postTrackingNotification(mode: TransportModeType) {
+        // Remove any previously-delivered tracking banner (e.g. from a prior session before
+        // app kill) and clear lingering SAVED/DETECTED notifications from the last trip.
+        cancelNotification(NOTIF_ID_TRACKING)
+        cancelNotification(NOTIF_ID_SAVED)
+        cancelNotification(NOTIF_ID_DETECTED)
+        val content = UNMutableNotificationContent().apply {
+            setTitle("Tracking your trip")
+            setBody(mode.displayLabel + " trip in progress")
+        }
+        val request = UNNotificationRequest.requestWithIdentifier(
+            identifier    = NOTIF_ID_TRACKING,
+            content       = content,
+            trigger       = UNTimeIntervalNotificationTrigger.triggerWithTimeInterval(1.0, false),
+        )
+        UNUserNotificationCenter.currentNotificationCenter()
+            .addNotificationRequest(request) { _ -> }
+    }
+
+    private fun postTripDetectedNotification(distKm: Float) {
+        cancelNotification(NOTIF_ID_TRACKING)
+        val content = UNMutableNotificationContent().apply {
+            setTitle("Trip detected")
+            setBody("${distKm.toDisplayString()} km trip ready to confirm. Tap to review.")
+        }
+        val request = UNNotificationRequest.requestWithIdentifier(
+            identifier    = NOTIF_ID_DETECTED,
+            content       = content,
+            trigger       = UNTimeIntervalNotificationTrigger.triggerWithTimeInterval(1.0, false),
+        )
+        UNUserNotificationCenter.currentNotificationCenter()
+            .addNotificationRequest(request) { _ -> }
+    }
+
+    private fun postTripSavedNotification(distKm: Float) {
+        cancelNotification(NOTIF_ID_TRACKING)
+        val content = UNMutableNotificationContent().apply {
+            setTitle("Trip saved ✓")
+            setBody("${distKm.toDisplayString()} km recorded.")
+        }
+        val request = UNNotificationRequest.requestWithIdentifier(
+            identifier    = NOTIF_ID_SAVED,
+            content       = content,
+            trigger       = UNTimeIntervalNotificationTrigger.triggerWithTimeInterval(1.0, false),
+        )
+        UNUserNotificationCenter.currentNotificationCenter()
+            .addNotificationRequest(request) { _ -> }
+    }
+
+    private fun cancelNotification(identifier: String) {
+        UNUserNotificationCenter.currentNotificationCenter()
+            .removePendingNotificationRequestsWithIdentifiers(listOf(identifier))
+        UNUserNotificationCenter.currentNotificationCenter()
+            .removeDeliveredNotificationsWithIdentifiers(listOf(identifier))
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun cancelAllJobs() {
@@ -567,5 +642,9 @@ class IosTripDetector(private val repo: TripRepository) : TripDetector {
         private const val KEY_LEG_START_MS     = "atmos_leg_start_ms"
         private const val KEY_LEG_DIST_KM      = "atmos_leg_dist_km"
         private const val KEY_LEG_SORT_ORDER   = "atmos_leg_sort_order"
+
+        private const val NOTIF_ID_TRACKING    = "atmos.trip.tracking"
+        private const val NOTIF_ID_DETECTED    = "atmos.trip.detected"
+        private const val NOTIF_ID_SAVED       = "atmos.trip.saved"
     }
 }
