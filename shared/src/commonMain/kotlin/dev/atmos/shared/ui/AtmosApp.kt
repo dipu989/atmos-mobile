@@ -406,6 +406,7 @@ fun AtmosApp() {
     var selectedTrip     by remember { mutableStateOf<RecentActivityEntry?>(null) }
     var selectedInsight  by remember { mutableStateOf<InsightEntry?>(null) }
     var homeIsLoading    by remember { mutableStateOf(true) }
+    var homeIsError      by remember { mutableStateOf(false) }
     // Non-null when the user tapped Edit on a confirmed DB trip — holds the session to replace.
     var editingSessionId  by remember { mutableStateOf<String?>(null) }
     var editingTimestampMs by remember { mutableStateOf(0L) }
@@ -543,18 +544,33 @@ fun AtmosApp() {
     var timelineTrigger by remember { mutableStateOf(0) }
     LaunchedEffect(screen, timelineTrigger) {
         if (screen != Screen.Home) return@LaunchedEffect
+        homeIsError = false
+        homeIsLoading = true
         if (!tokenStore.isLoggedIn) {
             homeIsLoading = false
             return@LaunchedEffect
         }
         try {
-            coroutineScope {
+            supervisorScope {
                 val dailyDeferred      = async { timelineService.getDaily() }
                 val weeklyDeferred     = async { timelineService.getWeekly() }
                 val insightDeferred    = async { insightsService.getInsights() }
                 val activitiesDeferred = async { activityService.listActivities() }
 
-                dailyDeferred.await().onSuccess { daily ->
+                val dailyResult  = dailyDeferred.await()
+                val weeklyResult = weeklyDeferred.await()
+
+                // Either primary call failed — cancel secondary fetches and show the error card.
+                // Cancelling explicitly lets supervisorScope complete promptly rather than
+                // waiting on in-flight insight/activity requests whose results we'd discard.
+                if (dailyResult.isFailure || weeklyResult.isFailure) {
+                    insightDeferred.cancel()
+                    activitiesDeferred.cancel()
+                    homeIsError = true
+                    return@supervisorScope
+                }
+
+                dailyResult.onSuccess { daily ->
                     todayImpact = TodayImpact(
                         kgCO2              = daily.totalKgCo2e,
                         dailyGoalKgCO2     = dailyGoalKgCO2,
@@ -576,7 +592,7 @@ fun AtmosApp() {
                         }
                         .sortedByDescending { it.distanceKm }
                 }
-                weeklyDeferred.await().onSuccess { weekly ->
+                weeklyResult.onSuccess { weekly ->
                     if (weekly.days.isNotEmpty()) {
                         // Keep weeklyTotalKgCo2 in sync with weeklyTrend so the Profile
                         // card and the Home bar chart always reflect the same response.
@@ -601,6 +617,7 @@ fun AtmosApp() {
                         }
                     }
                 }
+
                 insightDeferred.await().onSuccess { response ->
                     insights = response.items.map { it.toInsightEntry() }
                 }
@@ -610,6 +627,10 @@ fun AtmosApp() {
                         .filter { it.timestampMs > 0L }
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            homeIsError = true
         } finally {
             homeIsLoading = false
         }
@@ -953,6 +974,7 @@ fun AtmosApp() {
                         dateLabel           = currentDateLabel(),
                         user                = homeUser,
                         isLoading           = homeIsLoading,
+                        isError             = homeIsError,
                         ongoingSession      = ongoingSession,
                         pendingSession      = pendingSession,
                         recentActivity      = recentActivityEntries,
@@ -966,7 +988,7 @@ fun AtmosApp() {
                     onNavigateToActivities = { screen = Screen.Activities },
                     onNavigateToStats      = { statsPeriod = StatsPeriod.WEEK; statsPeriodOffset = 0; screen = Screen.Stats },
                     onNavigateToInsights   = { screen = Screen.Insights },
-                    onRetry                = { homeIsLoading = true; timelineTrigger++ },
+                    onRetry                = { homeIsLoading = true; homeIsError = false; timelineTrigger++ },
                     onFabClick             = { tripToEdit = null; showLogActivity = true },
                     onConfirmPendingSession = {
                         pendingSession?.let { s ->
