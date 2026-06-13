@@ -31,6 +31,10 @@ kotlin {
         target.binaries.framework {
             baseName = "shared"
             isStatic = false
+            // Required by CoreLocation on newer Apple SDKs / Kotlin Native 2.3+ (LLVM 19 linker).
+            // _LocationEssentials is a private system framework introduced in iOS 17.4 that
+            // CoreLocation depends on; Kotlin Native's LLVM 19 linker doesn't auto-resolve it.
+            linkerOpts("-framework", "_LocationEssentials")
         }
     }
 

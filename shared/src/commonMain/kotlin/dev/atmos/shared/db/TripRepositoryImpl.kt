@@ -22,7 +22,7 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
 
     // ── Session operations ────────────────────────────────────────────────────
 
-    override suspend fun startSession(id: String, startedAtMs: Long) =
+    override suspend fun startSession(id: String, startedAtMs: Long) {
         withContext(Dispatchers.IO) {
             database.sessionsQueries.insert(
                 id            = id,
@@ -32,6 +32,7 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
                 is_confirmed  = 0L,
             )
         }
+    }
 
     override suspend fun completeSession(
         id: String,
@@ -46,17 +47,17 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
         }
     }
 
-    override suspend fun confirmSession(id: String) = withContext(Dispatchers.IO) {
-        database.sessionsQueries.updateConfirmed(id = id)
+    override suspend fun confirmSession(id: String) {
+        withContext(Dispatchers.IO) { database.sessionsQueries.updateConfirmed(id = id) }
     }
 
-    override suspend fun deleteSession(id: String) = withContext(Dispatchers.IO) {
+    override suspend fun deleteSession(id: String) {
         // ON DELETE CASCADE in the schema removes all legs automatically
-        database.sessionsQueries.delete(id = id)
+        withContext(Dispatchers.IO) { database.sessionsQueries.delete(id = id) }
     }
 
-    override suspend fun deleteAllSessions() = withContext(Dispatchers.IO) {
-        database.sessionsQueries.deleteAll()
+    override suspend fun deleteAllSessions() {
+        withContext(Dispatchers.IO) { database.sessionsQueries.deleteAll() }
     }
 
     override suspend fun updateBackendActivityId(sessionId: String, backendActivityId: String) {
@@ -118,17 +119,19 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
         mode: String,
         startedAtMs: Long,
         sortOrder: Long,
-    ) = withContext(Dispatchers.IO) {
-        database.legsQueries.insert(
-            id             = id,
-            session_id     = sessionId,
-            mode           = mode,
-            started_at_ms  = startedAtMs,
-            ended_at_ms    = null,
-            distance_km    = 0.0,
-            waypoints_json = "[]",
-            sort_order     = sortOrder,
-        )
+    ) {
+        withContext(Dispatchers.IO) {
+            database.legsQueries.insert(
+                id             = id,
+                session_id     = sessionId,
+                mode           = mode,
+                started_at_ms  = startedAtMs,
+                ended_at_ms    = null,
+                distance_km    = 0.0,
+                waypoints_json = "[]",
+                sort_order     = sortOrder,
+            )
+        }
     }
 
     override suspend fun completeLeg(
@@ -136,13 +139,15 @@ class TripRepositoryImpl(private val database: AtmosDatabase) : TripRepository {
         endedAtMs: Long,
         distanceKm: Double,
         waypointsJson: String,
-    ) = withContext(Dispatchers.IO) {
-        database.legsQueries.updateEnd(
-            ended_at_ms    = endedAtMs,
-            distance_km    = distanceKm,
-            waypoints_json = waypointsJson,
-            id             = id,
-        )
+    ) {
+        withContext(Dispatchers.IO) {
+            database.legsQueries.updateEnd(
+                ended_at_ms    = endedAtMs,
+                distance_km    = distanceKm,
+                waypoints_json = waypointsJson,
+                id             = id,
+            )
+        }
     }
 
     override suspend fun saveManualTrip(
