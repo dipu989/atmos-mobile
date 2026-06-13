@@ -1384,6 +1384,31 @@ fun AtmosApp() {
                     onNavigateToHome = { screen = Screen.Home },
                     onTripClick      = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
                     onFabClick       = { showLogActivity = true },
+                    onDelete         = { entry ->
+                        val sessionsAtSwipeTime = confirmedSessions
+                        scope.launch {
+                            try {
+                                val localSession = sessionsAtSwipeTime
+                                    .firstOrNull { it.session.id == entry.sessionId }
+                                if (localSession != null) {
+                                    val backendId = localSession.session.backend_activity_id
+                                    if (!backendId.isNullOrEmpty()) {
+                                        activityService.deleteActivity(backendId).getOrThrow()
+                                    }
+                                    repo.deleteSession(localSession.session.id)
+                                } else if (entry.sessionId.isNotEmpty()) {
+                                    activityService.deleteActivity(entry.sessionId).getOrThrow()
+                                    deletedBackendIds = deletedBackendIds + entry.sessionId
+                                } else {
+                                    snackbarHostState.showSnackbar("Could not identify trip — please try again")
+                                    return@launch
+                                }
+                                snackbarHostState.showSnackbar("Trip deleted")
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar("Could not delete trip — please try again")
+                            }
+                        }
+                    },
                 )
 
                 Screen.InsightDetail -> selectedInsight?.let { entry ->

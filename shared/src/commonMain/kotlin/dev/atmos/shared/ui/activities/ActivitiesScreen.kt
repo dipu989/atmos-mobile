@@ -19,21 +19,27 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,6 +50,7 @@ import dev.atmos.shared.ui.home.components.ActivityRow
 import dev.atmos.shared.ui.home.components.AtmosBottomBar
 import dev.atmos.shared.ui.home.components.AtmosTab
 import dev.atmos.shared.ui.home.previewAllActivities
+import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 
@@ -52,6 +59,7 @@ fun ActivitiesScreen(
     groupedEntries: List<Pair<String, List<RecentActivityEntry>>> = previewAllActivities,
     onNavigateToHome: () -> Unit = {},
     onTripClick: (RecentActivityEntry) -> Unit = {},
+    onDelete: (RecentActivityEntry) -> Unit = {},
     onFabClick: () -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
@@ -120,20 +128,55 @@ fun ActivitiesScreen(
                     item(key = "card_$dateLabel") {
                         AtmosCard(
                             modifier = Modifier.fillMaxWidth(),
-                            contentPadding = 4.dp,
+                            contentPadding = 0.dp,
                         ) {
                             entries.forEachIndexed { index, entry ->
-                                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                                    ActivityRow(
-                                        entry = entry,
-                                        onClick = { onTripClick(entry) },
+                                key(entry.sessionId) {
+                                    val dismissState = rememberSwipeToDismissBoxState(
+                                        confirmValueChange = { value ->
+                                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                                onDelete(entry)
+                                                true
+                                            } else false
+                                        },
                                     )
+                                    SwipeToDismissBox(
+                                        state = dismissState,
+                                        enableDismissFromStartToEnd = false,
+                                        backgroundContent = {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(AlertRed)
+                                                    .padding(end = 20.dp),
+                                                contentAlignment = Alignment.CenterEnd,
+                                            ) {
+                                                Icon(
+                                                    imageVector        = Icons.Outlined.Delete,
+                                                    contentDescription = "Delete trip",
+                                                    tint               = Color.White,
+                                                    modifier           = Modifier.size(20.dp),
+                                                )
+                                            }
+                                        },
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .background(colors.surface)
+                                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        ) {
+                                            ActivityRow(
+                                                entry   = entry,
+                                                onClick = { onTripClick(entry) },
+                                            )
+                                        }
+                                    }
                                 }
                                 if (index < entries.lastIndex) {
                                     HorizontalDivider(
-                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        modifier  = Modifier.padding(horizontal = 16.dp),
                                         thickness = 1.dp,
-                                        color = colors.divider,
+                                        color     = colors.divider,
                                     )
                                 }
                             }
