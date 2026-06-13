@@ -151,6 +151,7 @@ class ActivityService(
         durationMin: Int,
         startedAtMs: Long,
         endedAtMs: Long?,
+        source: String = "manual",
     ): Result<ActivityDto> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
@@ -166,7 +167,7 @@ class ActivityService(
                     transportMode   = mode.backendMode,
                     distanceKm      = distanceKm.toDouble(),
                     durationMinutes = if (durationMin > 0) durationMin else null,
-                    source          = "manual",
+                    source          = source,
                     startedAt       = startedAt,
                     endedAt         = endedAt,
                     idempotencyKey  = sessionId,
