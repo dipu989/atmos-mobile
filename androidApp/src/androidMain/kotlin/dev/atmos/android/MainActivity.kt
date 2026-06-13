@@ -1,6 +1,9 @@
 package dev.atmos.android
 
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -26,6 +29,7 @@ import dev.atmos.shared.location.PermissionRequester
 import dev.atmos.shared.location.TripDetectorHolder
 import dev.atmos.shared.location.TripDetectorState
 import dev.atmos.shared.ui.AtmosApp
+import dev.atmos.shared.ui.NotificationState
 import dev.atmos.shared.ui.common.AvatarUploader
 import dev.atmos.shared.ui.common.LocalAvatarUploader
 import dev.atmos.shared.ui.common.LocalShareLauncher
@@ -35,6 +39,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        createInsightNotificationChannel()
+
+        // Only process the notification intent on a genuine fresh start, not on
+        // config changes (rotation) where savedInstanceState is non-null.
+        if (savedInstanceState == null) handleNotificationIntent(intent)
 
         // Initialise holders before setContent so that LaunchedEffect / lazy vals
         // inside AtmosApp can access context and the activity reference.
@@ -150,5 +160,31 @@ class MainActivity : ComponentActivity() {
                 AtmosApp()
             }
         }
+    }
+
+    // Called when the activity is already running (foreground or back-stack) and a new
+    // intent arrives — e.g. user taps a second notification while the app is open.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    private fun createInsightNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                AtmosFirebaseMessagingService.CHANNEL_INSIGHTS,
+                "Insights",
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply { description = "New insights about your carbon footprint" }
+            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        }
+    }
+
+    private fun handleNotificationIntent(intent: Intent?) {
+        val insightId = intent?.extras?.getString("insight_id") ?: return
+        if (insightId.isEmpty()) return
+        NotificationState.pendingInsightId.value = insightId
+        // Consume the extra so a config change (rotation) doesn't re-trigger navigation.
+        intent.removeExtra("insight_id")
     }
 }
