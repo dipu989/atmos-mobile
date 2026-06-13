@@ -86,13 +86,14 @@ class InsightsService(
         }
     }
 
-    suspend fun getInsights(limit: Int = 20): Result<InsightsResponseDto> = runCatching {
+    suspend fun getInsights(limit: Int = 20, period: String = "week"): Result<InsightsResponseDto> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
 
         val response = httpClient.get("$ATMOS_BASE_URL/api/v1/insights") {
             bearerAuth(token)
             parameter("limit", limit)
+            parameter("period", period)
         }
         if (response.status.value !in 200..299) {
             throw Exception("Insights fetch failed (${response.status.value})")

@@ -482,6 +482,8 @@ fun AtmosApp() {
     var weeklyTrend        by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
     var weeklyTotalKgCo2   by remember { mutableStateOf(0f) }
     var insights           by remember { mutableStateOf(emptyList<InsightEntry>()) }
+    var insightPeriod      by remember { mutableStateOf("Week") }
+    var insightsIsLoading  by remember { mutableStateOf(false) }
     var transportBreakdown by remember { mutableStateOf(emptyList<TransportModeEntry>()) }
     val unreadInsightsCount = remember(insights) { insights.count { !it.isRead } }
     val handleInsightClick: (InsightEntry) -> Unit = { entry ->
@@ -714,6 +716,25 @@ fun AtmosApp() {
             homeIsError = true
         } finally {
             homeIsLoading = false
+        }
+    }
+
+    // Re-fetch insights when the user opens the Insights screen or changes the time filter.
+    // try/finally guarantees insightsIsLoading = false even on cancellation (e.g. rapid period taps).
+    LaunchedEffect(screen, insightPeriod) {
+        if (screen != Screen.Insights) return@LaunchedEffect
+        if (!tokenStore.isLoggedIn) return@LaunchedEffect
+        insightsIsLoading = true
+        try {
+            insightsService.getInsights(period = insightPeriod.lowercase()).onSuccess { response ->
+                insights = response.items.map { it.toInsightEntry() }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Network / server error — keep whatever is already in `insights` (stale-while-error).
+        } finally {
+            insightsIsLoading = false
         }
     }
 
@@ -1395,6 +1416,9 @@ fun AtmosApp() {
 
                 Screen.Insights -> InsightsScreen(
                     entries        = insights,
+                    selectedFilter = insightPeriod,
+                    onFilterChange = { insightPeriod = it },
+                    isLoading      = insightsIsLoading,
                     onBack         = { screen = Screen.Home },
                     onInsightClick = { entry ->
                         if (!entry.isRead && entry.id.isNotBlank()) {
