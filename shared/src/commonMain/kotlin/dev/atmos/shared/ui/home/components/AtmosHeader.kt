@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -68,29 +69,27 @@ private fun UserAvatar(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (avatarUrl.isNotBlank()) {
-        AsyncImage(
-            model = avatarUrl,
-            contentDescription = "Profile photo",
-            contentScale = ContentScale.Crop,
-            modifier = modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onClick),
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(color = AvatarBg)
+            .clickable(onClick = onClick),
+    ) {
+        // Initials are always rendered — serve as loading placeholder and error fallback
+        Text(
+            text = initials,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
         )
-    } else {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = modifier
-                .size(44.dp)
-                .background(color = AvatarBg, shape = CircleShape)
-                .clickable(onClick = onClick),
-        ) {
-            Text(
-                text = initials,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White,
+        if (avatarUrl.isNotBlank()) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = "Profile photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }
