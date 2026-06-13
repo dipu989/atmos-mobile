@@ -974,6 +974,32 @@ fun AtmosApp() {
         }
     }
 
+    fun deleteTrip(entry: RecentActivityEntry, afterDelete: suspend () -> Unit) {
+        val sessionsAtDeleteTime = confirmedSessions
+        scope.launch {
+            try {
+                val localSession = sessionsAtDeleteTime
+                    .firstOrNull { it.session.id == entry.sessionId }
+                if (localSession != null) {
+                    val backendId = localSession.session.backend_activity_id
+                    if (!backendId.isNullOrEmpty()) {
+                        activityService.deleteActivity(backendId).getOrThrow()
+                    }
+                    repo.deleteSession(localSession.session.id)
+                } else if (entry.sessionId.isNotEmpty()) {
+                    activityService.deleteActivity(entry.sessionId).getOrThrow()
+                    deletedBackendIds = deletedBackendIds + entry.sessionId
+                } else {
+                    snackbarHostState.showSnackbar("Could not identify trip — please try again")
+                    return@launch
+                }
+                afterDelete()
+            } catch (e: Exception) {
+                snackbarHostState.showSnackbar("Could not delete trip — please try again")
+            }
+        }
+    }
+
     AtmosTheme(appearanceMode = appearanceMode) {
         val colors = LocalAtmosColors.current
 
@@ -1341,41 +1367,7 @@ fun AtmosApp() {
                             )
                             showLogActivity = true
                         },
-                        onDelete = {
-                            // Freeze the snapshot at tap time so a concurrent DB update
-                            // (e.g. a listActivities re-fetch) cannot change which branch
-                            // we take inside the coroutine.
-                            val sessionsAtTapTime = confirmedSessions
-                            scope.launch {
-                                try {
-                                    val localSession = sessionsAtTapTime
-                                        .firstOrNull { it.session.id == entry.sessionId }
-
-                                    if (localSession != null) {
-                                        // Local DB trip: delete from backend first if synced.
-                                        // 404 is treated as success (already deleted from another device).
-                                        val backendId = localSession.session.backend_activity_id
-                                        if (!backendId.isNullOrEmpty()) {
-                                            activityService.deleteActivity(backendId).getOrThrow()
-                                        }
-                                        repo.deleteSession(localSession.session.id)
-                                    } else if (entry.sessionId.isNotEmpty()) {
-                                        // Backend-only trip: sessionId IS the backend activity UUID.
-                                        // Add to the exclusion set before navigating so a concurrent
-                                        // listActivities re-fetch cannot resurrect the deleted entry.
-                                        activityService.deleteActivity(entry.sessionId).getOrThrow()
-                                        deletedBackendIds = deletedBackendIds + entry.sessionId
-                                    } else {
-                                        // No local row and no backend ID — nothing to delete.
-                                        snackbarHostState.showSnackbar("Could not identify trip — please try again")
-                                        return@launch
-                                    }
-                                    screen = Screen.Home
-                                } catch (e: Exception) {
-                                    snackbarHostState.showSnackbar("Could not delete trip — please try again")
-                                }
-                            }
-                        },
+                        onDelete = { deleteTrip(entry) { screen = Screen.Home } },
                     )
                 }
 
@@ -1384,31 +1376,7 @@ fun AtmosApp() {
                     onNavigateToHome = { screen = Screen.Home },
                     onTripClick      = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
                     onFabClick       = { showLogActivity = true },
-                    onDelete         = { entry ->
-                        val sessionsAtSwipeTime = confirmedSessions
-                        scope.launch {
-                            try {
-                                val localSession = sessionsAtSwipeTime
-                                    .firstOrNull { it.session.id == entry.sessionId }
-                                if (localSession != null) {
-                                    val backendId = localSession.session.backend_activity_id
-                                    if (!backendId.isNullOrEmpty()) {
-                                        activityService.deleteActivity(backendId).getOrThrow()
-                                    }
-                                    repo.deleteSession(localSession.session.id)
-                                } else if (entry.sessionId.isNotEmpty()) {
-                                    activityService.deleteActivity(entry.sessionId).getOrThrow()
-                                    deletedBackendIds = deletedBackendIds + entry.sessionId
-                                } else {
-                                    snackbarHostState.showSnackbar("Could not identify trip — please try again")
-                                    return@launch
-                                }
-                                snackbarHostState.showSnackbar("Trip deleted")
-                            } catch (e: Exception) {
-                                snackbarHostState.showSnackbar("Could not delete trip — please try again")
-                            }
-                        }
-                    },
+                    onDelete         = { entry -> deleteTrip(entry) { snackbarHostState.showSnackbar("Trip deleted") } },
                 )
 
                 Screen.InsightDetail -> selectedInsight?.let { entry ->
