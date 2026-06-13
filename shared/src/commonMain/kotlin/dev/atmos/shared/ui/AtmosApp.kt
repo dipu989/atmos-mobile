@@ -392,6 +392,7 @@ fun AtmosApp() {
             displayName = u.displayName,
             initials    = u.displayName.takeIf { it.isNotBlank() }?.toInitials()
                 ?: u.email.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+            avatarUrl   = u.avatarUrl ?: "",
         )
     } ?: UserProfile(displayName = "", initials = "?")
 
