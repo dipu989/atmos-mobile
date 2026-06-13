@@ -124,8 +124,6 @@ private fun LogActivityContent(
     var destinationError by remember { mutableStateOf(false) }
     var distanceError by remember { mutableStateOf(false) }
 
-    val routeReady = origin.isNotBlank() && destination.isNotBlank()
-
     // Distance: user-editable; pre-filled when editing an existing trip.
     val prefillDistStr = prefill?.distanceKm?.let { if (it > 0f) it.toDisplayString() else "" } ?: ""
     var distanceKmText by remember(prefill) { mutableStateOf(prefillDistStr) }
@@ -533,47 +531,6 @@ private fun Co2EstimateCard(
                 text = "by $modeName",
                 fontSize = 12.sp,
                 color = colors.textSecondary,
-            )
-        }
-    }
-}
-
-// ── Distance auto-calculate row ───────────────────────────────────────────────
-
-@Composable
-private fun DistanceAutoRow(routeReady: Boolean) {
-    val colors = LocalAtmosColors.current
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.surface, RoundedCornerShape(12.dp))
-            .border(1.dp, colors.divider, RoundedCornerShape(12.dp))
-            .padding(horizontal = 14.dp, vertical = 14.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Straighten,
-            contentDescription = null,
-            tint = if (routeReady) HorizonBlue else colors.textTertiary,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(
-            text = if (routeReady) "Calculating distance…" else "Distance calculated from route",
-            fontSize = 15.sp,
-            color = if (routeReady) colors.textSecondary else colors.textTertiary,
-            modifier = Modifier.weight(1f),
-        )
-        if (routeReady) {
-            Text(
-                text = "Auto",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = HorizonBlue,
-                modifier = Modifier
-                    .background(colors.insightBlueBg, RoundedCornerShape(4.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
             )
         }
     }
