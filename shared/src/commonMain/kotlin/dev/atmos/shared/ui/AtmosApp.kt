@@ -555,7 +555,7 @@ fun AtmosApp() {
                 val dailyDeferred      = async { timelineService.getDaily() }
                 val weeklyDeferred     = async { timelineService.getWeekly() }
                 val insightDeferred    = async { insightsService.getInsights() }
-                val activitiesDeferred = async { activityService.listActivities() }
+                val activitiesDeferred = async { activityService.listAllActivities() }
 
                 val dailyResult  = dailyDeferred.await()
                 val weeklyResult = weeklyDeferred.await()
@@ -621,8 +621,8 @@ fun AtmosApp() {
                 insightDeferred.await().onSuccess { response ->
                     insights = response.items.map { it.toInsightEntry() }
                 }
-                activitiesDeferred.await().onSuccess { page ->
-                    backendActivities = page.activities
+                activitiesDeferred.await().onSuccess { activities ->
+                    backendActivities = activities
                         .map { it.toRecentActivityEntry() }
                         .filter { it.timestampMs > 0L }
                 }
