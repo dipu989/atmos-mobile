@@ -11,6 +11,7 @@
 		3428AE192FC8BBF700ECF3BF /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 3428AE182FC8BBF700ECF3BF /* GoogleSignInSwift */; };
 		A1B2C3D4E5F60001 /* iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60011 /* iOSApp.swift */; };
 		A1B2C3D4E5F60002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60012 /* ContentView.swift */; };
+		A1B2C3D4E5F60004 /* GoogleSignInBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60015 /* GoogleSignInBridge.swift */; };
 		A1B2C3D4E5F60003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60013 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -18,6 +19,7 @@
 		A1B2C3D4E5F60010 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D4E5F60011 /* iOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSApp.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60015 /* GoogleSignInBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInBridge.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60013 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1B2C3D4E5F60014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -48,6 +50,7 @@
 			children = (
 				A1B2C3D4E5F60011 /* iOSApp.swift */,
 				A1B2C3D4E5F60012 /* ContentView.swift */,
+				A1B2C3D4E5F60015 /* GoogleSignInBridge.swift */,
 				A1B2C3D4E5F60013 /* Assets.xcassets */,
 				A1B2C3D4E5F60014 /* Info.plist */,
 			);
@@ -177,6 +180,7 @@
 			files = (
 				A1B2C3D4E5F60001 /* iOSApp.swift in Sources */,
 				A1B2C3D4E5F60002 /* ContentView.swift in Sources */,
+				A1B2C3D4E5F60004 /* GoogleSignInBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
