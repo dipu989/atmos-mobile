@@ -56,6 +56,39 @@ git push -u origin feat/<short-description>
 gh pr create
 ```
 
+### Commit message format
+
+This repo follows Conventional Commits convention. CI does not currently enforce it automatically, but all commits should comply for consistency with the other Atmos repos.
+
+```
+<type>(<scope>): <subject>
+```
+
+**Allowed types:**
+
+| Type | When to use |
+|---|---|
+| `feat` | New feature or capability |
+| `fix` | Bug fix |
+| `perf` | Performance improvement |
+| `refactor` | Code change that neither fixes a bug nor adds a feature |
+| `chore` | Maintenance, Gradle/dependency bumps, config changes |
+| `docs` | Documentation only |
+| `test` | Adding or updating tests |
+| `ci` | CI/CD workflow changes |
+| `revert` | Reverting a previous commit |
+
+**Avoid**: `build`, `style` (not used in other Atmos repos)
+
+**Examples:**
+```
+feat(home): add PendingTripCard for auto-detected trips
+fix(auth): handle Google Sign-In 401 on iOS
+chore: bump play-services-location to 21.3.0
+refactor(location): consolidate trip state machine into TripDetectorState
+test(tripmatcher): add GPS late-start edge case
+```
+
 ---
 
 ## Repo map
