@@ -1352,11 +1352,11 @@ fun AtmosApp() {
                         }
                     },
                     onSignOut    = { handleSignOut() },
-                    onDeleteAccount = { password, onError ->
+                    onDeleteAccount = { confirmation, onError ->
                         if (isDeletingAccount) return@ProfileScreen
                         isDeletingAccount = true
                         scope.launch {
-                            userService.deleteMe(password = password)
+                            userService.deleteMe(confirmation = confirmation)
                                 .onSuccess {
                                     runCatching { repo.deleteAllSessions() }
                                     isDeletingAccount = false

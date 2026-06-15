@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FileDownload
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -44,7 +43,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
@@ -57,7 +55,7 @@ import dev.atmos.shared.ui.theme.LocalAtmosColors
 fun AccountCard(
     onExportData: () -> Unit,
     onSignOut: () -> Unit,
-    onDeleteAccount: (password: String, onError: (String) -> Unit) -> Unit,
+    onDeleteAccount: (confirmation: String, onError: (String) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
@@ -136,7 +134,7 @@ fun AccountCard(
     // ── Delete account sheet ──────────────────────────────────────────────────
     if (showDeleteSheet) {
         DeleteAccountSheet(
-            onConfirm  = { password, onError -> onDeleteAccount(password, onError) },
+            onConfirm  = { confirmation, onError -> onDeleteAccount(confirmation, onError) },
             onDismiss  = { showDeleteSheet = false },
         )
     }
@@ -147,14 +145,16 @@ fun AccountCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DeleteAccountSheet(
-    onConfirm: (password: String, onError: (String) -> Unit) -> Unit,
+    onConfirm: (confirmation: String, onError: (String) -> Unit) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = LocalAtmosColors.current
-    var password   by remember { mutableStateOf("") }
-    var error      by remember { mutableStateOf<String?>(null) }
-    var isLoading  by remember { mutableStateOf(false) }
-    var hasFocus   by remember { mutableStateOf(false) }
+    var confirmation by remember { mutableStateOf("") }
+    var error        by remember { mutableStateOf<String?>(null) }
+    var isLoading    by remember { mutableStateOf(false) }
+    var hasFocus     by remember { mutableStateOf(false) }
+
+    val confirmed = confirmation == "delete"
 
     val borderColor by animateColorAsState(
         targetValue   = when {
@@ -163,7 +163,7 @@ private fun DeleteAccountSheet(
             else          -> colors.divider
         },
         animationSpec = tween(200),
-        label         = "deletePasswordBorder",
+        label         = "deleteConfirmBorder",
     )
 
     ModalBottomSheet(
@@ -207,57 +207,38 @@ private fun DeleteAccountSheet(
 
             Spacer(Modifier.height(24.dp))
 
-            // ── Password field ────────────────────────────────────────────────
+            // ── Confirmation field ────────────────────────────────────────────
             Text(
-                text     = "Current password",
-                fontSize = 13.sp,
+                text       = "Type \"delete\" to confirm",
+                fontSize   = 13.sp,
                 fontWeight = FontWeight.Medium,
-                color    = colors.textSecondary,
+                color      = colors.textSecondary,
             )
             Spacer(Modifier.height(8.dp))
             BasicTextField(
-                value                  = password,
-                onValueChange          = { password = it; error = null },
-                singleLine             = true,
-                visualTransformation   = PasswordVisualTransformation(),
-                cursorBrush            = SolidColor(AlertRed),
-                textStyle              = TextStyle(fontSize = 15.sp, color = colors.textPrimary),
-                modifier               = Modifier
+                value         = confirmation,
+                onValueChange = { confirmation = it; error = null },
+                singleLine    = true,
+                cursorBrush   = SolidColor(AlertRed),
+                textStyle     = TextStyle(fontSize = 15.sp, color = colors.textPrimary),
+                modifier      = Modifier
                     .fillMaxWidth()
                     .onFocusChanged { hasFocus = it.isFocused },
                 decorationBox = { innerField ->
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .background(colors.background)
                             .border(if (hasFocus || error != null) 2.dp else 1.dp, borderColor, RoundedCornerShape(12.dp))
                             .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            imageVector        = Icons.Outlined.Lock,
-                            contentDescription = null,
-                            tint               = if (hasFocus) AlertRed.copy(alpha = 0.7f) else colors.textTertiary,
-                            modifier           = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Box(Modifier.weight(1f)) {
-                            if (password.isEmpty()) {
-                                Text("Enter password", style = TextStyle(fontSize = 15.sp, color = colors.textTertiary))
-                            }
-                            innerField()
+                        if (confirmation.isEmpty()) {
+                            Text("delete", style = TextStyle(fontSize = 15.sp, color = colors.textTertiary))
                         }
+                        innerField()
                     }
                 },
-            )
-
-            // ── Google sign-in hint ───────────────────────────────────────────
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text     = "Signed in with Google? Leave the password blank.",
-                fontSize = 12.sp,
-                color    = colors.textTertiary,
             )
 
             // ── Inline error ──────────────────────────────────────────────────
@@ -273,12 +254,12 @@ private fun DeleteAccountSheet(
                 onClick  = {
                     isLoading = true
                     error     = null
-                    onConfirm(password) { msg ->
+                    onConfirm(confirmation) { msg ->
                         isLoading = false
                         error     = msg
                     }
                 },
-                enabled  = !isLoading,
+                enabled  = confirmed && !isLoading,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape    = RoundedCornerShape(12.dp),
                 colors   = ButtonDefaults.buttonColors(
