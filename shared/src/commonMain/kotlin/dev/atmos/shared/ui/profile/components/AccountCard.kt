@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Warning
@@ -219,6 +223,12 @@ private fun DeleteAccountSheet(
                 value         = confirmation,
                 onValueChange = { confirmation = it; error = null },
                 singleLine    = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType   = KeyboardType.Text,
+                    capitalization = KeyboardCapitalization.None,
+                    autoCorrect    = false,
+                    imeAction      = ImeAction.Done,
+                ),
                 cursorBrush   = SolidColor(AlertRed),
                 textStyle     = TextStyle(fontSize = 15.sp, color = colors.textPrimary),
                 modifier      = Modifier

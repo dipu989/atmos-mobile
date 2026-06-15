@@ -127,7 +127,7 @@ fun ProfileScreen(
     onAvatarClick: () -> Unit = {},
     onSaveName: (name: String, onSuccess: () -> Unit, onError: () -> Unit) -> Unit = { _, _, _ -> },
     onSignOut: () -> Unit = {},
-    onDeleteAccount: (password: String, onError: (String) -> Unit) -> Unit = { _, _ -> },
+    onDeleteAccount: (confirmation: String, onError: (String) -> Unit) -> Unit = { _, _ -> },
     onFabClick: () -> Unit = {},
     onHomeChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
     onWorkChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
@@ -286,7 +286,7 @@ fun ProfileScreen(
                     AccountCard(
                         onExportData    = { showExportSheet = true },
                         onSignOut       = onSignOut,
-                        onDeleteAccount = { password, onError -> onDeleteAccount(password, onError) },
+                        onDeleteAccount = { confirmation, onError -> onDeleteAccount(confirmation, onError) },
                     )
                 }
         }
