@@ -919,6 +919,10 @@ fun AtmosApp() {
         startedAtMs: Long,
         endedAtMs: Long,
         source: String = "manual",
+        originLat: Double? = null,
+        originLng: Double? = null,
+        destLat: Double? = null,
+        destLng: Double? = null,
     ) {
         if (!tokenStore.isLoggedIn || sessionId.isEmpty()) return
         scope.launch {
@@ -930,6 +934,10 @@ fun AtmosApp() {
                 startedAtMs = startedAtMs,
                 endedAtMs   = endedAtMs,
                 source      = source,
+                originLat   = originLat,
+                originLng   = originLng,
+                destLat     = destLat,
+                destLng     = destLng,
             ).onSuccess { dto ->
                 if (dto.id.isNotEmpty()) {
                     repo.updateBackendActivityId(sessionId, dto.id)
@@ -1499,7 +1507,11 @@ fun AtmosApp() {
                                         distanceKm  = trip.distanceKm,
                                         durationMin = 0,
                                         startedAtMs = originalTimestampMs,
-                                        endedAtMs   = editNowMs,  // use current time, not the trip's start
+                                        endedAtMs   = editNowMs,
+                                        originLat   = trip.originLat,
+                                        originLng   = trip.originLng,
+                                        destLat     = trip.destLat,
+                                        destLng     = trip.destLng,
                                     )
                                     snackbarHostState.showSnackbar("Trip updated")
                                 } else {
@@ -1517,6 +1529,10 @@ fun AtmosApp() {
                                         durationMin = 0,
                                         startedAtMs = nowMs,
                                         endedAtMs   = nowMs,
+                                        originLat   = trip.originLat,
+                                        originLng   = trip.originLng,
+                                        destLat     = trip.destLat,
+                                        destLng     = trip.destLng,
                                     )
                                     snackbarHostState.showSnackbar(
                                         "Trip logged — ${trip.origin} → ${trip.destination} · ${
