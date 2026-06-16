@@ -1453,6 +1453,10 @@ fun AtmosApp() {
                                 distanceKm     = entry.distanceKm,
                                 durationMin    = entry.durationMin,
                                 estimatedKgCO2 = entry.kgCO2,
+                                originLat      = entry.originLat,
+                                originLng      = entry.originLng,
+                                destLat        = entry.destLat,
+                                destLng        = entry.destLng,
                             )
                             showLogActivity = true
                         },
@@ -1504,6 +1508,10 @@ fun AtmosApp() {
                             destination = t.destination,
                             mode        = t.mode,
                             distanceKm  = t.distanceKm,
+                            originLat   = t.originLat,
+                            originLng   = t.originLng,
+                            destLat     = t.destLat,
+                            destLng     = t.destLng,
                         )
                     },
                     onDismiss    = {

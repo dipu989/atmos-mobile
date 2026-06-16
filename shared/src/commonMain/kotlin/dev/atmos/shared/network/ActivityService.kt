@@ -71,6 +71,10 @@ data class ActivityDto(
     @SerialName("started_at")       val startedAt: String = "",
     val source: String? = null,
     val status: String = "pending",
+    @SerialName("origin_lat")       val originLat: Double? = null,
+    @SerialName("origin_lng")       val originLng: Double? = null,
+    @SerialName("dest_lat")         val destLat: Double? = null,
+    @SerialName("dest_lng")         val destLng: Double? = null,
 )
 
 @Serializable
@@ -115,6 +119,10 @@ fun ActivityDto.toRecentActivityEntry(): RecentActivityEntry {
         sessionId      = id,
         timestampMs    = startMs,
         source         = src,
+        originLat      = originLat,
+        originLng      = originLng,
+        destLat        = destLat,
+        destLng        = destLng,
     )
 }
 
