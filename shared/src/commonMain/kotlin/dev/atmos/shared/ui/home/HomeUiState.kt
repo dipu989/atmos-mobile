@@ -93,6 +93,13 @@ data class RecentActivityEntry(
     val sessionId: String = "",
     /** Original epoch-ms start time — preserved when editing so the trip stays in the correct date group. */
     val timestampMs: Long = 0L,
+    /** Backend source value (e.g. "gps", "gps+receipt", "uber", "manual"). */
+    val source: String = "",
+    /** GPS coordinates stored by the backend — used to pre-fill PlaceAutocompleteField when editing. */
+    val originLat: Double? = null,
+    val originLng: Double? = null,
+    val destLat: Double? = null,
+    val destLng: Double? = null,
 )
 
 // ── Pending trip (auto-detected, awaiting user confirmation) ──────────────────
@@ -104,6 +111,10 @@ data class PendingTripEntry(
     val distanceKm: Float,
     val durationMin: Int,
     val estimatedKgCO2: Float,
+    val originLat: Double? = null,
+    val originLng: Double? = null,
+    val destLat: Double? = null,
+    val destLng: Double? = null,
 )
 
 data class HomeUiState(
