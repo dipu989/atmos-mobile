@@ -129,8 +129,8 @@ fun ProfileScreen(
     onSignOut: () -> Unit = {},
     onDeleteAccount: (confirmation: String, onError: (String) -> Unit) -> Unit = { _, _ -> },
     onFabClick: () -> Unit = {},
-    onHomeChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
-    onWorkChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
+    onHomeChange: (name: String, lat: Double?, lng: Double?, onError: (String) -> Unit) -> Unit = { _, _, _, _ -> },
+    onWorkChange: (name: String, lat: Double?, lng: Double?, onError: (String) -> Unit) -> Unit = { _, _, _, _ -> },
     onTransportChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
     onUnitsChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
 ) {
@@ -141,7 +141,11 @@ fun ProfileScreen(
 
     // ── Local preference state (doesn't need to escape to AtmosApp) ──────────
     var homeAddress       by remember { mutableStateOf(state.home.address ?: "") }
+    var homeAddressLat    by remember { mutableStateOf(state.home.lat) }
+    var homeAddressLng    by remember { mutableStateOf(state.home.lng) }
     var workAddress       by remember { mutableStateOf(state.work.address ?: "") }
+    var workAddressLat    by remember { mutableStateOf(state.work.lat) }
+    var workAddressLng    by remember { mutableStateOf(state.work.lng) }
     var selectedTransport by remember(state.preferences.defaultTransportLabel) {
         mutableStateOf(
             profileTransportOptions
@@ -251,8 +255,8 @@ fun ProfileScreen(
 
                 item {
                     CommuteCard(
-                        home       = state.home.copy(address = homeAddress.takeIf { it.isNotBlank() }),
-                        work       = state.work.copy(address = workAddress.takeIf { it.isNotBlank() }),
+                        home       = state.home.copy(address = homeAddress.takeIf { it.isNotBlank() }, lat = homeAddressLat, lng = homeAddressLng),
+                        work       = state.work.copy(address = workAddress.takeIf { it.isNotBlank() }, lat = workAddressLat, lng = workAddressLng),
                         onEditHome = { editingCommute = "home" },
                         onEditWork = { editingCommute = "work" },
                     )
@@ -306,19 +310,31 @@ fun ProfileScreen(
         CommuteEditSheet(
             title        = if (isEditingHome) "Edit home address" else "Edit work address",
             currentValue = if (isEditingHome) homeAddress else workAddress,
-            onSave       = { address ->
+            onSave       = { address, lat, lng ->
                 if (isEditingHome) {
-                    val prev = homeAddress
-                    homeAddress = address
-                    onHomeChange(address) { msg ->
-                        homeAddress = prev
+                    val prev    = homeAddress
+                    val prevLat = homeAddressLat
+                    val prevLng = homeAddressLng
+                    homeAddress    = address
+                    homeAddressLat = lat
+                    homeAddressLng = lng
+                    onHomeChange(address, lat, lng) { msg ->
+                        homeAddress    = prev
+                        homeAddressLat = prevLat
+                        homeAddressLng = prevLng
                         scope.launch { snackbarHostState.showSnackbar(msg) }
                     }
                 } else {
-                    val prev = workAddress
-                    workAddress = address
-                    onWorkChange(address) { msg ->
-                        workAddress = prev
+                    val prev    = workAddress
+                    val prevLat = workAddressLat
+                    val prevLng = workAddressLng
+                    workAddress    = address
+                    workAddressLat = lat
+                    workAddressLng = lng
+                    onWorkChange(address, lat, lng) { msg ->
+                        workAddress    = prev
+                        workAddressLat = prevLat
+                        workAddressLng = prevLng
                         scope.launch { snackbarHostState.showSnackbar(msg) }
                     }
                 }
@@ -400,18 +416,12 @@ fun ProfileScreen(
 private fun CommuteEditSheet(
     title: String,
     currentValue: String,
-    onSave: (String) -> Unit,
+    onSave: (name: String, lat: Double?, lng: Double?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = LocalAtmosColors.current
-    var text     by remember { mutableStateOf(currentValue) }
-    var hasFocus by remember { mutableStateOf(false) }
-
-    val borderColor by animateColorAsState(
-        targetValue    = if (hasFocus) HorizonBlue else colors.divider,
-        animationSpec  = tween(200),
-        label          = "border",
-    )
+    var text      by remember { mutableStateOf(currentValue) }
+    var selection by remember { mutableStateOf<dev.atmos.shared.ui.logactivity.PlaceSelection?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -431,40 +441,12 @@ private fun CommuteEditSheet(
             )
             Spacer(Modifier.height(20.dp))
 
-            BasicTextField(
-                value         = text,
-                onValueChange = { text = it },
-                singleLine    = true,
-                cursorBrush   = SolidColor(HorizonBlue),
-                textStyle     = TextStyle(fontSize = 15.sp, color = colors.textPrimary),
-                modifier      = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { hasFocus = it.isFocused },
-                decorationBox = { innerField ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(colors.background)
-                            .border(if (hasFocus) 2.dp else 1.dp, borderColor, RoundedCornerShape(12.dp))
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector     = Icons.Outlined.LocationOn,
-                            contentDescription = null,
-                            tint            = if (hasFocus) HorizonBlue else colors.textTertiary,
-                            modifier        = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Box(Modifier.weight(1f)) {
-                            if (text.isEmpty()) {
-                                Text("Enter address", style = TextStyle(fontSize = 15.sp, color = colors.textTertiary))
-                            }
-                            innerField()
-                        }
-                    }
-                },
+            dev.atmos.shared.ui.logactivity.PlaceAutocompleteField(
+                value           = text,
+                onValueChange   = { text = it },
+                onPlaceSelected = { selection = it },
+                placeholder     = "Search for a place",
+                leadingIcon     = Icons.Outlined.LocationOn,
             )
 
             Spacer(Modifier.height(24.dp))
@@ -483,7 +465,7 @@ private fun CommuteEditSheet(
                     Text("Cancel", color = colors.textSecondary, fontWeight = FontWeight.Medium)
                 }
                 Button(
-                    onClick  = { onSave(text.trim()) },
+                    onClick  = { onSave(text.trim(), selection?.lat, selection?.lng) },
                     modifier = Modifier.weight(1f).height(50.dp),
                     shape    = RoundedCornerShape(12.dp),
                     enabled  = text.isNotBlank(),

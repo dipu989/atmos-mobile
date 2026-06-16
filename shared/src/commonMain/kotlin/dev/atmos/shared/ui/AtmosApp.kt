@@ -450,7 +450,11 @@ fun AtmosApp() {
     val settings = remember { Settings() }
     var dailyGoalKgCO2   by remember { mutableStateOf(settings.getFloat("daily_goal_kg", 5.0f)) }
     var commuteHome      by remember { mutableStateOf(settings.getString("commute_home", "")) }
+    var commuteHomeLat   by remember { mutableStateOf(settings.getDoubleOrNull("commute_home_lat")) }
+    var commuteHomeLng   by remember { mutableStateOf(settings.getDoubleOrNull("commute_home_lng")) }
     var commuteWork      by remember { mutableStateOf(settings.getString("commute_work", "")) }
+    var commuteWorkLat   by remember { mutableStateOf(settings.getDoubleOrNull("commute_work_lat")) }
+    var commuteWorkLng   by remember { mutableStateOf(settings.getDoubleOrNull("commute_work_lng")) }
     // "Bus" is the label that profileTransportOptions assigns to PUBLIC_TRANSIT — must match exactly.
     var defaultTransport by remember { mutableStateOf(settings.getString("default_transport", "Bus")) }
     var unitsLabel       by remember { mutableStateOf(settings.getString("units_label", "Metric (km)")) }
@@ -561,9 +565,25 @@ fun AtmosApp() {
                     commuteHome = prefs.homeAddress
                     settings.putString("commute_home", prefs.homeAddress)
                 }
+                if (prefs.homeLat != null) {
+                    commuteHomeLat = prefs.homeLat
+                    settings.putDouble("commute_home_lat", prefs.homeLat)
+                }
+                if (prefs.homeLng != null) {
+                    commuteHomeLng = prefs.homeLng
+                    settings.putDouble("commute_home_lng", prefs.homeLng)
+                }
                 if (prefs.workAddress != null) {
                     commuteWork = prefs.workAddress
                     settings.putString("commute_work", prefs.workAddress)
+                }
+                if (prefs.workLat != null) {
+                    commuteWorkLat = prefs.workLat
+                    settings.putDouble("commute_work_lat", prefs.workLat)
+                }
+                if (prefs.workLng != null) {
+                    commuteWorkLng = prefs.workLng
+                    settings.putDouble("commute_work_lng", prefs.workLng)
                 }
                 if (prefs.defaultTransport != null) {
                     defaultTransport = prefs.defaultTransport
@@ -1197,8 +1217,8 @@ fun AtmosApp() {
                         daysTracked     = profileDaysTracked,
                         todayKgCO2      = todayImpact.kgCO2,
                         dailyGoalKgCO2  = dailyGoalKgCO2,
-                        home        = CommuteLocation("Home", commuteHome.takeIf { it.isNotBlank() }),
-                        work        = CommuteLocation("Work", commuteWork.takeIf { it.isNotBlank() }),
+                        home        = CommuteLocation("Home", commuteHome.takeIf { it.isNotBlank() }, commuteHomeLat, commuteHomeLng),
+                        work        = CommuteLocation("Work", commuteWork.takeIf { it.isNotBlank() }, commuteWorkLat, commuteWorkLng),
                         preferences = previewProfileUiState.preferences.copy(
                             pushNotificationsEnabled = notificationsEnabled,
                             weeklyReportEnabled      = weeklyReportEnabled,
@@ -1292,27 +1312,43 @@ fun AtmosApp() {
                             }
                         }
                     },
-                    onHomeChange      = { addr, onError ->
+                    onHomeChange      = { addr, lat, lng, onError ->
                         homeAddressJob?.cancel()
-                        val prev = commuteHome
-                        commuteHome = addr
+                        val prev    = commuteHome
+                        val prevLat = commuteHomeLat
+                        val prevLng = commuteHomeLng
+                        commuteHome    = addr
+                        commuteHomeLat = lat
+                        commuteHomeLng = lng
                         settings.putString("commute_home", addr)
+                        if (lat != null) settings.putDouble("commute_home_lat", lat)
+                        if (lng != null) settings.putDouble("commute_home_lng", lng)
                         homeAddressJob = scope.launch {
-                            userService.updatePreferences(homeAddress = addr).onFailure {
-                                commuteHome = prev
+                            userService.updatePreferences(homeAddress = addr, homeLat = lat, homeLng = lng).onFailure {
+                                commuteHome    = prev
+                                commuteHomeLat = prevLat
+                                commuteHomeLng = prevLng
                                 settings.putString("commute_home", prev)
                                 onError("Could not save home address — please try again")
                             }
                         }
                     },
-                    onWorkChange      = { addr, onError ->
+                    onWorkChange      = { addr, lat, lng, onError ->
                         workAddressJob?.cancel()
-                        val prev = commuteWork
-                        commuteWork = addr
+                        val prev    = commuteWork
+                        val prevLat = commuteWorkLat
+                        val prevLng = commuteWorkLng
+                        commuteWork    = addr
+                        commuteWorkLat = lat
+                        commuteWorkLng = lng
                         settings.putString("commute_work", addr)
+                        if (lat != null) settings.putDouble("commute_work_lat", lat)
+                        if (lng != null) settings.putDouble("commute_work_lng", lng)
                         workAddressJob = scope.launch {
-                            userService.updatePreferences(workAddress = addr).onFailure {
-                                commuteWork = prev
+                            userService.updatePreferences(workAddress = addr, workLat = lat, workLng = lng).onFailure {
+                                commuteWork    = prev
+                                commuteWorkLat = prevLat
+                                commuteWorkLng = prevLng
                                 settings.putString("commute_work", prev)
                                 onError("Could not save work address — please try again")
                             }

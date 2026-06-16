@@ -5,6 +5,8 @@ package dev.atmos.shared.ui.profile
 data class CommuteLocation(
     val label: String,
     val address: String?,
+    val lat: Double? = null,
+    val lng: Double? = null,
 )
 
 enum class AppearanceMode { LIGHT, DARK, SYSTEM }

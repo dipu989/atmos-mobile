@@ -39,7 +39,11 @@ private data class UpdatePreferencesRequest(
     @SerialName("data_sharing_enabled")       @EncodeDefault(EncodeDefault.Mode.NEVER) val dataSharingEnabled: Boolean? = null,
     @SerialName("distance_unit")              @EncodeDefault(EncodeDefault.Mode.NEVER) val distanceUnit: String? = null,
     @SerialName("home_address")               @EncodeDefault(EncodeDefault.Mode.NEVER) val homeAddress: String? = null,
+    @SerialName("home_lat")                   @EncodeDefault(EncodeDefault.Mode.NEVER) val homeLat: Double? = null,
+    @SerialName("home_lng")                   @EncodeDefault(EncodeDefault.Mode.NEVER) val homeLng: Double? = null,
     @SerialName("work_address")               @EncodeDefault(EncodeDefault.Mode.NEVER) val workAddress: String? = null,
+    @SerialName("work_lat")                   @EncodeDefault(EncodeDefault.Mode.NEVER) val workLat: Double? = null,
+    @SerialName("work_lng")                   @EncodeDefault(EncodeDefault.Mode.NEVER) val workLng: Double? = null,
     @SerialName("default_transport")          @EncodeDefault(EncodeDefault.Mode.NEVER) val defaultTransport: String? = null,
 )
 
@@ -51,7 +55,11 @@ data class UserPreferencesDto(
     @SerialName("data_sharing_enabled")       val dataSharingEnabled: Boolean? = null,
     @SerialName("distance_unit")              val distanceUnit: String? = null,
     @SerialName("home_address")               val homeAddress: String? = null,
+    @SerialName("home_lat")                   val homeLat: Double? = null,
+    @SerialName("home_lng")                   val homeLng: Double? = null,
     @SerialName("work_address")               val workAddress: String? = null,
+    @SerialName("work_lat")                   val workLat: Double? = null,
+    @SerialName("work_lng")                   val workLng: Double? = null,
     @SerialName("default_transport")          val defaultTransport: String? = null,
 )
 
@@ -153,7 +161,11 @@ class UserService(
         dataSharingEnabled: Boolean? = null,
         distanceUnit: String? = null,
         homeAddress: String? = null,
+        homeLat: Double? = null,
+        homeLng: Double? = null,
         workAddress: String? = null,
+        workLat: Double? = null,
+        workLng: Double? = null,
         defaultTransport: String? = null,
     ): Result<UserPreferencesDto> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
@@ -169,7 +181,11 @@ class UserService(
                 dataSharingEnabled       = dataSharingEnabled,
                 distanceUnit             = distanceUnit,
                 homeAddress              = homeAddress,
+                homeLat                  = homeLat,
+                homeLng                  = homeLng,
                 workAddress              = workAddress,
+                workLat                  = workLat,
+                workLng                  = workLng,
                 defaultTransport         = defaultTransport,
             ))
         }
