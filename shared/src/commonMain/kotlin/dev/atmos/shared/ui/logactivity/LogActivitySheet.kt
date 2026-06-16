@@ -128,15 +128,15 @@ private fun LogActivityContent(
     // Resolved coordinates from Google Places autocomplete.
     var originSelection by remember {
         mutableStateOf(
-            if (prefill?.originLat != null)
-                PlaceSelection(prefill.origin, prefill.originLat, prefill.originLng!!)
+            if (prefill?.originLat != null && prefill.originLng != null)
+                PlaceSelection(prefill.origin, prefill.originLat, prefill.originLng)
             else null
         )
     }
     var destSelection by remember {
         mutableStateOf(
-            if (prefill?.destLat != null)
-                PlaceSelection(prefill.destination, prefill.destLat, prefill.destLng!!)
+            if (prefill?.destLat != null && prefill.destLng != null)
+                PlaceSelection(prefill.destination, prefill.destLat, prefill.destLng)
             else null
         )
     }

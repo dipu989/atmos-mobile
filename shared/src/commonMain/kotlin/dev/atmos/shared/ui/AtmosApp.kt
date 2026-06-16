@@ -1329,6 +1329,10 @@ fun AtmosApp() {
                                 commuteHomeLat = prevLat
                                 commuteHomeLng = prevLng
                                 settings.putString("commute_home", prev)
+                                if (prevLat != null) settings.putDouble("commute_home_lat", prevLat)
+                                    else settings.remove("commute_home_lat")
+                                if (prevLng != null) settings.putDouble("commute_home_lng", prevLng)
+                                    else settings.remove("commute_home_lng")
                                 onError("Could not save home address — please try again")
                             }
                         }
@@ -1350,6 +1354,10 @@ fun AtmosApp() {
                                 commuteWorkLat = prevLat
                                 commuteWorkLng = prevLng
                                 settings.putString("commute_work", prev)
+                                if (prevLat != null) settings.putDouble("commute_work_lat", prevLat)
+                                    else settings.remove("commute_work_lat")
+                                if (prevLng != null) settings.putDouble("commute_work_lng", prevLng)
+                                    else settings.remove("commute_work_lng")
                                 onError("Could not save work address — please try again")
                             }
                         }

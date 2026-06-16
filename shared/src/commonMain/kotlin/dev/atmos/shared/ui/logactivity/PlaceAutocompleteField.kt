@@ -94,10 +94,13 @@ fun PlaceAutocompleteField(
         }
         delay(400)
         isSearching = true
-        placeSearchService.search(value)
-            .onSuccess { results -> suggestions = results }
-            .onFailure { suggestions = emptyList() }
-        isSearching = false
+        try {
+            placeSearchService.search(value)
+                .onSuccess { results -> suggestions = results }
+                .onFailure { suggestions = emptyList() }
+        } finally {
+            isSearching = false
+        }
     }
 
     val borderColor = when {
