@@ -171,20 +171,33 @@ class MainActivity : ComponentActivity() {
 
     private fun createInsightNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                AtmosFirebaseMessagingService.CHANNEL_INSIGHTS,
-                "Insights",
-                NotificationManager.IMPORTANCE_DEFAULT,
-            ).apply { description = "New insights about your carbon footprint" }
-            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+            val mgr = getSystemService(NotificationManager::class.java)
+            mgr.createNotificationChannel(
+                NotificationChannel(
+                    AtmosFirebaseMessagingService.CHANNEL_INSIGHTS,
+                    "Insights",
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ).apply { description = "New insights about your carbon footprint" }
+            )
+            mgr.createNotificationChannel(
+                NotificationChannel(
+                    AtmosFirebaseMessagingService.CHANNEL_TRIPS,
+                    "Trips",
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ).apply { description = "Alerts about your detected trips" }
+            )
         }
     }
 
     private fun handleNotificationIntent(intent: Intent?) {
-        val insightId = intent?.extras?.getString("insight_id") ?: return
-        if (insightId.isEmpty()) return
-        NotificationState.pendingInsightId.value = insightId
-        // Consume the extra so a config change (rotation) doesn't re-trigger navigation.
-        intent.removeExtra("insight_id")
+        intent?.extras?.getString("activity_id")?.takeIf { it.isNotEmpty() }?.let { activityId ->
+            NotificationState.pendingActivityId.value = activityId
+            intent.removeExtra("activity_id")
+            return
+        }
+        intent?.extras?.getString("insight_id")?.takeIf { it.isNotEmpty() }?.let { insightId ->
+            NotificationState.pendingInsightId.value = insightId
+            intent.removeExtra("insight_id")
+        }
     }
 }

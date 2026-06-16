@@ -101,6 +101,7 @@ fun ActivityDto.toRecentActivityEntry(): RecentActivityEntry {
     val mode        = transportMode?.toTransportModeType() ?: TransportModeType.DRIVING
     val distKm      = distanceKm?.toFloat() ?: 0f
     val startMs     = runCatching { Instant.parse(startedAt).toEpochMilliseconds() }.getOrDefault(0L)
+    val src         = source ?: ""
     return RecentActivityEntry(
         mode           = mode,
         origin         = mode.displayLabel,
@@ -110,9 +111,10 @@ fun ActivityDto.toRecentActivityEntry(): RecentActivityEntry {
         distanceKm     = distKm,
         durationMin    = durationMinutes ?: 0,
         kgCO2          = mode.emissionFactor * distKm,
-        isAutoDetected = false,
+        isAutoDetected = src != "manual",
         sessionId      = id,
         timestampMs    = startMs,
+        source         = src,
     )
 }
 
@@ -251,6 +253,16 @@ class ActivityService(
             offset += page.activities.size  // advance by items actually received, not requested
         }
         allActivities.toList()
+    }
+
+    suspend fun getActivity(activityId: String): Result<RecentActivityEntry> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+        val dto = httpClient
+            .get("$ATMOS_BASE_URL/api/v1/activities/$activityId") { bearerAuth(token) }
+            .body<ApiEnvelope<ActivityDto>>()
+            .data ?: throw Exception("Empty response from server")
+        dto.toRecentActivityEntry()
     }
 
     private fun httpErrorMessage(code: Int): String = when (code) {

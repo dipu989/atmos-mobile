@@ -499,6 +499,18 @@ fun AtmosApp() {
         screen = Screen.InsightDetail
     }
 
+    // Navigate to TripDetail when the user taps a "possible duplicate" push notification.
+    val pendingActivityId by NotificationState.pendingActivityId.collectAsState()
+    LaunchedEffect(pendingActivityId, authUser?.id) {
+        val id = pendingActivityId ?: return@LaunchedEffect
+        if (authUser == null) return@LaunchedEffect
+        NotificationState.pendingActivityId.value = null
+        activityService.getActivity(id).onSuccess { entry ->
+            selectedTrip = entry
+            screen = Screen.TripDetail
+        }
+    }
+
     // Navigate to InsightDetail when the user taps a push notification.
     // Waits for the insight to appear in the loaded list — if it's not there yet,
     // navigating to Home triggers the timeline fetch which populates insights,

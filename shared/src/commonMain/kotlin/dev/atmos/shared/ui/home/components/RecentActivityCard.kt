@@ -206,17 +206,31 @@ internal fun ActivityRow(
                     color = colors.textPrimary,
                     modifier = Modifier.weight(1f),
                 )
-                if (!entry.isAutoDetected) {
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "Manual",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = colors.textSecondary,
-                        modifier = Modifier
-                            .background(colors.chipBg, androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
-                            .padding(horizontal = 5.dp, vertical = 2.dp),
-                    )
+                when {
+                    entry.source == "gps+receipt" -> {
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "Matched",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Sage,
+                            modifier = Modifier
+                                .background(Color(0xFFE8F7F0), androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                                .padding(horizontal = 5.dp, vertical = 2.dp),
+                        )
+                    }
+                    !entry.isAutoDetected -> {
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "Manual",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textSecondary,
+                            modifier = Modifier
+                                .background(colors.chipBg, androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                                .padding(horizontal = 5.dp, vertical = 2.dp),
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(4.dp))

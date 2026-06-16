@@ -93,6 +93,8 @@ data class RecentActivityEntry(
     val sessionId: String = "",
     /** Original epoch-ms start time — preserved when editing so the trip stays in the correct date group. */
     val timestampMs: Long = 0L,
+    /** Backend source value (e.g. "gps", "gps+receipt", "uber", "manual"). */
+    val source: String = "",
 )
 
 // ── Pending trip (auto-detected, awaiting user confirmation) ──────────────────
