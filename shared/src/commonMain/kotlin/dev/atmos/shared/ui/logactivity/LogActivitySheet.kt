@@ -80,6 +80,11 @@ data class LogActivityPrefill(
     val mode: TransportModeType? = null,
     /** Pre-fill the distance field when editing an existing confirmed trip. 0f = leave blank. */
     val distanceKm: Float = 0f,
+    // Coords pre-filled when editing a trip that already has GPS data.
+    val originLat: Double? = null,
+    val originLng: Double? = null,
+    val destLat: Double? = null,
+    val destLng: Double? = null,
 )
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -120,6 +125,21 @@ private fun LogActivityContent(
     var selectedMode by remember { mutableStateOf(prefill?.mode ?: TransportModeType.DRIVING) }
     var origin by remember { mutableStateOf(prefill?.origin ?: "") }
     var destination by remember { mutableStateOf(prefill?.destination ?: "") }
+    // Resolved coordinates from Google Places autocomplete.
+    var originSelection by remember {
+        mutableStateOf(
+            if (prefill?.originLat != null && prefill.originLng != null)
+                PlaceSelection(prefill.origin, prefill.originLat, prefill.originLng)
+            else null
+        )
+    }
+    var destSelection by remember {
+        mutableStateOf(
+            if (prefill?.destLat != null && prefill.destLng != null)
+                PlaceSelection(prefill.destination, prefill.destLat, prefill.destLng)
+            else null
+        )
+    }
     var originError by remember { mutableStateOf(false) }
     var destinationError by remember { mutableStateOf(false) }
     var distanceError by remember { mutableStateOf(false) }
@@ -165,9 +185,10 @@ private fun LogActivityContent(
         // ── Route ─────────────────────────────────────────────────────────────
         SectionLabel("Where did you go?")
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            InputField(
+            PlaceAutocompleteField(
                 value = origin,
                 onValueChange = { origin = it; originError = false },
+                onPlaceSelected = { originSelection = it },
                 placeholder = "Starting point",
                 leadingIcon = Icons.Outlined.MyLocation,
                 isError = originError,
@@ -180,9 +201,12 @@ private fun LogActivityContent(
                         .size(32.dp)
                         .background(colors.background, CircleShape)
                         .clickable {
-                            val tmp = origin
+                            val tmpText = origin
+                            val tmpSel = originSelection
                             origin = destination
-                            destination = tmp
+                            originSelection = destSelection
+                            destination = tmpText
+                            destSelection = tmpSel
                         },
                 ) {
                     Icon(
@@ -193,9 +217,10 @@ private fun LogActivityContent(
                     )
                 }
             }
-            InputField(
+            PlaceAutocompleteField(
                 value = destination,
                 onValueChange = { destination = it; destinationError = false },
+                onPlaceSelected = { destSelection = it },
                 placeholder = "Destination",
                 leadingIcon = Icons.Outlined.LocationOn,
                 isError = destinationError,
@@ -255,11 +280,15 @@ private fun LogActivityContent(
                 if (!originError && !destinationError && !distanceError) {
                     onTripLogged(
                         LoggedTrip(
-                            mode = selectedMode,
-                            origin = origin.trim(),
-                            destination = destination.trim(),
-                            distanceKm = distanceKm,       // 0f until backend wired
-                            estimatedKgCO2 = estimatedCO2, // 0f until backend wired
+                            mode           = selectedMode,
+                            origin         = origin.trim(),
+                            destination    = destination.trim(),
+                            distanceKm     = distanceKm,
+                            estimatedKgCO2 = estimatedCO2,
+                            originLat      = originSelection?.lat,
+                            originLng      = originSelection?.lng,
+                            destLat        = destSelection?.lat,
+                            destLng        = destSelection?.lng,
                         )
                     )
                 }
@@ -557,6 +586,11 @@ data class LoggedTrip(
     val destination: String,
     val distanceKm: Float,
     val estimatedKgCO2: Float,
+    // Resolved coordinates — non-null when the user selected a place from autocomplete.
+    val originLat: Double? = null,
+    val originLng: Double? = null,
+    val destLat: Double? = null,
+    val destLng: Double? = null,
 )
 
 val TransportModeType.displayLabel: String

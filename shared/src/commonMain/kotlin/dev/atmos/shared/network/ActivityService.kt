@@ -55,6 +55,11 @@ private data class IngestActivityRequest(
     @SerialName("started_at")       val startedAt: String,   // ISO-8601
     @SerialName("ended_at")         val endedAt: String?,    // ISO-8601
     @SerialName("idempotency_key")  val idempotencyKey: String,
+    // Coordinates from Google Places autocomplete — used for server-side trip dedup.
+    @SerialName("origin_lat")       val originLat: Double? = null,
+    @SerialName("origin_lng")       val originLng: Double? = null,
+    @SerialName("dest_lat")         val destLat: Double? = null,
+    @SerialName("dest_lng")         val destLng: Double? = null,
 )
 
 @Serializable
@@ -152,6 +157,10 @@ class ActivityService(
         startedAtMs: Long,
         endedAtMs: Long?,
         source: String = "manual",
+        originLat: Double? = null,
+        originLng: Double? = null,
+        destLat: Double? = null,
+        destLng: Double? = null,
     ): Result<ActivityDto> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
@@ -171,6 +180,10 @@ class ActivityService(
                     startedAt       = startedAt,
                     endedAt         = endedAt,
                     idempotencyKey  = sessionId,
+                    originLat       = originLat,
+                    originLng       = originLng,
+                    destLat         = destLat,
+                    destLng         = destLng,
                 )
             )
         }
