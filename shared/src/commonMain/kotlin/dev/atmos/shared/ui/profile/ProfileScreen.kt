@@ -75,6 +75,7 @@ import dev.atmos.shared.ui.profile.components.AccountCard
 import dev.atmos.shared.ui.profile.components.CommuteCard
 import dev.atmos.shared.ui.profile.components.DailyGoalCard
 import dev.atmos.shared.ui.profile.components.ExportDataSheet
+import dev.atmos.shared.ui.profile.components.GmailCard
 import dev.atmos.shared.ui.profile.components.MyImpactCard
 import dev.atmos.shared.ui.profile.components.PreferencesCard
 import dev.atmos.shared.ui.profile.components.ProfileHeaderCard
@@ -133,6 +134,9 @@ fun ProfileScreen(
     onWorkChange: (name: String, lat: Double?, lng: Double?, onError: (String) -> Unit) -> Unit = { _, _, _, _ -> },
     onTransportChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
     onUnitsChange: (String, onError: (String) -> Unit) -> Unit = { _, _ -> },
+    gmailIsLoading: Boolean = false,
+    onGmailConnect: () -> Unit = {},
+    onGmailDisconnect: (onError: (String) -> Unit) -> Unit = { _ -> },
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
@@ -283,6 +287,20 @@ fun ProfileScreen(
                         onAppearanceChange    = onAppearanceChange,
                         onTransportClick      = { showTransportSheet = true },
                         onUnitsClick          = { showUnitsDialog = true },
+                    )
+                }
+
+                item {
+                    GmailCard(
+                        connected      = state.gmailConnected,
+                        connectedEmail = state.gmailEmail,
+                        isLoading      = gmailIsLoading,
+                        onConnectClick = onGmailConnect,
+                        onDisconnectClick = {
+                            onGmailDisconnect { msg ->
+                                scope.launch { snackbarHostState.showSnackbar(msg) }
+                            }
+                        },
                     )
                 }
 

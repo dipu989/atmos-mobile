@@ -32,6 +32,8 @@ data class ProfileUiState(
     val home: CommuteLocation,
     val work: CommuteLocation,
     val preferences: ProfilePreferences,
+    val gmailConnected: Boolean = false,
+    val gmailEmail: String? = null,
 )
 
 // ── Shared initials derivation ────────────────────────────────────────────────
