@@ -21,6 +21,7 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalUriHandler
 import dev.atmos.shared.auth.AppTokenStore
 import dev.atmos.shared.auth.AuthState
 import dev.atmos.shared.auth.AuthUser
@@ -43,6 +44,7 @@ import dev.atmos.shared.network.AuthResponseDto
 import dev.atmos.shared.network.AuthService
 import dev.atmos.shared.network.DeviceService
 import dev.atmos.shared.network.FcmTokenStore
+import dev.atmos.shared.network.GmailService
 import dev.atmos.shared.network.InsightsService
 import dev.atmos.shared.network.TimelineService
 import dev.atmos.shared.network.UserService
@@ -162,6 +164,7 @@ fun AtmosApp() {
     val insightsService  = remember { InsightsService() }
     val userService      = remember { UserService() }
     val deviceService    = remember { DeviceService() }
+    val gmailService     = remember { GmailService() }
     val googleSignInLauncher = remember { createGoogleSignInLauncher() }
 
     var screen by remember {
@@ -450,7 +453,10 @@ fun AtmosApp() {
 
     // ── Home UI ──────────────────────────────────────────────────────────────
     // appearanceMode and notificationsEnabled are initialised below after settings is created.
-    var isDeletingAccount    by remember { mutableStateOf(false) }
+    var gmailConnected    by remember { mutableStateOf(false) }
+    var gmailEmail        by remember { mutableStateOf<String?>(null) }
+    var gmailIsLoading    by remember { mutableStateOf(false) }
+    var isDeletingAccount by remember { mutableStateOf(false) }
     var notificationsJob:  Job? by remember { mutableStateOf(null) }
     var weeklyReportJob:   Job? by remember { mutableStateOf(null) }
     var dataSharingJob:    Job? by remember { mutableStateOf(null) }
@@ -957,6 +963,16 @@ fun AtmosApp() {
         }
     }
 
+    // Fetch Gmail connection status when the user opens Profile or returns to it from the browser.
+    LaunchedEffect(screen) {
+        if (screen != Screen.Profile) return@LaunchedEffect
+        if (!tokenStore.isLoggedIn) return@LaunchedEffect
+        gmailService.getStatus().onSuccess { status ->
+            gmailConnected = status.connected
+            gmailEmail     = status.email
+        }
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     // ── Backend sync helper ──────────────────────────────────────────────────
@@ -1237,7 +1253,9 @@ fun AtmosApp() {
                     onRetry   = { statsRetryTrigger++ },
                 )
 
-                Screen.Profile -> ProfileScreen(
+                Screen.Profile -> {
+                    val uriHandler = LocalUriHandler.current
+                    ProfileScreen(
                     state = previewProfileUiState.copy(
                         displayName     = authUser?.displayName ?: "",
                         initials        = authUser?.let { user ->
@@ -1261,6 +1279,8 @@ fun AtmosApp() {
                             defaultTransportLabel    = defaultTransport,
                             unitsLabel               = unitsLabel,
                         ),
+                        gmailConnected = gmailConnected,
+                        gmailEmail     = gmailEmail,
                     ),
                     onBack                 = { screen = Screen.Home },
                     onAvatarClick          = {
@@ -1456,8 +1476,50 @@ fun AtmosApp() {
                                 }
                         }
                     },
-                    onFabClick   = { showLogActivity = true },
+                    onFabClick      = { showLogActivity = true },
+                    gmailIsLoading  = gmailIsLoading,
+                    onGmailConnect  = {
+                        if (gmailIsLoading) return@ProfileScreen
+                        gmailIsLoading = true
+                        scope.launch {
+                            try {
+                                gmailService.getAuthUrl()
+                                    .onSuccess { url ->
+                                        try {
+                                            uriHandler.openUri(url)
+                                        } catch (_: Exception) {
+                                            snackbarHostState.showSnackbar("Could not open browser — please try again")
+                                        }
+                                    }
+                                    .onFailure {
+                                        snackbarHostState.showSnackbar("Could not start Gmail connect — try again")
+                                    }
+                            } finally {
+                                gmailIsLoading = false
+                            }
+                        }
+                    },
+                    onGmailDisconnect = { onError ->
+                        if (gmailIsLoading) return@ProfileScreen
+                        val prevConnected = gmailConnected
+                        val prevEmail     = gmailEmail
+                        gmailConnected = false
+                        gmailEmail     = null
+                        gmailIsLoading = true
+                        scope.launch {
+                            try {
+                                gmailService.disconnect().onFailure {
+                                    gmailConnected = prevConnected
+                                    gmailEmail     = prevEmail
+                                    onError("Could not disconnect Gmail — please try again")
+                                }
+                            } finally {
+                                gmailIsLoading = false
+                            }
+                        }
+                    },
                 )
+                } // Screen.Profile
 
                 Screen.TripDetail -> selectedTrip?.let { entry ->
                     TripDetailScreen(
