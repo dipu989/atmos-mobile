@@ -413,14 +413,36 @@ fun AtmosApp() {
     val groupedActivities = remember(confirmedSessions, backendActivities, deletedBackendIds) {
         val syncedIds = confirmedSessions.mapNotNull { it.session.backend_activity_id }.toSet()
         val backendOnly = backendActivities.filter { it.sessionId !in syncedIds && it.sessionId !in deletedBackendIds }
-        (confirmedSessions.map { it.toRecentActivityEntry() } + backendOnly)
+        // Overlay backend fields (source, origin, destination) onto local sessions so that
+        // enrichments applied server-side (e.g. a receipt merging into a GPS trip) are reflected
+        // without waiting for the local DB to be updated.
+        val backendById = backendActivities.associateBy { it.sessionId }
+        val localEntries = confirmedSessions.map { s ->
+            val entry = s.toRecentActivityEntry()
+            val backend = backendById[s.session.backend_activity_id ?: ""]
+            if (backend != null) entry.copy(
+                source      = backend.source.ifEmpty { entry.source },
+                origin      = backend.origin.ifEmpty { entry.origin },
+                destination = backend.destination.ifEmpty { entry.destination },
+            ) else entry
+        }
+        (localEntries + backendOnly)
             .sortedByDescending { it.timestampMs }
             .groupByDateLabel()
     }
-    // Most-recent 3 sessions for the HomeScreen "Recent Activity" card — local DB only
-    // so just-confirmed trips appear immediately without waiting for the next backend fetch.
-    val recentActivityEntries = remember(confirmedSessions) {
-        confirmedSessions.take(3).map { it.toRecentActivityEntry() }
+    // Most-recent 3 sessions for the HomeScreen "Recent Activity" card.
+    // Overlay backend source so the "Matched" badge appears as soon as backendActivities loads.
+    val recentActivityEntries = remember(confirmedSessions, backendActivities) {
+        val backendById = backendActivities.associateBy { it.sessionId }
+        confirmedSessions.take(3).map { s ->
+            val entry = s.toRecentActivityEntry()
+            val backend = backendById[s.session.backend_activity_id ?: ""]
+            if (backend != null) entry.copy(
+                source      = backend.source.ifEmpty { entry.source },
+                origin      = backend.origin.ifEmpty { entry.origin },
+                destination = backend.destination.ifEmpty { entry.destination },
+            ) else entry
+        }
     }
     // Profile impact stats — CO₂ from backend weekly data (region-accurate DEFRA factors),
     // days tracked from local DB confirmed sessions.
