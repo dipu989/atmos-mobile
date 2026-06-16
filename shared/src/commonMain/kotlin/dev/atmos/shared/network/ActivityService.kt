@@ -71,6 +71,8 @@ data class ActivityDto(
     @SerialName("started_at")       val startedAt: String = "",
     val source: String? = null,
     val status: String = "pending",
+    val origin: String? = null,
+    val destination: String? = null,
     @SerialName("origin_lat")       val originLat: Double? = null,
     @SerialName("origin_lng")       val originLng: Double? = null,
     @SerialName("dest_lat")         val destLat: Double? = null,
@@ -108,8 +110,8 @@ fun ActivityDto.toRecentActivityEntry(): RecentActivityEntry {
     val src         = source ?: ""
     return RecentActivityEntry(
         mode           = mode,
-        origin         = mode.displayLabel,
-        destination    = "",
+        origin         = origin?.takeIf { it.isNotBlank() } ?: mode.displayLabel,
+        destination    = destination?.takeIf { it.isNotBlank() } ?: "",
         timeLabel      = if (startMs > 0L) formatTimestamp(startMs) else "",
         dateLabel      = if (startMs > 0L) formatDateGroupLabel(startMs) else "Unknown",
         distanceKm     = distKm,
