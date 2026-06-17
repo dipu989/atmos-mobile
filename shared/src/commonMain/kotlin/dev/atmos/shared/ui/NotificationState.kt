@@ -6,4 +6,10 @@ object NotificationState {
     val pendingInsightId  = MutableStateFlow<String?>(null)
     /** Set when the user taps a "possible duplicate" push notification. */
     val pendingActivityId = MutableStateFlow<String?>(null)
+    /**
+     * Incremented when the Gmail OAuth deep link (`atmos://gmail/connected`) fires.
+     * AtmosApp observes this to re-fetch Gmail status without requiring the user to
+     * navigate away from and back to the Profile screen.
+     */
+    val gmailOAuthCompleted = MutableStateFlow(0)
 }

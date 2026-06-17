@@ -13,6 +13,12 @@ struct iOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    // Gmail OAuth deep link: atmos://gmail/connected
+                    if url.scheme == "atmos", url.host == "gmail", url.pathComponents.contains("connected") {
+                        DeepLinkHandlerKt.handleGmailOAuthCallback()
+                    }
+                }
         }
     }
 }

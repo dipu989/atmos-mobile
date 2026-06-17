@@ -47,7 +47,9 @@ class GmailService(
 
     suspend fun getAuthUrl(): Result<String> = runCatching {
         val token = AppTokenStore.instance.getAccessToken() ?: error("Not authenticated")
-        val response = httpClient.get("$ATMOS_BASE_URL/api/v1/gmail/auth-url") {
+        // platform=mobile tells the backend to redirect to atmos://gmail/connected on success
+        // instead of the web frontend, so the app can re-enter the foreground confirmed.
+        val response = httpClient.get("$ATMOS_BASE_URL/api/v1/gmail/auth-url?platform=mobile") {
             bearerAuth(token)
         }
         if (response.status.value !in 200..299) {
