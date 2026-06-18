@@ -196,8 +196,10 @@ class MainActivity : ComponentActivity() {
 
     private fun handleDeepLink(intent: Intent?) {
         val data = intent?.data ?: return
-        if (data.scheme == "atmos" && data.host == "gmail" && data.pathSegments.firstOrNull() == "connected") {
-            NotificationState.gmailOAuthCompleted.value++
+        if (data.scheme != "atmos" || data.host != "gmail") return
+        when (data.pathSegments.firstOrNull()) {
+            "connected" -> NotificationState.gmailOAuthCompleted.value++
+            "error"     -> NotificationState.gmailOAuthFailed.value++
         }
     }
 

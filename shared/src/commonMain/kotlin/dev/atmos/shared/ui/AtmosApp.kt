@@ -974,8 +974,8 @@ fun AtmosApp() {
     }
 
     // Re-fetch Gmail status when the OAuth deep link fires (atmos://gmail/connected).
-    // This handles the case where the user was already on Profile before opening the
-    // browser — screen didn't change, so the LaunchedEffect(screen) above won't re-run.
+    // Only refreshes in-place — does NOT force-navigate to Profile, to avoid interrupting
+    // the user if they navigated away from Profile while the browser OAuth was in progress.
     val gmailOAuthCompleted by NotificationState.gmailOAuthCompleted.collectAsState()
     LaunchedEffect(gmailOAuthCompleted) {
         if (gmailOAuthCompleted == 0) return@LaunchedEffect
@@ -984,10 +984,18 @@ fun AtmosApp() {
             gmailConnected = status.connected
             gmailEmail     = status.email
         }
-        if (screen != Screen.Profile) screen = Screen.Profile
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Surface an error snackbar when the OAuth error deep link fires (atmos://gmail/error).
+    // The user is returned to the foreground with a clear message instead of being left
+    // on a JSON error page in the browser.
+    val gmailOAuthFailed by NotificationState.gmailOAuthFailed.collectAsState()
+    LaunchedEffect(gmailOAuthFailed) {
+        if (gmailOAuthFailed == 0) return@LaunchedEffect
+        snackbarHostState.showSnackbar("Could not connect Gmail — please try again")
+    }
 
     // ── Backend sync helper ──────────────────────────────────────────────────
     /**
