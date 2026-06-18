@@ -42,9 +42,12 @@ class MainActivity : ComponentActivity() {
 
         createInsightNotificationChannel()
 
-        // Only process the notification intent on a genuine fresh start, not on
+        // Only process the notification / deep-link intents on a genuine fresh start, not on
         // config changes (rotation) where savedInstanceState is non-null.
-        if (savedInstanceState == null) handleNotificationIntent(intent)
+        if (savedInstanceState == null) {
+            handleDeepLink(intent)
+            handleNotificationIntent(intent)
+        }
 
         // Initialise holders before setContent so that LaunchedEffect / lazy vals
         // inside AtmosApp can access context and the activity reference.
@@ -163,9 +166,11 @@ class MainActivity : ComponentActivity() {
     }
 
     // Called when the activity is already running (foreground or back-stack) and a new
-    // intent arrives — e.g. user taps a second notification while the app is open.
+    // intent arrives — e.g. user taps a second notification while the app is open,
+    // or the Gmail OAuth deep link (atmos://gmail/connected) returns to the app.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        handleDeepLink(intent)
         handleNotificationIntent(intent)
     }
 
@@ -186,6 +191,15 @@ class MainActivity : ComponentActivity() {
                     NotificationManager.IMPORTANCE_DEFAULT,
                 ).apply { description = "Alerts about your detected trips" }
             )
+        }
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme != "atmos" || data.host != "gmail") return
+        when (data.pathSegments.firstOrNull()) {
+            "connected" -> NotificationState.gmailOAuthCompleted.value++
+            "error"     -> NotificationState.gmailOAuthFailed.value++
         }
     }
 
