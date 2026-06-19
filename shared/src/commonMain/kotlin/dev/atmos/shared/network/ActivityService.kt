@@ -265,6 +265,19 @@ class ActivityService(
         allActivities.toList()
     }
 
+    suspend fun exportActivitiesCsv(): Result<String> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+
+        val response = httpClient.get("$ATMOS_BASE_URL/api/v1/activities/export") {
+            bearerAuth(token)
+        }
+        if (response.status.value !in 200..299) {
+            throw Exception(httpErrorMessage(response.status.value))
+        }
+        response.body<String>()
+    }
+
     suspend fun getActivity(activityId: String): Result<RecentActivityEntry> = runCatching {
         val token = AppTokenStore.instance.getAccessToken()
             ?: error("Not authenticated")
