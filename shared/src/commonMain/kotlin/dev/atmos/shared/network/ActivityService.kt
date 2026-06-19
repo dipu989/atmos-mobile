@@ -14,6 +14,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
@@ -174,8 +175,7 @@ class ActivityService(
         destLat: Double? = null,
         destLng: Double? = null,
     ): Result<ActivityDto> = runCatching {
-        val token = AppTokenStore.instance.getAccessToken()
-            ?: error("Not authenticated")
+        val token = requireAccessToken()
 
         val startedAt  = Instant.fromEpochMilliseconds(startedAtMs).toIso8601()
         val endedAt    = endedAtMs?.let { Instant.fromEpochMilliseconds(it).toIso8601() }
@@ -209,8 +209,7 @@ class ActivityService(
     }
 
     suspend fun deleteActivity(activityId: String): Result<Unit> = runCatching {
-        val token = AppTokenStore.instance.getAccessToken()
-            ?: error("Not authenticated")
+        val token = requireAccessToken()
 
         val response = httpClient.delete("$ATMOS_BASE_URL/api/v1/activities/$activityId") {
             bearerAuth(token)
@@ -227,8 +226,7 @@ class ActivityService(
         limit: Int = 50,
         offset: Int = 0,
     ): Result<ActivitiesPageDto> = runCatching {
-        val token = AppTokenStore.instance.getAccessToken()
-            ?: error("Not authenticated")
+        val token = requireAccessToken()
 
         val response = httpClient.get("$ATMOS_BASE_URL/api/v1/activities") {
             bearerAuth(token)
@@ -237,9 +235,7 @@ class ActivityService(
             parameter("limit", limit)
             if (offset > 0) parameter("offset", offset)
         }
-        if (response.status.value !in 200..299) {
-            throw Exception(httpErrorMessage(response.status.value))
-        }
+        requireOk(response)
         response.body<ApiEnvelope<ActivitiesPageDto>>().data
             ?: throw Exception("Empty response from server")
     }
@@ -266,26 +262,37 @@ class ActivityService(
     }
 
     suspend fun exportActivitiesCsv(): Result<String> = runCatching {
-        val token = AppTokenStore.instance.getAccessToken()
-            ?: error("Not authenticated")
+        val token = requireAccessToken()
 
         val response = httpClient.get("$ATMOS_BASE_URL/api/v1/activities/export") {
             bearerAuth(token)
         }
-        if (response.status.value !in 200..299) {
-            throw Exception(httpErrorMessage(response.status.value))
+        // No-content responses (e.g. zero trips) skip body decoding — some engines
+        // don't handle reading an empty body as a String cleanly.
+        if (response.status == HttpStatusCode.NoContent) return@runCatching ""
+        requireOk(response)
+        if (response.contentType()?.match(ContentType.Application.Json) == true) {
+            throw Exception("Unexpected response format from server.")
         }
         response.body<String>()
     }
 
     suspend fun getActivity(activityId: String): Result<RecentActivityEntry> = runCatching {
-        val token = AppTokenStore.instance.getAccessToken()
-            ?: error("Not authenticated")
+        val token = requireAccessToken()
         val dto = httpClient
             .get("$ATMOS_BASE_URL/api/v1/activities/$activityId") { bearerAuth(token) }
             .body<ApiEnvelope<ActivityDto>>()
             .data ?: throw Exception("Empty response from server")
         dto.toRecentActivityEntry()
+    }
+
+    private suspend fun requireAccessToken(): String =
+        AppTokenStore.instance.getAccessToken() ?: error("Not authenticated")
+
+    private fun requireOk(response: HttpResponse) {
+        if (response.status.value !in 200..299) {
+            throw Exception(httpErrorMessage(response.status.value))
+        }
     }
 
     private fun httpErrorMessage(code: Int): String = when (code) {

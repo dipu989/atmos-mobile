@@ -59,7 +59,7 @@ fun ExportDataSheet(
         state = activityService.exportActivitiesCsv()
             .fold(
                 onSuccess = { ExportState.Ready(it) },
-                onFailure = { ExportState.Error(it.message ?: "Failed to fetch trips") },
+                onFailure = { ExportState.Error(it.message ?: "Failed to export trips") },
             )
     }
 
@@ -112,7 +112,9 @@ fun ExportDataSheet(
                 }
 
                 is ExportState.Ready -> {
-                    val isEmpty = s.csv.lines().size <= 1   // only header row = no data
+                    // Trim a trailing newline before counting lines, otherwise a
+                    // header-only CSV ending in "\n" splits into 2 lines, not 1.
+                    val isEmpty = remember(s.csv) { s.csv.trimEnd('\n', '\r').lines().size <= 1 }
                     Text(
                         text      = if (isEmpty)
                             "No trips found to export."
