@@ -10,7 +10,7 @@ KMP app (Android + iOS). All shared UI in Compose Multiplatform. No ViewModels â
 ./gradlew :androidApp:installDebug            # install on connected device
 ```
 
-No automated tests. Verify visually against live backend (`https://atmos-core.fly.dev`).
+No automated tests. Verify visually against live backend (`https://api.atmosapp.dev`).
 
 ## Commits â€” enforced by commitlint in CI
 
