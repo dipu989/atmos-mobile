@@ -804,12 +804,15 @@ fun AtmosApp() {
             val totalsByDate = days.associate { it.dateLocal to it.totalKgCo2e }
             bucketedTrend = (0 until bucketCount).map { bucketIdx ->
                 val bucketStart = rangeStart.plus(bucketIdx * bucketDays, DateTimeUnit.DAY)
+                val bucketEnd   = bucketStart.plus(bucketDays - 1, DateTimeUnit.DAY)
                 var sum = 0f
                 for (d in 0 until bucketDays) {
                     sum += totalsByDate[bucketStart.plus(d, DateTimeUnit.DAY).toApiString()] ?: 0f
                 }
                 WeeklyDataPoint(
-                    dayLabel = bucketStart.toShortLabel(),
+                    // Labeled by the bucket's end date (not start) so the rightmost label always
+                    // reads "today", matching the Daily view's convention.
+                    dayLabel = bucketEnd.toShortLabel(),
                     kgCO2    = sum,
                     isToday  = bucketIdx == bucketCount - 1,
                 )
