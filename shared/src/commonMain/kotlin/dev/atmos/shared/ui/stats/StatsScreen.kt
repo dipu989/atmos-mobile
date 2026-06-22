@@ -152,7 +152,7 @@ fun StatsScreen(
 
             val summary = state.summary
             if (summary == null || (summary.totalKgCo2 == 0f && summary.activityCount == 0)) {
-                item { EmptyPeriodState() }
+                item { EmptyPeriodState(period = state.period) }
                 return@LazyColumn
             }
 
@@ -570,8 +570,13 @@ private fun BreakdownSkeleton() {
 // ── Empty / error states ──────────────────────────────────────────────────────
 
 @Composable
-private fun EmptyPeriodState() {
+private fun EmptyPeriodState(period: StatsPeriod) {
     val colors = LocalAtmosColors.current
+    val (title, subtitle) = when (period) {
+        StatsPeriod.DAY -> "No trips today" to "Log a trip today to see stats for this period."
+        StatsPeriod.WEEK -> "No trips this week" to "Log a trip this week to see stats for this period."
+        StatsPeriod.MONTH -> "No trips this month" to "Log a trip this month to see stats for this period."
+    }
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -584,13 +589,13 @@ private fun EmptyPeriodState() {
             modifier = Modifier.size(48.dp),
         )
         Text(
-            text = "No trips recorded",
+            text = title,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
             color = colors.textSecondary,
         )
         Text(
-            text = "Log your first trip to see stats for this period.",
+            text = subtitle,
             fontSize = 13.sp,
             color = colors.textSecondary.copy(alpha = 0.7f),
             textAlign = TextAlign.Center,
