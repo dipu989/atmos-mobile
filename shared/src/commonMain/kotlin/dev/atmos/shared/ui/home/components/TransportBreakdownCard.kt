@@ -23,9 +23,11 @@ import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Eco
 import androidx.compose.material.icons.outlined.Flight
 import androidx.compose.material.icons.outlined.LocalTaxi
+import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.Train
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -103,6 +105,7 @@ private val TransportModeType.icon: ImageVector
 @Composable
 fun TransportBreakdownCard(
     entries: List<TransportModeEntry>,
+    onLogTrip: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
@@ -124,9 +127,40 @@ fun TransportBreakdownCard(
 
         Spacer(Modifier.height(20.dp))
 
-        entries.forEachIndexed { index, entry ->
-            TransportModeRow(entry = entry)
-            if (index < entries.lastIndex) Spacer(Modifier.height(20.dp))
+        if (entries.isEmpty()) {
+            // ── Inline empty state ────────────────────────────────────────────
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector        = Icons.Outlined.PieChart,
+                        contentDescription = null,
+                        tint               = colors.textSecondary,
+                        modifier           = Modifier.size(26.dp),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text     = "No trips today",
+                        fontSize = 14.sp,
+                        color    = colors.textSecondary,
+                    )
+                    TextButton(onClick = onLogTrip) {
+                        Text(
+                            text       = "Log one now →",
+                            fontSize   = 13.sp,
+                            color      = HorizonBlue,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            }
+        } else {
+            entries.forEachIndexed { index, entry ->
+                TransportModeRow(entry = entry)
+                if (index < entries.lastIndex) Spacer(Modifier.height(20.dp))
+            }
         }
     }
 }
