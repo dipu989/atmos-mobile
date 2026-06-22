@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
+import dev.atmos.shared.ui.home.HomeTrendPeriod
 import dev.atmos.shared.ui.home.TransportModeEntry
 import dev.atmos.shared.ui.home.TransportModeType
 import dev.atmos.shared.ui.theme.AlertRed
@@ -105,6 +106,7 @@ private val TransportModeType.icon: ImageVector
 @Composable
 fun TransportBreakdownCard(
     entries: List<TransportModeEntry>,
+    period: HomeTrendPeriod = HomeTrendPeriod.DAILY,
     onLogTrip: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -119,7 +121,11 @@ fun TransportBreakdownCard(
         )
         Spacer(Modifier.height(2.dp))
         Text(
-            text = "Today's activity by mode",
+            text = when (period) {
+                HomeTrendPeriod.DAILY       -> "Today's activity by mode"
+                HomeTrendPeriod.WEEKLY      -> "This week's activity by mode"
+                HomeTrendPeriod.FORTNIGHTLY -> "This fortnight's activity by mode"
+            },
             fontSize = 13.sp,
             fontWeight = FontWeight.Normal,
             color = colors.textSecondary,
@@ -142,7 +148,11 @@ fun TransportBreakdownCard(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text     = "No trips today",
+                        text = when (period) {
+                            HomeTrendPeriod.DAILY       -> "No trips today"
+                            HomeTrendPeriod.WEEKLY      -> "No trips this week"
+                            HomeTrendPeriod.FORTNIGHTLY -> "No trips this fortnight"
+                        },
                         fontSize = 14.sp,
                         color    = colors.textSecondary,
                     )

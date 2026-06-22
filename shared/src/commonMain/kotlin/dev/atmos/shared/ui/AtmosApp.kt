@@ -46,6 +46,7 @@ import dev.atmos.shared.network.DeviceService
 import dev.atmos.shared.network.FcmTokenStore
 import dev.atmos.shared.network.GmailService
 import dev.atmos.shared.network.InsightsService
+import dev.atmos.shared.network.ModeBreakdownDto
 import dev.atmos.shared.network.TimelineService
 import dev.atmos.shared.network.UserService
 import dev.atmos.shared.network.backendMode
@@ -522,6 +523,8 @@ fun AtmosApp() {
     var insightPeriod      by remember { mutableStateOf("Week") }
     var insightsIsLoading  by remember { mutableStateOf(false) }
     var transportBreakdown by remember { mutableStateOf(emptyList<TransportModeEntry>()) }
+    var bucketedBreakdown  by remember { mutableStateOf(emptyList<TransportModeEntry>()) }  // WEEKLY/FORTNIGHTLY only
+    val homeBreakdownData  = if (homeTrendPeriod == HomeTrendPeriod.DAILY) transportBreakdown else bucketedBreakdown
     val unreadInsightsCount = remember(insights) { insights.count { !it.isRead } }
     val handleInsightClick: (InsightEntry) -> Unit = { entry ->
         if (!entry.isRead && entry.id.isNotBlank()) {
@@ -788,6 +791,9 @@ fun AtmosApp() {
     // DAILY reuses weeklyTrend populated by the timeline effect above — no extra fetch needed.
     // Each bucket sums the daily totals it spans; getRange omits days with zero activity, so
     // buckets are summed by explicit date rather than by chunking the (possibly sparse) response list.
+    // The same response also feeds the Transport Breakdown card: it aggregates only the most
+    // recent bucket (last 7/14 days) rather than the full 6-bucket window, so "this week's modes"
+    // means the current week, not a 6-week roll-up.
     LaunchedEffect(screen, timelineTrigger, homeTrendPeriod) {
         if (screen != Screen.Home || homeTrendPeriod == HomeTrendPeriod.DAILY) return@LaunchedEffect
         if (!tokenStore.isLoggedIn) return@LaunchedEffect
@@ -817,6 +823,34 @@ fun AtmosApp() {
                     isToday  = bucketIdx == bucketCount - 1,
                 )
             }
+
+            val lastBucketStartStr = today.minus(bucketDays - 1, DateTimeUnit.DAY).toApiString()
+            val merged = mutableMapOf<String, ModeBreakdownDto>()
+            days.filter { it.dateLocal >= lastBucketStartStr }.forEach { day ->
+                day.breakdown.forEach { (mode, dto) ->
+                    val existing = merged[mode] ?: ModeBreakdownDto()
+                    merged[mode] = ModeBreakdownDto(
+                        kgCo2e     = existing.kgCo2e + dto.kgCo2e,
+                        distanceKm = existing.distanceKm + dto.distanceKm,
+                        count      = existing.count + dto.count,
+                    )
+                }
+            }
+            val totalDistKm = merged.values.sumOf { it.distanceKm.toDouble() }.toFloat()
+            bucketedBreakdown = merged.entries
+                .mapNotNull { (key, dto) ->
+                    val mode = TransportModeType.entries.firstOrNull {
+                        it.name.equals(key, ignoreCase = true)
+                    } ?: return@mapNotNull null
+                    TransportModeEntry(
+                        mode        = mode,
+                        displayName = mode.toDisplayName(),
+                        distanceKm  = dto.distanceKm,
+                        kgCO2       = dto.kgCo2e,
+                        percentage  = if (totalDistKm > 0f) (dto.distanceKm / totalDistKm * 100).roundToInt() else 0,
+                    )
+                }
+                .sortedByDescending { it.distanceKm }
         }
     }
 
@@ -1253,7 +1287,7 @@ fun AtmosApp() {
                         todayImpact         = todayImpact,
                         weeklyTrend         = homeTrendData,
                         trendPeriod         = homeTrendPeriod,
-                        transportBreakdown  = transportBreakdown,
+                        transportBreakdown  = homeBreakdownData,
                         insights            = insights,
                         unreadInsightsCount = unreadInsightsCount,
                     ),

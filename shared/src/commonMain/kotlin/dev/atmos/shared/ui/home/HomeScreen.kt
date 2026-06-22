@@ -188,7 +188,13 @@ fun HomeScreen(
                         onViewStats = onNavigateToStats,
                     )
                 }
-                item { TransportBreakdownCard(entries = state.transportBreakdown, onLogTrip = onFabClick) }
+                item {
+                    TransportBreakdownCard(
+                        entries = state.transportBreakdown,
+                        period = state.trendPeriod,
+                        onLogTrip = onFabClick,
+                    )
+                }
                 item {
                     RecentActivityCard(
                         entries = state.recentActivity,
