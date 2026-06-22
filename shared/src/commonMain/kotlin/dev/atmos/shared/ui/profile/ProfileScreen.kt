@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,9 +20,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
@@ -447,57 +450,65 @@ private fun CommuteEditSheet(
         containerColor   = colors.surface,
         tonalElevation   = 0.dp,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(top = 8.dp, bottom = 32.dp),
-        ) {
-            Text(
-                text  = title,
-                style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
-            )
-            Spacer(Modifier.height(20.dp))
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            // Fixed fraction of the available sheet height so it stays put
+            // regardless of how many autocomplete suggestions are showing.
+            val sheetHeight = maxHeight * 0.7f
 
-            dev.atmos.shared.ui.logactivity.PlaceAutocompleteField(
-                value           = text,
-                onValueChange   = { text = it },
-                onPlaceSelected = { selection = it },
-                placeholder     = "Search for a place",
-                leadingIcon     = Icons.Outlined.LocationOn,
-            )
-
-            if (text.isNotBlank() && text != currentValue && selection == null) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text  = "Select a suggestion from the list to save",
-                    style = TextStyle(fontSize = 12.sp, color = colors.textSecondary),
-                )
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(sheetHeight)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 8.dp, bottom = 32.dp),
             ) {
-                OutlinedButton(
-                    onClick  = onDismiss,
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape    = RoundedCornerShape(12.dp),
-                    border   = BorderStroke(1.dp, colors.divider),
-                    colors   = ButtonDefaults.outlinedButtonColors(containerColor = colors.surface),
-                ) {
-                    Text("Cancel", color = colors.textSecondary, fontWeight = FontWeight.Medium)
+                Text(
+                    text  = title,
+                    style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
+                )
+                Spacer(Modifier.height(20.dp))
+
+                dev.atmos.shared.ui.logactivity.PlaceAutocompleteField(
+                    value           = text,
+                    onValueChange   = { text = it },
+                    onPlaceSelected = { selection = it },
+                    placeholder     = "Search for a place",
+                    leadingIcon     = Icons.Outlined.LocationOn,
+                )
+
+                if (text.isNotBlank() && text != currentValue && selection == null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text  = "Select a suggestion from the list to save",
+                        style = TextStyle(fontSize = 12.sp, color = colors.textSecondary),
+                    )
                 }
-                Button(
-                    onClick  = { onSave(text.trim(), selection?.lat, selection?.lng) },
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape    = RoundedCornerShape(12.dp),
-                    enabled  = text.isNotBlank() && (selection != null || text == currentValue),
-                    colors   = ButtonDefaults.buttonColors(containerColor = HorizonBlue),
+
+                Spacer(Modifier.height(24.dp))
+
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text("Save", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    OutlinedButton(
+                        onClick  = onDismiss,
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape    = RoundedCornerShape(12.dp),
+                        border   = BorderStroke(1.dp, colors.divider),
+                        colors   = ButtonDefaults.outlinedButtonColors(containerColor = colors.surface),
+                    ) {
+                        Text("Cancel", color = colors.textSecondary, fontWeight = FontWeight.Medium)
+                    }
+                    Button(
+                        onClick  = { onSave(text.trim(), selection?.lat, selection?.lng) },
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape    = RoundedCornerShape(12.dp),
+                        enabled  = text.isNotBlank() && (selection != null || text == currentValue),
+                        colors   = ButtonDefaults.buttonColors(containerColor = HorizonBlue),
+                    ) {
+                        Text("Save", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }

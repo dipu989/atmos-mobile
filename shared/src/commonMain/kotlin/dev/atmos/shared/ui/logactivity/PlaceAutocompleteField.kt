@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,6 +47,9 @@ import dev.atmos.shared.ui.theme.LocalAtmosColors
 import kotlinx.coroutines.delay
 
 private val placeSearchService = PlaceSearchService()
+
+/** Caps the suggestions dropdown at ~5 rows so it scrolls internally instead of resizing the host sheet. */
+private val SuggestionsMaxHeight = 240.dp
 
 // ── PlaceSelection ────────────────────────────────────────────────────────────
 
@@ -169,7 +175,9 @@ fun PlaceAutocompleteField(
                     .fillMaxWidth()
                     .padding(top = 4.dp)
                     .background(colors.surface, RoundedCornerShape(12.dp))
-                    .border(1.dp, colors.divider, RoundedCornerShape(12.dp)),
+                    .border(1.dp, colors.divider, RoundedCornerShape(12.dp))
+                    .heightIn(max = SuggestionsMaxHeight)
+                    .verticalScroll(rememberScrollState()),
             ) {
                 suggestions.forEachIndexed { index, place ->
                     Row(
