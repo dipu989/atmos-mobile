@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.home.HomeTrendPeriod
+import dev.atmos.shared.ui.home.TransportModeEntry
 import dev.atmos.shared.ui.home.WeeklyDataPoint
 import dev.atmos.shared.ui.theme.AverageDash
 import dev.atmos.shared.ui.theme.ChartFillBottom
@@ -46,11 +48,13 @@ import dev.atmos.shared.ui.theme.ChartLine
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 
 @Composable
-fun WeeklyTrendCard(
+fun TrendCard(
     data: List<WeeklyDataPoint>,
     period: HomeTrendPeriod = HomeTrendPeriod.DAILY,
     onPeriodChange: (HomeTrendPeriod) -> Unit = {},
     onViewStats: () -> Unit = {},
+    transportBreakdown: List<TransportModeEntry> = emptyList(),
+    onLogTrip: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
@@ -62,7 +66,7 @@ fun WeeklyTrendCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Trend",
+                text = "CO₂ Trend",
                 fontSize = 17.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.textPrimary,
@@ -125,6 +129,16 @@ fun WeeklyTrendCard(
                 }
             }
         }
+
+        Spacer(Modifier.height(24.dp))
+        HorizontalDivider(color = colors.divider)
+        Spacer(Modifier.height(20.dp))
+
+        TransportBreakdownSection(
+            entries   = transportBreakdown,
+            period    = period,
+            onLogTrip = onLogTrip,
+        )
     }
 }
 

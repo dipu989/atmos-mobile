@@ -42,7 +42,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.home.HomeTrendPeriod
 import dev.atmos.shared.ui.home.TransportModeEntry
 import dev.atmos.shared.ui.home.TransportModeType
@@ -101,10 +100,10 @@ private val TransportModeType.icon: ImageVector
         TransportModeType.TWO_WHEELER   -> Icons.AutoMirrored.Outlined.DirectionsBike
     }
 
-// ── Card ──────────────────────────────────────────────────────────────────────
+// ── Section (embedded inside TrendCard, below the chart) ──────────────────────
 
 @Composable
-fun TransportBreakdownCard(
+fun TransportBreakdownSection(
     entries: List<TransportModeEntry>,
     period: HomeTrendPeriod = HomeTrendPeriod.DAILY,
     onLogTrip: () -> Unit = {},
@@ -112,7 +111,7 @@ fun TransportBreakdownCard(
 ) {
     val colors = LocalAtmosColors.current
 
-    AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
+    Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = "Transport Breakdown",
             fontSize = 17.sp,

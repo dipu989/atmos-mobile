@@ -49,13 +49,11 @@ import dev.atmos.shared.ui.home.components.OngoingTripCard
 import dev.atmos.shared.ui.home.components.PendingTripCard
 import dev.atmos.shared.ui.home.components.RecentActivityCard
 import dev.atmos.shared.ui.home.components.TodayImpactCard
-import dev.atmos.shared.ui.home.components.TransportBreakdownCard
-import dev.atmos.shared.ui.home.components.WeeklyTrendCard
+import dev.atmos.shared.ui.home.components.TrendCard
 import dev.atmos.shared.ui.common.InsightsSkeleton
 import dev.atmos.shared.ui.common.RecentActivitySkeleton
 import dev.atmos.shared.ui.common.TodayImpactSkeleton
-import dev.atmos.shared.ui.common.TransportBreakdownSkeleton
-import dev.atmos.shared.ui.common.WeeklyTrendSkeleton
+import dev.atmos.shared.ui.common.TrendSkeleton
 import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
@@ -170,8 +168,7 @@ fun HomeScreen(
             } else if (state.isLoading) {
                 // ── Skeleton loading state ────────────────────────────────────
                 item { TodayImpactSkeleton() }
-                item { WeeklyTrendSkeleton() }
-                item { TransportBreakdownSkeleton() }
+                item { TrendSkeleton() }
                 item { RecentActivitySkeleton() }
                 item { InsightsSkeleton() }
             } else if (state.recentActivity.isEmpty() && pendingSession == null) {
@@ -181,17 +178,12 @@ fun HomeScreen(
                 // ── Populated state ───────────────────────────────────────────
                 item { TodayImpactCard(impact = state.todayImpact) }
                 item {
-                    WeeklyTrendCard(
+                    TrendCard(
                         data = state.weeklyTrend,
                         period = state.trendPeriod,
                         onPeriodChange = onTrendPeriodChange,
                         onViewStats = onNavigateToStats,
-                    )
-                }
-                item {
-                    TransportBreakdownCard(
-                        entries = state.transportBreakdown,
-                        period = state.trendPeriod,
+                        transportBreakdown = state.transportBreakdown,
                         onLogTrip = onFabClick,
                     )
                 }
