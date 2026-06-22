@@ -19,7 +19,7 @@ Atmos helps you understand and reduce your daily carbon footprint by tracking ho
 | Language | Kotlin 2.1 |
 | UI | Compose Multiplatform 1.8 |
 | Networking | Ktor 3.1 |
-| DI | Koin 4.0 |
+| DI | Manual (`remember {}` singletons + platform holder objects, no framework) |
 | Async | Kotlinx Coroutines 1.10 |
 | Serialization | Kotlinx Serialization 1.8 |
 | Date/Time | Kotlinx DateTime 0.6 |
