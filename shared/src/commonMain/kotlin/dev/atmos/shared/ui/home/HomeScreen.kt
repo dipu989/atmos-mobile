@@ -190,6 +190,10 @@ fun HomeScreen(
                 item {
                     RecentActivityCard(
                         entries = state.recentActivity,
+                        homeLat = state.homeLat,
+                        homeLng = state.homeLng,
+                        workLat = state.workLat,
+                        workLng = state.workLng,
                         onTripClick = onTripClick,
                         onLogTrip = onFabClick,
                     )
