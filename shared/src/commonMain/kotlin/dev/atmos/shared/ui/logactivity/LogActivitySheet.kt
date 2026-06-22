@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -105,11 +106,18 @@ fun LogActivitySheet(
         containerColor = colors.surface,
         tonalElevation = 0.dp,
     ) {
-        LogActivityContent(
-            onDismiss = onDismiss,
-            onTripLogged = onTripLogged,
-            prefill = prefill,
-        )
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            // Fixed fraction of the available sheet height so it stays put
+            // regardless of how many autocomplete suggestions are showing.
+            val sheetHeight = maxHeight * 0.85f
+
+            LogActivityContent(
+                onDismiss = onDismiss,
+                onTripLogged = onTripLogged,
+                prefill = prefill,
+                modifier = Modifier.height(sheetHeight),
+            )
+        }
     }
 }
 
@@ -120,6 +128,7 @@ private fun LogActivityContent(
     onDismiss: () -> Unit,
     onTripLogged: (LoggedTrip) -> Unit,
     prefill: LogActivityPrefill? = null,
+    modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
     var selectedMode by remember { mutableStateOf(prefill?.mode ?: TransportModeType.DRIVING) }
@@ -151,7 +160,7 @@ private fun LogActivityContent(
     val estimatedCO2 = distanceKm * selectedMode.emissionFactor
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
