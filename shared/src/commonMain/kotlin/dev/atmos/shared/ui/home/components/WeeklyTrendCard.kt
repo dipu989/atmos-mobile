@@ -1,16 +1,21 @@
 package dev.atmos.shared.ui.home.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -20,26 +25,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.theme.HorizonBlue
+import dev.atmos.shared.ui.home.HomeTrendPeriod
 import dev.atmos.shared.ui.home.WeeklyDataPoint
 import dev.atmos.shared.ui.theme.AverageDash
 import dev.atmos.shared.ui.theme.ChartFillBottom
 import dev.atmos.shared.ui.theme.ChartFillTop
 import dev.atmos.shared.ui.theme.ChartLine
-import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 
 @Composable
 fun WeeklyTrendCard(
     data: List<WeeklyDataPoint>,
+    period: HomeTrendPeriod = HomeTrendPeriod.DAILY,
+    onPeriodChange: (HomeTrendPeriod) -> Unit = {},
     onViewStats: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -51,20 +61,12 @@ fun WeeklyTrendCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
-                Text(
-                    text = "Weekly Trend",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.textPrimary,
-                )
-                Text(
-                    text = "Last 7 days of activity",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = colors.textSecondary,
-                )
-            }
+            Text(
+                text = "Trend",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.textPrimary,
+            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -89,32 +91,112 @@ fun WeeklyTrendCard(
             }
         }
 
+        Spacer(Modifier.height(14.dp))
+
+        TrendPeriodSelector(selected = period, onSelect = onPeriodChange)
+
         Spacer(Modifier.height(20.dp))
 
-        TrendChart(
-            data = data,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp),
-        )
+        if (data.isEmpty()) {
+            EmptyTrendState(period = period)
+        } else {
+            TrendChart(
+                data = data,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp),
+            )
 
-        Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            data.forEach { point ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                data.forEach { point ->
+                    Text(
+                        text = point.dayLabel,
+                        fontSize = 11.sp,
+                        fontWeight = if (point.isToday) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (point.isToday) HorizonBlue else colors.textSecondary,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrendPeriodSelector(
+    selected: HomeTrendPeriod,
+    onSelect: (HomeTrendPeriod) -> Unit,
+) {
+    val colors = LocalAtmosColors.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.surface)
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        HomeTrendPeriod.entries.forEach { entry ->
+            val isSelected = entry == selected
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(if (isSelected) HorizonBlue else Color.Transparent)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { onSelect(entry) },
+                    )
+                    .padding(vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
-                    text = point.dayLabel,
-                    fontSize = 11.sp,
-                    fontWeight = if (point.isToday) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (point.isToday) HorizonBlue else colors.textSecondary,
-                    modifier = Modifier.weight(1f),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    text = when (entry) {
+                        HomeTrendPeriod.DAILY       -> "Daily"
+                        HomeTrendPeriod.WEEKLY      -> "Weekly"
+                        HomeTrendPeriod.FORTNIGHTLY -> "Fortnightly"
+                    },
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isSelected) Color.White else colors.textSecondary,
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun EmptyTrendState(period: HomeTrendPeriod) {
+    val colors = LocalAtmosColors.current
+    val message = when (period) {
+        HomeTrendPeriod.DAILY       -> "No trips in the last 7 days"
+        HomeTrendPeriod.WEEKLY      -> "No trips in the last 6 weeks"
+        HomeTrendPeriod.FORTNIGHTLY -> "No trips in the last 6 fortnights"
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Outlined.DirectionsRun,
+            contentDescription = null,
+            tint = colors.textSecondary,
+            modifier = Modifier.size(36.dp),
+        )
+        Text(
+            text = message,
+            fontSize = 13.sp,
+            color = colors.textSecondary,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

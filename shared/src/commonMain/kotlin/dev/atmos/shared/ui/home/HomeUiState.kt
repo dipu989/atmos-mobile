@@ -24,6 +24,10 @@ data class WeeklyDataPoint(
     val isToday: Boolean = false,
 )
 
+/** Bucket granularity for the Home screen's trend card — DAILY buckets by day (last 7 days),
+ *  WEEKLY buckets by week (last 6 weeks), FORTNIGHTLY buckets by 2-week span (last 6 fortnights). */
+enum class HomeTrendPeriod { DAILY, WEEKLY, FORTNIGHTLY }
+
 enum class TransportModeType {
     DRIVING, PUBLIC_TRANSIT, CYCLING, WALKING,
     CAB, METRO, TRAIN, BUS, AUTO_RICKSHAW, TWO_WHEELER, FLIGHT;
@@ -123,6 +127,7 @@ data class HomeUiState(
     val user: UserProfile,
     val todayImpact: TodayImpact,
     val weeklyTrend: List<WeeklyDataPoint>,
+    val trendPeriod: HomeTrendPeriod = HomeTrendPeriod.DAILY,
     val transportBreakdown: List<TransportModeEntry>,
     val recentActivity: List<RecentActivityEntry>,
     val insights: List<InsightEntry>,

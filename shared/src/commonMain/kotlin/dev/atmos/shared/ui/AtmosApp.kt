@@ -56,6 +56,7 @@ import dev.atmos.shared.ui.home.TodayImpact
 import dev.atmos.shared.ui.home.TransportModeEntry
 import dev.atmos.shared.ui.home.UserProfile
 import dev.atmos.shared.ui.home.WeeklyDataPoint
+import dev.atmos.shared.ui.home.HomeTrendPeriod
 import dev.atmos.shared.platformId
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -96,6 +97,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
@@ -512,6 +514,9 @@ fun AtmosApp() {
     // Using preview/fake values here would silently display fabricated data on network failure.
     var todayImpact        by remember { mutableStateOf(TodayImpact(kgCO2 = 0f, dailyGoalKgCO2 = dailyGoalKgCO2, percentVsWeeklyAvg = 0)) }
     var weeklyTrend        by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }
+    var homeTrendPeriod    by remember { mutableStateOf(HomeTrendPeriod.DAILY) }
+    var bucketedTrend      by remember { mutableStateOf(emptyList<WeeklyDataPoint>()) }  // WEEKLY/FORTNIGHTLY only
+    val homeTrendData      = if (homeTrendPeriod == HomeTrendPeriod.DAILY) weeklyTrend else bucketedTrend
     var weeklyTotalKgCo2   by remember { mutableStateOf(0f) }
     var insights           by remember { mutableStateOf(emptyList<InsightEntry>()) }
     var insightPeriod      by remember { mutableStateOf("Week") }
@@ -776,6 +781,42 @@ fun AtmosApp() {
             homeIsError = true
         } finally {
             homeIsLoading = false
+        }
+    }
+
+    // Fetch and bucket the Home trend card whenever the WEEKLY/FORTNIGHTLY filter is selected.
+    // DAILY reuses weeklyTrend populated by the timeline effect above — no extra fetch needed.
+    // Each bucket sums the daily totals it spans; getRange omits days with zero activity, so
+    // buckets are summed by explicit date rather than by chunking the (possibly sparse) response list.
+    LaunchedEffect(screen, timelineTrigger, homeTrendPeriod) {
+        if (screen != Screen.Home || homeTrendPeriod == HomeTrendPeriod.DAILY) return@LaunchedEffect
+        if (!tokenStore.isLoggedIn) return@LaunchedEffect
+
+        fun LocalDate.toApiString() = "${year}-${monthNumber.toString().padStart(2, '0')}-${dayOfMonth.toString().padStart(2, '0')}"
+        fun LocalDate.toShortLabel() = "${month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)} $dayOfMonth"
+
+        val bucketDays  = if (homeTrendPeriod == HomeTrendPeriod.WEEKLY) 7 else 14
+        val bucketCount = 6
+        val today       = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val rangeStart  = today.minus(bucketDays * bucketCount - 1, DateTimeUnit.DAY)
+
+        timelineService.getRange(from = rangeStart.toApiString(), to = today.toApiString()).onSuccess { days ->
+            val totalsByDate = days.associate { it.dateLocal to it.totalKgCo2e }
+            bucketedTrend = (0 until bucketCount).map { bucketIdx ->
+                val bucketStart = rangeStart.plus(bucketIdx * bucketDays, DateTimeUnit.DAY)
+                val bucketEnd   = bucketStart.plus(bucketDays - 1, DateTimeUnit.DAY)
+                var sum = 0f
+                for (d in 0 until bucketDays) {
+                    sum += totalsByDate[bucketStart.plus(d, DateTimeUnit.DAY).toApiString()] ?: 0f
+                }
+                WeeklyDataPoint(
+                    // Labeled by the bucket's end date (not start) so the rightmost label always
+                    // reads "today", matching the Daily view's convention.
+                    dayLabel = bucketEnd.toShortLabel(),
+                    kgCO2    = sum,
+                    isToday  = bucketIdx == bucketCount - 1,
+                )
+            }
         }
     }
 
@@ -1210,7 +1251,8 @@ fun AtmosApp() {
                         pendingSession      = pendingSession,
                         recentActivity      = recentActivityEntries,
                         todayImpact         = todayImpact,
-                        weeklyTrend         = weeklyTrend,
+                        weeklyTrend         = homeTrendData,
+                        trendPeriod         = homeTrendPeriod,
                         transportBreakdown  = transportBreakdown,
                         insights            = insights,
                         unreadInsightsCount = unreadInsightsCount,
@@ -1221,6 +1263,7 @@ fun AtmosApp() {
                     onNavigateToInsights   = { screen = Screen.Insights },
                     onRetry                = { homeIsLoading = true; homeIsError = false; timelineTrigger++ },
                     onFabClick             = { tripToEdit = null; showLogActivity = true },
+                    onTrendPeriodChange    = { homeTrendPeriod = it },
                     onConfirmPendingSession = {
                         pendingSession?.let { s ->
                             tripDetector.confirmPendingSession(s.sessionId)
