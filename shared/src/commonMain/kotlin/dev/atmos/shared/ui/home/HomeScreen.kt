@@ -78,6 +78,7 @@ fun HomeScreen(
     onStopAndSave: () -> Unit = {},
     onDiscard: () -> Unit = {},
     onResume: () -> Unit = {},
+    onTrendPeriodChange: (HomeTrendPeriod) -> Unit = {},
 ) {
     val colors = LocalAtmosColors.current
     var selectedTab by remember { mutableStateOf(AtmosTab.HOME) }
@@ -179,7 +180,14 @@ fun HomeScreen(
             } else {
                 // ── Populated state ───────────────────────────────────────────
                 item { TodayImpactCard(impact = state.todayImpact) }
-                item { WeeklyTrendCard(data = state.weeklyTrend, onViewStats = onNavigateToStats) }
+                item {
+                    WeeklyTrendCard(
+                        data = state.weeklyTrend,
+                        period = state.trendPeriod,
+                        onPeriodChange = onTrendPeriodChange,
+                        onViewStats = onNavigateToStats,
+                    )
+                }
                 item { TransportBreakdownCard(entries = state.transportBreakdown) }
                 item {
                     RecentActivityCard(
