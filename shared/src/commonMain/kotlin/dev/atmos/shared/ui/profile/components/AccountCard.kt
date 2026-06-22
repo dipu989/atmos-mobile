@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
@@ -45,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,6 +55,8 @@ import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
+
+private const val PRIVACY_POLICY_URL = "https://atmosapp.dev/privacy"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +67,7 @@ fun AccountCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
+    val uriHandler = LocalUriHandler.current
     var showSignOutDialog  by remember { mutableStateOf(false) }
     var showDeleteSheet    by remember { mutableStateOf(false) }
 
@@ -86,6 +91,20 @@ fun AccountCard(
             Icon(imageVector = Icons.Outlined.FileDownload, contentDescription = null, tint = HorizonBlue, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(12.dp))
             Text(text = "Export My Data", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = HorizonBlue)
+        }
+
+        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { uriHandler.openUri(PRIVACY_POLICY_URL) }
+                .padding(vertical = 12.dp),
+        ) {
+            Icon(imageVector = Icons.Outlined.Description, contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(text = "Privacy Policy", fontSize = 15.sp, color = colors.textSecondary)
         }
 
         HorizontalDivider(thickness = 1.dp, color = colors.divider)
