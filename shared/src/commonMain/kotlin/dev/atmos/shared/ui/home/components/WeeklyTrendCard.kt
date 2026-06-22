@@ -61,24 +61,12 @@ fun WeeklyTrendCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
-                Text(
-                    text = "Trend",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.textPrimary,
-                )
-                Text(
-                    text = when (period) {
-                        HomeTrendPeriod.DAILY       -> "Last 7 days of activity"
-                        HomeTrendPeriod.WEEKLY      -> "Last 6 weeks of activity"
-                        HomeTrendPeriod.FORTNIGHTLY -> "Last 6 fortnights of activity"
-                    },
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = colors.textSecondary,
-                )
-            }
+            Text(
+                text = "Trend",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.textPrimary,
+            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier

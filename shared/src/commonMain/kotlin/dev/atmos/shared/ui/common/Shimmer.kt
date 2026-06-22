@@ -123,8 +123,6 @@ fun TodayImpactSkeleton(modifier: Modifier = Modifier) {
 fun WeeklyTrendSkeleton(modifier: Modifier = Modifier) {
     AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
         ShimmerText(width = 120.dp, height = 16.dp)
-        Spacer(Modifier.height(4.dp))
-        ShimmerText(width = 80.dp, height = 12.dp)
         Spacer(Modifier.height(14.dp))
         // Period selector placeholder
         ShimmerBox(
