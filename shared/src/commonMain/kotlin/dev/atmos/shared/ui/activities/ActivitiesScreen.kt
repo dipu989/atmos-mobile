@@ -63,6 +63,10 @@ import dev.atmos.shared.ui.theme.LocalAtmosColors
 @Composable
 fun ActivitiesScreen(
     groupedEntries: List<Pair<String, List<RecentActivityEntry>>> = previewAllActivities,
+    homeLat: Double? = null,
+    homeLng: Double? = null,
+    workLat: Double? = null,
+    workLng: Double? = null,
     onNavigateToHome: () -> Unit = {},
     onTripClick: (RecentActivityEntry) -> Unit = {},
     onDelete: (RecentActivityEntry) -> Unit = {},
@@ -220,6 +224,10 @@ fun ActivitiesScreen(
                                         ) {
                                             ActivityRow(
                                                 entry   = entry,
+                                                homeLat = homeLat,
+                                                homeLng = homeLng,
+                                                workLat = workLat,
+                                                workLng = workLng,
                                                 onClick = { onTripClick(entry) },
                                             )
                                         }

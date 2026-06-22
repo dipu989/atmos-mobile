@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.home.RecentActivityEntry
 import dev.atmos.shared.ui.home.TransportModeType
+import dev.atmos.shared.ui.home.commuteDisplayLabel
 import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
@@ -95,6 +96,10 @@ private val TransportModeType.icon: ImageVector
 @Composable
 fun RecentActivityCard(
     entries: List<RecentActivityEntry>,
+    homeLat: Double? = null,
+    homeLng: Double? = null,
+    workLat: Double? = null,
+    workLng: Double? = null,
     modifier: Modifier = Modifier,
     onTripClick: (RecentActivityEntry) -> Unit = {},
     onLogTrip: () -> Unit = {},
@@ -151,7 +156,14 @@ fun RecentActivityCard(
             }
         } else {
             entries.forEachIndexed { index, entry ->
-                ActivityRow(entry = entry, onClick = { onTripClick(entry) })
+                ActivityRow(
+                    entry   = entry,
+                    homeLat = homeLat,
+                    homeLng = homeLng,
+                    workLat = workLat,
+                    workLng = workLng,
+                    onClick = { onTripClick(entry) },
+                )
                 if (index < entries.lastIndex) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 12.dp),
@@ -169,10 +181,20 @@ fun RecentActivityCard(
 @Composable
 internal fun ActivityRow(
     entry: RecentActivityEntry,
+    homeLat: Double? = null,
+    homeLng: Double? = null,
+    workLat: Double? = null,
+    workLng: Double? = null,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
+    val originLabel = commuteDisplayLabel(
+        entry.origin, entry.originLat, entry.originLng, homeLat, homeLng, workLat, workLng,
+    )
+    val destinationLabel = commuteDisplayLabel(
+        entry.destination, entry.destLat, entry.destLng, homeLat, homeLng, workLat, workLng,
+    )
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -199,8 +221,8 @@ internal fun ActivityRow(
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = if (entry.destination.isBlank()) entry.origin
-                           else "${entry.origin} → ${entry.destination}",
+                    text = if (entry.destination.isBlank()) originLabel
+                           else "$originLabel → $destinationLabel",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = colors.textPrimary,

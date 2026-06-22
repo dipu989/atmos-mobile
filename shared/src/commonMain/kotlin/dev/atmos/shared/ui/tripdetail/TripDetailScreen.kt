@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.home.RecentActivityEntry
 import dev.atmos.shared.ui.home.TransportModeType
+import dev.atmos.shared.ui.home.commuteDisplayLabel
 import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
@@ -78,6 +79,10 @@ import kotlin.math.ceil
 fun TripDetailScreen(
     entry: RecentActivityEntry,
     dailyGoalKgCO2: Float = 5.0f,
+    homeLat: Double? = null,
+    homeLng: Double? = null,
+    workLat: Double? = null,
+    workLng: Double? = null,
     onBack: () -> Unit = {},
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {},
@@ -190,7 +195,19 @@ fun TripDetailScreen(
 
                 // Route
                 Text(
-                    text  = "${entry.origin}  →  ${entry.destination}",
+                    text  = run {
+                        val originLabel = commuteDisplayLabel(
+                            entry.origin, entry.originLat, entry.originLng, homeLat, homeLng, workLat, workLng,
+                        )
+                        if (entry.destination.isBlank()) {
+                            originLabel
+                        } else {
+                            val destinationLabel = commuteDisplayLabel(
+                                entry.destination, entry.destLat, entry.destLng, homeLat, homeLng, workLat, workLng,
+                            )
+                            "$originLabel  →  $destinationLabel"
+                        }
+                    },
                     style = TextStyle(
                         fontSize  = 15.sp,
                         color     = colors.textSecondary,

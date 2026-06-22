@@ -1288,6 +1288,10 @@ fun AtmosApp() {
                         weeklyTrend         = homeTrendData,
                         trendPeriod         = homeTrendPeriod,
                         transportBreakdown  = homeBreakdownData,
+                        homeLat             = commuteHomeLat,
+                        homeLng             = commuteHomeLng,
+                        workLat             = commuteWorkLat,
+                        workLng             = commuteWorkLng,
                         insights            = insights,
                         unreadInsightsCount = unreadInsightsCount,
                     ),
@@ -1624,6 +1628,10 @@ fun AtmosApp() {
                     TripDetailScreen(
                         entry          = entry,
                         dailyGoalKgCO2 = dailyGoalKgCO2,
+                        homeLat        = commuteHomeLat,
+                        homeLng        = commuteHomeLng,
+                        workLat        = commuteWorkLat,
+                        workLng        = commuteWorkLng,
                         onBack         = { screen = Screen.Home },
                         onEdit         = {
                             // Capture session identity so onTripLogged can delete-then-replace
@@ -1649,6 +1657,10 @@ fun AtmosApp() {
 
                 Screen.Activities -> ActivitiesScreen(
                     groupedEntries   = groupedActivities,
+                    homeLat          = commuteHomeLat,
+                    homeLng          = commuteHomeLng,
+                    workLat          = commuteWorkLat,
+                    workLng          = commuteWorkLng,
                     onNavigateToHome = { screen = Screen.Home },
                     onTripClick      = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
                     onFabClick       = { showLogActivity = true },
