@@ -23,9 +23,11 @@ import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Eco
 import androidx.compose.material.icons.outlined.Flight
 import androidx.compose.material.icons.outlined.LocalTaxi
+import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.Train
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,7 +42,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.atmos.shared.ui.common.AtmosCard
+import dev.atmos.shared.ui.home.HomeTrendPeriod
 import dev.atmos.shared.ui.home.TransportModeEntry
 import dev.atmos.shared.ui.home.TransportModeType
 import dev.atmos.shared.ui.theme.AlertRed
@@ -98,16 +100,18 @@ private val TransportModeType.icon: ImageVector
         TransportModeType.TWO_WHEELER   -> Icons.AutoMirrored.Outlined.DirectionsBike
     }
 
-// ── Card ──────────────────────────────────────────────────────────────────────
+// ── Section (embedded inside TrendCard, below the chart) ──────────────────────
 
 @Composable
-fun TransportBreakdownCard(
+fun TransportBreakdownSection(
     entries: List<TransportModeEntry>,
+    period: HomeTrendPeriod = HomeTrendPeriod.DAILY,
+    onLogTrip: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
 
-    AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
+    Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = "Transport Breakdown",
             fontSize = 17.sp,
@@ -116,7 +120,11 @@ fun TransportBreakdownCard(
         )
         Spacer(Modifier.height(2.dp))
         Text(
-            text = "Today's activity by mode",
+            text = when (period) {
+                HomeTrendPeriod.DAILY       -> "Today's activity by mode"
+                HomeTrendPeriod.WEEKLY      -> "This week's activity by mode"
+                HomeTrendPeriod.FORTNIGHTLY -> "This fortnight's activity by mode"
+            },
             fontSize = 13.sp,
             fontWeight = FontWeight.Normal,
             color = colors.textSecondary,
@@ -124,9 +132,44 @@ fun TransportBreakdownCard(
 
         Spacer(Modifier.height(20.dp))
 
-        entries.forEachIndexed { index, entry ->
-            TransportModeRow(entry = entry)
-            if (index < entries.lastIndex) Spacer(Modifier.height(20.dp))
+        if (entries.isEmpty()) {
+            // ── Inline empty state ────────────────────────────────────────────
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector        = Icons.Outlined.PieChart,
+                        contentDescription = null,
+                        tint               = colors.textSecondary,
+                        modifier           = Modifier.size(26.dp),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = when (period) {
+                            HomeTrendPeriod.DAILY       -> "No trips today"
+                            HomeTrendPeriod.WEEKLY      -> "No trips this week"
+                            HomeTrendPeriod.FORTNIGHTLY -> "No trips this fortnight"
+                        },
+                        fontSize = 14.sp,
+                        color    = colors.textSecondary,
+                    )
+                    TextButton(onClick = onLogTrip) {
+                        Text(
+                            text       = "Log one now →",
+                            fontSize   = 13.sp,
+                            color      = HorizonBlue,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            }
+        } else {
+            entries.forEachIndexed { index, entry ->
+                TransportModeRow(entry = entry)
+                if (index < entries.lastIndex) Spacer(Modifier.height(20.dp))
+            }
         }
     }
 }

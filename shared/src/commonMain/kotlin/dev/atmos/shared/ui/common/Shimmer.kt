@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -118,9 +119,9 @@ fun TodayImpactSkeleton(modifier: Modifier = Modifier) {
     }
 }
 
-/** Mirrors WeeklyTrendCard */
+/** Mirrors TrendCard (chart section + Transport Breakdown section) */
 @Composable
-fun WeeklyTrendSkeleton(modifier: Modifier = Modifier) {
+fun TrendSkeleton(modifier: Modifier = Modifier) {
     AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
         ShimmerText(width = 120.dp, height = 16.dp)
         Spacer(Modifier.height(14.dp))
@@ -150,13 +151,15 @@ fun WeeklyTrendSkeleton(modifier: Modifier = Modifier) {
         ) {
             repeat(7) { ShimmerText(width = 20.dp, height = 10.dp) }
         }
-    }
-}
 
-/** Mirrors TransportBreakdownCard */
-@Composable
-fun TransportBreakdownSkeleton(modifier: Modifier = Modifier) {
-    AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
+        Spacer(Modifier.height(24.dp))
+        ShimmerBox(
+            modifier = Modifier.fillMaxWidth().height(1.dp),
+            shape    = RectangleShape,
+        )
+        Spacer(Modifier.height(20.dp))
+
+        // Transport Breakdown section placeholder
         ShimmerText(width = 150.dp, height = 16.dp)
         Spacer(Modifier.height(4.dp))
         ShimmerText(width = 100.dp, height = 12.dp)
