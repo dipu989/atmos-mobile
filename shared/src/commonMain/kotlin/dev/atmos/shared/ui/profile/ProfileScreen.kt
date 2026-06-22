@@ -467,6 +467,14 @@ private fun CommuteEditSheet(
                 leadingIcon     = Icons.Outlined.LocationOn,
             )
 
+            if (text.isNotBlank() && text != currentValue && selection == null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text  = "Select a suggestion from the list to save",
+                    style = TextStyle(fontSize = 12.sp, color = colors.textSecondary),
+                )
+            }
+
             Spacer(Modifier.height(24.dp))
 
             Row(
@@ -486,7 +494,7 @@ private fun CommuteEditSheet(
                     onClick  = { onSave(text.trim(), selection?.lat, selection?.lng) },
                     modifier = Modifier.weight(1f).height(50.dp),
                     shape    = RoundedCornerShape(12.dp),
-                    enabled  = text.isNotBlank(),
+                    enabled  = text.isNotBlank() && (selection != null || text == currentValue),
                     colors   = ButtonDefaults.buttonColors(containerColor = HorizonBlue),
                 ) {
                     Text("Save", color = Color.White, fontWeight = FontWeight.SemiBold)
