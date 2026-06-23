@@ -2,16 +2,39 @@ package dev.atmos.shared.auth
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import dev.atmos.shared.location.TripDetectorHolder
 import dev.atmos.shared.network.AuthResponseDto
+
+// Renamed from the legacy plaintext "atmos_token" file — EncryptedSharedPreferences
+// would throw trying to AEAD-decrypt data that file holds in cleartext, so the new
+// store needs its own file rather than reopening the old name.
+private const val ENCRYPTED_PREFS_FILE = "atmos_token_secure"
+private const val LEGACY_PLAINTEXT_PREFS_FILE = "atmos_token"
 
 actual fun createTokenStore(): TokenStore {
     val ctx = requireNotNull(TripDetectorHolder.appContext) {
         "TripDetectorHolder.init(context) must be called in MainActivity.onCreate() before TokenStore is accessed"
     }
-    return AndroidTokenStore(
-        ctx.getSharedPreferences("atmos_token", Context.MODE_PRIVATE)
+
+    // One-time cleanup: delete the old plaintext file so stale tokens don't sit
+    // unencrypted on disk forever. Safe to call every launch — no-op once deleted.
+    ctx.getSharedPreferences(LEGACY_PLAINTEXT_PREFS_FILE, Context.MODE_PRIVATE)
+        .edit().clear().apply()
+    ctx.deleteSharedPreferences(LEGACY_PLAINTEXT_PREFS_FILE)
+
+    val masterKey = MasterKey.Builder(ctx)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+    val prefs = EncryptedSharedPreferences.create(
+        ctx,
+        ENCRYPTED_PREFS_FILE,
+        masterKey,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
     )
+    return AndroidTokenStore(prefs)
 }
 
 // ── Android implementation ────────────────────────────────────────────────────

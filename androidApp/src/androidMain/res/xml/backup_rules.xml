@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Legacy Auto Backup (API ≤30). Keeps encrypted auth tokens off backups —
+     the Keystore master key backing them doesn't survive a restore anyway. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="atmos_token_secure.xml" />
+</full-backup-content>

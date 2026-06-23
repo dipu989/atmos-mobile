@@ -16,6 +16,7 @@ sqldelight              = "2.0.2"
 credentials             = "1.6.0"
 googleid                = "1.1.1"
 coil3                   = "3.1.0"
+security-crypto         = "1.1.0"
 
 [libraries]
 # Ktor
@@ -57,6 +58,7 @@ coil-network-ktor            = { module = "io.coil-kt.coil3:coil-network-ktor3",
 androidx-credentials                 = { module = "androidx.credentials:credentials",                                          version.ref = "credentials" }
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth",                   version.ref = "credentials" }
 googleid                             = { module = "com.google.android.libraries.identity.googleid:googleid",                   version.ref = "googleid" }
+androidx-security-crypto              = { module = "androidx.security:security-crypto",                                         version.ref = "security-crypto" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version = "1.11.2" }
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version = "1.11.2" }
 
