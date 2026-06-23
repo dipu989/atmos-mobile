@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.DirectionsBus
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Flight
 import androidx.compose.material.icons.outlined.LocalTaxi
 import androidx.compose.material.icons.outlined.MyLocation
@@ -62,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
+import dev.atmos.shared.ui.common.ShimmerBox
 import dev.atmos.shared.ui.home.RecentActivityEntry
 import dev.atmos.shared.ui.home.TransportModeType
 import dev.atmos.shared.ui.home.commuteDisplayLabel
@@ -70,7 +72,6 @@ import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
-import kotlin.math.ceil
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -246,17 +247,17 @@ fun TripDetailScreen(
             // Daily budget progress
             DailyBudgetCard(kgCO2 = entry.kgCO2, dailyGoal = dailyGoalKgCO2)
 
-            // Impact context — zero emission gets a celebration; others get facts
+            // Impact context — zero emission gets a celebration; others get
+            // server-computed facts (never calculated client-side, see CLAUDE.md).
             if (entry.kgCO2 == 0f) {
                 ZeroEmissionCard()
             } else {
-                ImpactContextCard(kgCO2 = entry.kgCO2)
+                ImpactContextCard(entry = entry)
 
-                // Alternative transport — only when a greener option exists
-                entry.mode.bestEcoAlternative()?.let { altMode ->
-                    if (entry.distanceKm > 0f) {
-                        AlternativeCard(entry = entry, altMode = altMode)
-                    }
+                // Alternative transport — only once loaded AND the backend found
+                // a mode that's actually greener for this trip's distance.
+                if (entry.alternativeMode != null) {
+                    AlternativeCard(entry = entry)
                 }
             }
 
@@ -379,35 +380,82 @@ private fun ZeroEmissionCard() {
 // ── Impact context card ───────────────────────────────────────────────────────
 
 @Composable
-private fun ImpactContextCard(kgCO2: Float) {
-    val colors      = LocalAtmosColors.current
-    val treesNeeded = ceil(kgCO2 / 0.06f).toInt().coerceAtLeast(1)
-    val ledHours    = ceil(kgCO2 / 0.03f).toInt().coerceAtLeast(1)
-    val globalPct   = (kgCO2 / 4.0f * 100).toInt().coerceAtLeast(1)
+private fun ImpactContextCard(entry: RecentActivityEntry) {
+    val colors = LocalAtmosColors.current
+    var showApproximationInfo by remember { mutableStateOf(false) }
+    val isLoading = entry.treesNeededToOffset == null
 
     AtmosCard(modifier = Modifier.fillMaxWidth(), contentPadding = 20.dp) {
-        Text(
-            text  = "What this means",
-            style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = colors.textPrimary),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text     = "What this means",
+                style    = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = colors.textPrimary),
+                modifier = Modifier.weight(1f),
+            )
+            if (entry.impactApproximate) {
+                IconButton(onClick = { showApproximationInfo = true }, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector        = Icons.AutoMirrored.Outlined.HelpOutline,
+                        contentDescription = "About these figures",
+                        tint               = colors.textTertiary,
+                        modifier           = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
         Spacer(Modifier.height(16.dp))
 
-        ImpactRow(
-            emoji = "🌳",
-            label = "Trees needed to offset (1 day)",
-            value = "$treesNeeded trees",
-        )
-        HorizontalDivider(modifier = Modifier.padding(vertical = 13.dp), color = colors.divider)
-        ImpactRow(
-            emoji = "💡",
-            label = "LED light hours equivalent",
-            value = "$ledHours hours",
-        )
-        HorizontalDivider(modifier = Modifier.padding(vertical = 13.dp), color = colors.divider)
-        ImpactRow(
-            emoji = "🌍",
-            label = "Of the global daily average",
-            value = "$globalPct%",
+        if (isLoading) {
+            repeat(3) { i ->
+                if (i > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 13.dp), color = colors.divider)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ShimmerBox(Modifier.width(34.dp).height(20.dp))
+                    Spacer(Modifier.width(12.dp))
+                    ShimmerBox(Modifier.weight(1f).height(14.dp))
+                    Spacer(Modifier.width(12.dp))
+                    ShimmerBox(Modifier.width(48.dp).height(14.dp))
+                }
+            }
+        } else {
+            ImpactRow(
+                emoji = "🌳",
+                label = "Trees needed to offset (1 day)",
+                value = "${entry.treesNeededToOffset} trees",
+            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 13.dp), color = colors.divider)
+            ImpactRow(
+                emoji = "💡",
+                label = "LED light hours equivalent",
+                value = "${entry.ledHoursEquivalent} hours",
+            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 13.dp), color = colors.divider)
+            ImpactRow(
+                emoji = "🌍",
+                label = "Of the global daily average",
+                value = "${entry.globalAveragePct}%",
+            )
+        }
+    }
+
+    if (showApproximationInfo) {
+        AlertDialog(
+            onDismissRequest = { showApproximationInfo = false },
+            title            = { Text("Global approximation", color = colors.textPrimary) },
+            text             = {
+                Text(
+                    "These comparisons use published reference figures (tree CO₂ " +
+                    "absorption, electricity grid carbon intensity, global average " +
+                    "footprint) that vary by region, climate, and season. Treat them " +
+                    "as a relatable estimate, not an exact measurement.",
+                    color = colors.textSecondary,
+                )
+            },
+            confirmButton    = {
+                TextButton(onClick = { showApproximationInfo = false }) {
+                    Text("Got it", color = HorizonBlue, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            containerColor   = colors.surface,
         )
     }
 }
@@ -432,14 +480,12 @@ private fun ImpactRow(emoji: String, label: String, value: String) {
 // ── Alternative transport card ────────────────────────────────────────────────
 
 @Composable
-private fun AlternativeCard(entry: RecentActivityEntry, altMode: TransportModeType) {
+private fun AlternativeCard(entry: RecentActivityEntry) {
     val colors  = LocalAtmosColors.current
-    val altCO2  = (entry.distanceKm * altMode.emissionFactor).let {
-        // round to 1 decimal for cleanliness
-        (it * 10).toInt() / 10f
-    }
-    val savings     = (entry.kgCO2 - altCO2).coerceAtLeast(0f)
-    val savingsPct  = if (entry.kgCO2 > 0f) (savings / entry.kgCO2 * 100).toInt() else 0
+    val altMode = entry.alternativeMode ?: return
+    val altCO2  = entry.alternativeKgCO2 ?: 0f
+    val savings = entry.savingsKgCO2 ?: 0f
+    val savingsPct = entry.savingsPct ?: 0
 
     AtmosCard(modifier = Modifier.fillMaxWidth(), contentPadding = 20.dp) {
         Text(
@@ -734,35 +780,6 @@ private val TransportModeType.themeColor: Color
         TransportModeType.CAB,
         TransportModeType.FLIGHT        -> AlertRed
     }
-
-private val TransportModeType.emissionFactor: Float
-    get() = when (this) {
-        TransportModeType.DRIVING        -> 0.21f
-        TransportModeType.CAB            -> 0.21f
-        TransportModeType.TWO_WHEELER    -> 0.11f
-        TransportModeType.AUTO_RICKSHAW  -> 0.10f
-        TransportModeType.BUS,
-        TransportModeType.PUBLIC_TRANSIT -> 0.09f
-        TransportModeType.TRAIN,
-        TransportModeType.METRO          -> 0.04f
-        TransportModeType.FLIGHT         -> 0.26f
-        TransportModeType.CYCLING,
-        TransportModeType.WALKING        -> 0f
-    }
-
-private fun TransportModeType.bestEcoAlternative(): TransportModeType? = when (this) {
-    TransportModeType.DRIVING,
-    TransportModeType.CAB,
-    TransportModeType.FLIGHT            -> TransportModeType.METRO
-    TransportModeType.TWO_WHEELER,
-    TransportModeType.AUTO_RICKSHAW     -> TransportModeType.BUS
-    TransportModeType.PUBLIC_TRANSIT,
-    TransportModeType.BUS               -> TransportModeType.METRO
-    TransportModeType.TRAIN,
-    TransportModeType.METRO             -> TransportModeType.CYCLING
-    TransportModeType.CYCLING,
-    TransportModeType.WALKING           -> null
-}
 
 // ── Float helpers ─────────────────────────────────────────────────────────────
 

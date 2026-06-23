@@ -104,6 +104,17 @@ data class RecentActivityEntry(
     val originLng: Double? = null,
     val destLat: Double? = null,
     val destLng: Double? = null,
+    // ── Server-computed impact context (GET /activities/:id only) ─────────────
+    // Null until TripDetailScreen's enrichment fetch resolves. Never computed
+    // client-side — see CLAUDE.md: CO₂-derived values come from the backend.
+    val treesNeededToOffset: Int? = null,
+    val ledHoursEquivalent: Int? = null,
+    val globalAveragePct: Int? = null,
+    val impactApproximate: Boolean = false,
+    val alternativeMode: TransportModeType? = null,
+    val alternativeKgCO2: Float? = null,
+    val savingsKgCO2: Float? = null,
+    val savingsPct: Int? = null,
 )
 
 // ── Pending trip (auto-detected, awaiting user confirmation) ──────────────────

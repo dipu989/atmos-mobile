@@ -547,6 +547,18 @@ fun AtmosApp() {
         }
     }
 
+    // Enrich the open trip with server-computed impact context (trees/LED-hours/
+    // global-% comparisons, greener-alternative) — never computed client-side,
+    // see CLAUDE.md. List/notification taps only carry the fields already in
+    // RecentActivityEntry, so TripDetail re-fetches the full detail on open.
+    LaunchedEffect(screen, selectedTrip?.sessionId) {
+        val current = selectedTrip ?: return@LaunchedEffect
+        if (screen != Screen.TripDetail || current.sessionId.isBlank()) return@LaunchedEffect
+        activityService.getActivity(current.sessionId).onSuccess { enriched ->
+            selectedTrip = enriched
+        }
+    }
+
     // Navigate to InsightDetail when the user taps a push notification.
     // Waits for the insight to appear in the loaded list — if it's not there yet,
     // navigating to Home triggers the timeline fetch which populates insights,

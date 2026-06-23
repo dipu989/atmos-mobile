@@ -63,6 +63,25 @@ private data class IngestActivityRequest(
     @SerialName("dest_lng")         val destLng: Double? = null,
 )
 
+/**
+ * Server-computed impact context — trees/LED-hours/global-% comparisons and a
+ * greener-alternative suggestion. Only present on GET /activities/:id.
+ * [approximate] is always true: these figures are derived from published
+ * reference data (EPA, Our World in Data, CEA) that varies by region and
+ * climate — render that caveat to the user, never as an exact measurement.
+ */
+@Serializable
+data class ImpactDto(
+    @SerialName("trees_needed_to_offset") val treesNeededToOffset: Int = 0,
+    @SerialName("led_hours_equivalent")   val ledHoursEquivalent: Int = 0,
+    @SerialName("global_average_pct")     val globalAveragePct: Int = 0,
+    @SerialName("approximate")            val approximate: Boolean = false,
+    @SerialName("alternative_mode")       val alternativeMode: String? = null,
+    @SerialName("alternative_kg_co2e")    val alternativeKgCO2e: Double? = null,
+    @SerialName("savings_kg_co2e")        val savingsKgCO2e: Double? = null,
+    @SerialName("savings_pct")            val savingsPct: Int? = null,
+)
+
 @Serializable
 data class ActivityDto(
     val id: String,
@@ -78,6 +97,11 @@ data class ActivityDto(
     @SerialName("origin_lng")       val originLng: Double? = null,
     @SerialName("dest_lat")         val destLat: Double? = null,
     @SerialName("dest_lng")         val destLng: Double? = null,
+    // Backend-authoritative emission value, joined from the emissions table on
+    // every activity endpoint (list + detail). Null only when an activity
+    // hasn't been processed yet (status="pending"/"skipped").
+    @SerialName("kg_co2e")          val kgCO2e: Double? = null,
+    val impact: ImpactDto? = null,
 )
 
 @Serializable
@@ -117,7 +141,10 @@ fun ActivityDto.toRecentActivityEntry(): RecentActivityEntry {
         dateLabel      = if (startMs > 0L) formatDateGroupLabel(startMs) else "Unknown",
         distanceKm     = distKm,
         durationMin    = durationMinutes ?: 0,
-        kgCO2          = mode.emissionFactor * distKm,
+        // Backend-authoritative value when available; client-side estimate is
+        // only a fallback for activities not yet processed by the emission
+        // service (status="pending"/"skipped"), never used once kg_co2e exists.
+        kgCO2          = kgCO2e?.toFloat() ?: (mode.emissionFactor * distKm),
         isAutoDetected = src != "manual",
         sessionId      = id,
         timestampMs    = startMs,
@@ -126,6 +153,14 @@ fun ActivityDto.toRecentActivityEntry(): RecentActivityEntry {
         originLng      = originLng,
         destLat        = destLat,
         destLng        = destLng,
+        treesNeededToOffset = impact?.treesNeededToOffset,
+        ledHoursEquivalent  = impact?.ledHoursEquivalent,
+        globalAveragePct    = impact?.globalAveragePct,
+        impactApproximate   = impact?.approximate ?: false,
+        alternativeMode     = impact?.alternativeMode?.toTransportModeType(),
+        alternativeKgCO2    = impact?.alternativeKgCO2e?.toFloat(),
+        savingsKgCO2        = impact?.savingsKgCO2e?.toFloat(),
+        savingsPct          = impact?.savingsPct,
     )
 }
 
