@@ -470,6 +470,10 @@ fun AtmosApp() {
     var showLogActivity by remember { mutableStateOf(false) }
     var tripToEdit       by remember { mutableStateOf<PendingTripEntry?>(null) }
     var selectedTrip     by remember { mutableStateOf<RecentActivityEntry?>(null) }
+    // Screen to return to from TripDetail — it's reachable from Home, Activities,
+    // and a push-notification deep link, so a hardcoded "back to Home" is wrong
+    // whenever the user opened it from the Activities list.
+    var tripDetailOrigin by remember { mutableStateOf<Screen>(Screen.Home) }
     var selectedInsight  by remember { mutableStateOf<InsightEntry?>(null) }
     var homeIsLoading    by remember { mutableStateOf(true) }
     var homeIsError      by remember { mutableStateOf(false) }
@@ -543,6 +547,7 @@ fun AtmosApp() {
         NotificationState.pendingActivityId.value = null
         activityService.getActivity(id).onSuccess { entry ->
             selectedTrip = entry
+            tripDetailOrigin = Screen.Home
             screen = Screen.TripDetail
         }
     }
@@ -1347,7 +1352,7 @@ fun AtmosApp() {
                             showLogActivity = true
                         }
                     },
-                    onTripClick            = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
+                    onTripClick            = { entry -> selectedTrip = entry; tripDetailOrigin = Screen.Home; screen = Screen.TripDetail },
                     onInsightClick         = handleInsightClick,
                     onStopAndSave          = { tripDetector.manualEndAndSave() },
                     onDiscard              = { tripDetector.discardSession() },
@@ -1644,7 +1649,7 @@ fun AtmosApp() {
                         homeLng        = commuteHomeLng,
                         workLat        = commuteWorkLat,
                         workLng        = commuteWorkLng,
-                        onBack         = { screen = Screen.Home },
+                        onBack         = { screen = tripDetailOrigin },
                         onEdit         = {
                             // Capture session identity so onTripLogged can delete-then-replace
                             editingSessionId  = entry.sessionId.ifEmpty { null }
@@ -1663,7 +1668,7 @@ fun AtmosApp() {
                             )
                             showLogActivity = true
                         },
-                        onDelete = { deleteTrip(entry) { screen = Screen.Home } },
+                        onDelete = { deleteTrip(entry) { screen = tripDetailOrigin } },
                     )
                 }
 
@@ -1674,7 +1679,7 @@ fun AtmosApp() {
                     workLat          = commuteWorkLat,
                     workLng          = commuteWorkLng,
                     onNavigateToHome = { screen = Screen.Home },
-                    onTripClick      = { entry -> selectedTrip = entry; screen = Screen.TripDetail },
+                    onTripClick      = { entry -> selectedTrip = entry; tripDetailOrigin = Screen.Activities; screen = Screen.TripDetail },
                     onFabClick       = { showLogActivity = true },
                     onDelete         = { entry -> deleteTrip(entry) { snackbarHostState.showSnackbar("Trip deleted") } },
                 )
