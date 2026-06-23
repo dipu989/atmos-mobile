@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ Auto Backup / device-transfer rules. Keeps encrypted auth tokens
+     out of cloud backup and device-to-device transfer — the Keystore master key
+     backing them doesn't survive either, so restoring them would just break login. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="atmos_token_secure.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="atmos_token_secure.xml" />
+    </device-transfer>
+</data-extraction-rules>

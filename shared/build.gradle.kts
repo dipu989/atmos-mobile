@@ -81,6 +81,7 @@ kotlin {
             implementation(libs.androidx.credentials)                     // Credential Manager
             implementation(libs.androidx.credentials.play.services.auth) // Google Sign-In backcompat
             implementation(libs.googleid)                                // Google ID token helper
+            implementation(libs.androidx.security.crypto)                // EncryptedSharedPreferences for auth tokens
         }
 
         iosMain.dependencies {
