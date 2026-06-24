@@ -3,6 +3,7 @@ package dev.atmos.shared.ui.tripdetail
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -60,6 +62,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
@@ -124,13 +127,16 @@ fun TripDetailScreen(
                 .padding(top = innerPadding.calculateTopPadding()),
         ) {
             // ── Hero ──────────────────────────────────────────────────────────
-            // Height reduced to 256dp; the TopAppBar above it (≈56dp) provides the
-            // same total visual area that the old 310dp hero + floating button did.
+            // Min-height 256dp (was a fixed height) so an expanded origin/destination
+            // address — see ExpandableAddressLine — grows the hero instead of
+            // overflowing past it into the card below, which used to swallow taps
+            // meant for the destination line.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(256.dp)
+                    .heightIn(min = 256.dp)
                     .background(colors.surface),
+                contentAlignment = Alignment.Center,
             ) {
                 // Atmospheric canvas background
                 Canvas(Modifier.matchParentSize()) {
@@ -154,10 +160,9 @@ fun TripDetailScreen(
                 // Centred hero content
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 16.dp),
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
             ) {
                 // Mode icon
                 Box(
@@ -195,26 +200,27 @@ fun TripDetailScreen(
                 Spacer(Modifier.height(14.dp))
 
                 // Route
-                Text(
-                    text  = run {
-                        val originLabel = commuteDisplayLabel(
-                            entry.origin, entry.originLat, entry.originLng, homeLat, homeLng, workLat, workLng,
+                run {
+                    val originLabel = commuteDisplayLabel(
+                        entry.origin, entry.originLat, entry.originLng, homeLat, homeLng, workLat, workLng,
+                    )
+                    if (entry.destination.isBlank()) {
+                        ExpandableAddressLine(text = originLabel, color = colors.textSecondary)
+                    } else {
+                        val destinationLabel = commuteDisplayLabel(
+                            entry.destination, entry.destLat, entry.destLng, homeLat, homeLng, workLat, workLng,
                         )
-                        if (entry.destination.isBlank()) {
-                            originLabel
-                        } else {
-                            val destinationLabel = commuteDisplayLabel(
-                                entry.destination, entry.destLat, entry.destLng, homeLat, homeLng, workLat, workLng,
-                            )
-                            "$originLabel  →  $destinationLabel"
-                        }
-                    },
-                    style = TextStyle(
-                        fontSize  = 15.sp,
-                        color     = colors.textSecondary,
-                        textAlign = TextAlign.Center,
-                    ),
-                )
+                        ExpandableAddressLine(text = originLabel, color = colors.textSecondary)
+                        Box(
+                            modifier = Modifier
+                                .padding(vertical = 3.dp)
+                                .width(1.5.dp)
+                                .height(10.dp)
+                                .background(colors.divider),
+                        )
+                        ExpandableAddressLine(text = destinationLabel, color = colors.textSecondary)
+                    }
+                }
 
                 Spacer(Modifier.height(10.dp))
 
@@ -351,6 +357,26 @@ private fun DailyBudgetCard(kgCO2: Float, dailyGoal: Float) {
             )
         }
     }
+}
+
+// ── Expandable route address ──────────────────────────────────────────────────
+
+@Composable
+private fun ExpandableAddressLine(text: String, color: Color) {
+    var expanded by remember { mutableStateOf(false) }
+    Text(
+        text      = text,
+        style     = TextStyle(
+            fontSize  = 15.sp,
+            color     = color,
+            textAlign = TextAlign.Center,
+        ),
+        maxLines  = if (expanded) Int.MAX_VALUE else 1,
+        overflow  = TextOverflow.Ellipsis,
+        modifier  = Modifier
+            .padding(horizontal = 40.dp)
+            .clickable { expanded = !expanded },
+    )
 }
 
 // ── Zero emission celebration ─────────────────────────────────────────────────

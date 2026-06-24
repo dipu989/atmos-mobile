@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
@@ -219,15 +220,43 @@ internal fun ActivityRow(
         Spacer(Modifier.width(14.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = if (entry.destination.isBlank()) originLabel
-                           else "$originLabel → $destinationLabel",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.textPrimary,
-                    modifier = Modifier.weight(1f),
-                )
+            Row(verticalAlignment = Alignment.Top) {
+                if (entry.destination.isBlank()) {
+                    Text(
+                        text = originLabel,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    AddressTimelineDots(
+                        dotColor = entry.mode.iconTint,
+                        lineColor = colors.divider,
+                        modifier = Modifier.padding(top = 5.dp, end = 8.dp),
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = originLabel,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = destinationLabel,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
                 when {
                     entry.source == "gps+receipt" -> {
                         Spacer(Modifier.width(6.dp))
@@ -277,6 +306,36 @@ internal fun ActivityRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AddressTimelineDots(
+    dotColor: Color,
+    lineColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .background(dotColor, CircleShape),
+        )
+        Box(
+            modifier = Modifier
+                .padding(vertical = 2.dp)
+                .width(1.5.dp)
+                .height(16.dp)
+                .background(lineColor),
+        )
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .background(lineColor, CircleShape),
+        )
     }
 }
 
