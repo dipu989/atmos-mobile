@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -126,13 +127,16 @@ fun TripDetailScreen(
                 .padding(top = innerPadding.calculateTopPadding()),
         ) {
             // ── Hero ──────────────────────────────────────────────────────────
-            // Height reduced to 256dp; the TopAppBar above it (≈56dp) provides the
-            // same total visual area that the old 310dp hero + floating button did.
+            // Min-height 256dp (was a fixed height) so an expanded origin/destination
+            // address — see ExpandableAddressLine — grows the hero instead of
+            // overflowing past it into the card below, which used to swallow taps
+            // meant for the destination line.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(256.dp)
+                    .heightIn(min = 256.dp)
                     .background(colors.surface),
+                contentAlignment = Alignment.Center,
             ) {
                 // Atmospheric canvas background
                 Canvas(Modifier.matchParentSize()) {
@@ -156,10 +160,9 @@ fun TripDetailScreen(
                 // Centred hero content
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 16.dp),
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
             ) {
                 // Mode icon
                 Box(
