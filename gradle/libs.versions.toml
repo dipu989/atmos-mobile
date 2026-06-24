@@ -60,8 +60,8 @@ androidx-credentials                 = { module = "androidx.credentials:credenti
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth",                   version.ref = "credentials" }
 googleid                             = { module = "com.google.android.libraries.identity.googleid:googleid",                   version.ref = "googleid" }
 androidx-security-crypto              = { module = "androidx.security:security-crypto",                                         version.ref = "security-crypto" }
-androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version = "1.11.2" }
-androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version = "1.11.2" }
+androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version = "1.11.3" }
+androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version = "1.11.3" }
 compose-webview-multiplatform = { module = "io.github.kevinnzou:compose-webview-multiplatform", version.ref = "compose-webview" }
 
 # SQLDelight
