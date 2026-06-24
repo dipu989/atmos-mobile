@@ -3,6 +3,7 @@ package dev.atmos.shared.ui.tripdetail
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +61,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
@@ -195,26 +197,27 @@ fun TripDetailScreen(
                 Spacer(Modifier.height(14.dp))
 
                 // Route
-                Text(
-                    text  = run {
-                        val originLabel = commuteDisplayLabel(
-                            entry.origin, entry.originLat, entry.originLng, homeLat, homeLng, workLat, workLng,
+                run {
+                    val originLabel = commuteDisplayLabel(
+                        entry.origin, entry.originLat, entry.originLng, homeLat, homeLng, workLat, workLng,
+                    )
+                    if (entry.destination.isBlank()) {
+                        ExpandableAddressLine(text = originLabel, color = colors.textSecondary)
+                    } else {
+                        val destinationLabel = commuteDisplayLabel(
+                            entry.destination, entry.destLat, entry.destLng, homeLat, homeLng, workLat, workLng,
                         )
-                        if (entry.destination.isBlank()) {
-                            originLabel
-                        } else {
-                            val destinationLabel = commuteDisplayLabel(
-                                entry.destination, entry.destLat, entry.destLng, homeLat, homeLng, workLat, workLng,
-                            )
-                            "$originLabel  →  $destinationLabel"
-                        }
-                    },
-                    style = TextStyle(
-                        fontSize  = 15.sp,
-                        color     = colors.textSecondary,
-                        textAlign = TextAlign.Center,
-                    ),
-                )
+                        ExpandableAddressLine(text = originLabel, color = colors.textSecondary)
+                        Box(
+                            modifier = Modifier
+                                .padding(vertical = 3.dp)
+                                .width(1.5.dp)
+                                .height(10.dp)
+                                .background(colors.divider),
+                        )
+                        ExpandableAddressLine(text = destinationLabel, color = colors.textSecondary)
+                    }
+                }
 
                 Spacer(Modifier.height(10.dp))
 
@@ -351,6 +354,26 @@ private fun DailyBudgetCard(kgCO2: Float, dailyGoal: Float) {
             )
         }
     }
+}
+
+// ── Expandable route address ──────────────────────────────────────────────────
+
+@Composable
+private fun ExpandableAddressLine(text: String, color: Color) {
+    var expanded by remember { mutableStateOf(false) }
+    Text(
+        text      = text,
+        style     = TextStyle(
+            fontSize  = 15.sp,
+            color     = color,
+            textAlign = TextAlign.Center,
+        ),
+        maxLines  = if (expanded) Int.MAX_VALUE else 1,
+        overflow  = TextOverflow.Ellipsis,
+        modifier  = Modifier
+            .padding(horizontal = 40.dp)
+            .clickable { expanded = !expanded },
+    )
 }
 
 // ── Zero emission celebration ─────────────────────────────────────────────────
