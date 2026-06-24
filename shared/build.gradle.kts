@@ -71,6 +71,9 @@ kotlin {
             // Database
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines)
+
+            // In-app WebView (Terms of Service / Privacy Policy)
+            implementation(libs.compose.webview.multiplatform)
         }
 
         androidMain.dependencies {

@@ -1,7 +1,6 @@
 package dev.atmos.shared.ui.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -30,19 +28,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.atmos.shared.ui.common.PolicyWebViewDialog
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
+import dev.atmos.shared.util.PolicyUrls
 
 @Composable
 fun SignUpScreen(
@@ -64,6 +66,7 @@ fun SignUpScreen(
     var password        by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var termsAccepted   by remember { mutableStateOf(false) }
+    var webViewTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     var nameTouched            by remember { mutableStateOf(false) }
     var emailTouched           by remember { mutableStateOf(false) }
@@ -223,32 +226,44 @@ fun SignUpScreen(
                     ),
                 )
                 Spacer(Modifier.width(10.dp))
+                val linkStyles = TextLinkStyles(
+                    style = SpanStyle(
+                        color      = HorizonBlue,
+                        fontWeight = FontWeight.Medium,
+                        fontSize   = 13.sp,
+                    ),
+                )
                 Text(
                     text = buildAnnotatedString {
                         withStyle(SpanStyle(color = colors.textSecondary, fontSize = 13.sp)) {
                             append("I agree to the ")
                         }
-                        withStyle(SpanStyle(
-                            color      = HorizonBlue,
-                            fontWeight = FontWeight.Medium,
-                            fontSize   = 13.sp,
-                        )) {
+                        withLink(
+                            LinkAnnotation.Clickable(
+                                tag = "terms",
+                                styles = linkStyles,
+                                linkInteractionListener = {
+                                    webViewTarget = PolicyUrls.TERMS_OF_SERVICE to "Terms of Service"
+                                },
+                            ),
+                        ) {
                             append("Terms of Service")
                         }
                         withStyle(SpanStyle(color = colors.textSecondary, fontSize = 13.sp)) {
                             append(" and ")
                         }
-                        withStyle(SpanStyle(
-                            color      = HorizonBlue,
-                            fontWeight = FontWeight.Medium,
-                            fontSize   = 13.sp,
-                        )) {
+                        withLink(
+                            LinkAnnotation.Clickable(
+                                tag = "privacy",
+                                styles = linkStyles,
+                                linkInteractionListener = {
+                                    webViewTarget = PolicyUrls.PRIVACY_POLICY to "Privacy Policy"
+                                },
+                            ),
+                        ) {
                             append("Privacy Policy")
                         }
                     },
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable { termsAccepted = !termsAccepted },
                 )
             }
 
@@ -322,6 +337,10 @@ fun SignUpScreen(
                 onAction    = onNavigateToSignIn,
             )
         }
+    }
+
+    webViewTarget?.let { (url, title) ->
+        PolicyWebViewDialog(url = url, title = title, onDismiss = { webViewTarget = null })
     }
 }
 

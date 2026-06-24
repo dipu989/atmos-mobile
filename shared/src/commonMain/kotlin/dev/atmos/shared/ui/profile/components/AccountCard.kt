@@ -55,8 +55,7 @@ import dev.atmos.shared.ui.common.AtmosCard
 import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
-
-private const val PRIVACY_POLICY_URL = "https://atmosapp.dev/privacy"
+import dev.atmos.shared.util.PolicyUrls
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +98,7 @@ fun AccountCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { uriHandler.openUri(PRIVACY_POLICY_URL) }
+                .clickable { uriHandler.openUri(PolicyUrls.PRIVACY_POLICY) }
                 .padding(vertical = 12.dp),
         ) {
             Icon(imageVector = Icons.Outlined.Description, contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(20.dp))
