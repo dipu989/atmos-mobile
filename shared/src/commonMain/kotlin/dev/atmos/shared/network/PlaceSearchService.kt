@@ -15,6 +15,12 @@ data class PlaceResult(
     val lng: Double,
 )
 
+@Serializable
+data class DistanceResult(
+    val distanceKm: Double = 0.0,
+    val found: Boolean = false,
+)
+
 class PlaceSearchService(
     private val httpClient: HttpClient = AtmosHttpClient.instance,
 ) {
@@ -32,5 +38,30 @@ class PlaceSearchService(
             .body<ApiEnvelope<List<PlaceResult>>>()
             .data
             ?: emptyList()
+    }
+
+    /** Route distance in km between two coordinates for the given Google travel mode. */
+    suspend fun distance(
+        originLat: Double,
+        originLng: Double,
+        destLat: Double,
+        destLng: Double,
+        mode: String,
+    ): Result<DistanceResult> = runCatching {
+        val token = AppTokenStore.instance.getAccessToken()
+            ?: error("Not authenticated")
+
+        httpClient
+            .get("$ATMOS_BASE_URL/api/v1/places/distance") {
+                bearerAuth(token)
+                parameter("originLat", originLat)
+                parameter("originLng", originLng)
+                parameter("destLat", destLat)
+                parameter("destLng", destLng)
+                parameter("mode", mode)
+            }
+            .body<ApiEnvelope<DistanceResult>>()
+            .data
+            ?: DistanceResult()
     }
 }

@@ -42,12 +42,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,6 +65,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.atmos.shared.network.PlaceSearchService
 import dev.atmos.shared.ui.home.TransportModeType
 import dev.atmos.shared.ui.home.emissionFactor
 import dev.atmos.shared.ui.theme.AlertRed
@@ -72,6 +75,8 @@ import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
 import dev.atmos.shared.util.currentDateLabel
 import dev.atmos.shared.util.currentTimeLabel
+
+private val placeSearchService = PlaceSearchService()
 
 // ── Pre-fill model (used by pending trip Edit) ────────────────────────────────
 
@@ -159,6 +164,34 @@ private fun LogActivityContent(
     val distanceKm = distanceKmText.toFloatOrNull() ?: 0f
     val estimatedCO2 = distanceKm * selectedMode.emissionFactor
 
+    // Auto-calculated once origin + destination are both selected; re-armed whenever
+    // a new place is picked. Typing into the field directly disarms it so a later
+    // mode switch doesn't clobber a manual value.
+    var distanceAutoFillEnabled by remember { mutableStateOf(true) }
+    var isCalculatingDistance by remember { mutableStateOf(false) }
+
+    LaunchedEffect(originSelection, destSelection, selectedMode) {
+        val originPlace = originSelection
+        val destPlace = destSelection
+        val mode = selectedMode.distanceMatrixMode
+        if (originPlace == null || destPlace == null || mode == null || !distanceAutoFillEnabled) {
+            return@LaunchedEffect
+        }
+        isCalculatingDistance = true
+        try {
+            placeSearchService
+                .distance(originPlace.lat, originPlace.lng, destPlace.lat, destPlace.lng, mode)
+                .onSuccess { result ->
+                    if (result.found) {
+                        distanceKmText = result.distanceKm.toFloat().toDisplayString()
+                        distanceError = false
+                    }
+                }
+        } finally {
+            isCalculatingDistance = false
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -197,7 +230,10 @@ private fun LogActivityContent(
             PlaceAutocompleteField(
                 value = origin,
                 onValueChange = { origin = it; originError = false },
-                onPlaceSelected = { originSelection = it },
+                onPlaceSelected = {
+                    originSelection = it
+                    if (it != null) distanceAutoFillEnabled = true
+                },
                 placeholder = "Starting point",
                 leadingIcon = Icons.Outlined.MyLocation,
                 isError = originError,
@@ -229,7 +265,10 @@ private fun LogActivityContent(
             PlaceAutocompleteField(
                 value = destination,
                 onValueChange = { destination = it; destinationError = false },
-                onPlaceSelected = { destSelection = it },
+                onPlaceSelected = {
+                    destSelection = it
+                    if (it != null) distanceAutoFillEnabled = true
+                },
                 placeholder = "Destination",
                 leadingIcon = Icons.Outlined.LocationOn,
                 isError = destinationError,
@@ -247,12 +286,14 @@ private fun LogActivityContent(
                 if (dotCount <= 1) {
                     distanceKmText = filtered
                     distanceError = false
+                    distanceAutoFillEnabled = false
                 }
             },
             placeholder  = "e.g. 8.6",
             leadingIcon  = Icons.Outlined.Straighten,
             keyboardType = KeyboardType.Decimal,
             isError      = distanceError,
+            isLoading    = isCalculatingDistance,
         )
 
         // ── Date & Time ───────────────────────────────────────────────────────
@@ -432,6 +473,7 @@ private fun InputField(
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
     isError: Boolean = false,
+    isLoading: Boolean = false,
 ) {
     val colors = LocalAtmosColors.current
     var isFocused by remember { mutableStateOf(false) }
@@ -475,6 +517,13 @@ private fun InputField(
                 modifier = Modifier
                     .fillMaxWidth()
                     .onFocusChanged { isFocused = it.isFocused },
+            )
+        }
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(14.dp),
+                strokeWidth = 1.5.dp,
+                color = colors.textSecondary,
             )
         }
     }
@@ -615,6 +664,18 @@ val TransportModeType.displayLabel: String
         TransportModeType.TWO_WHEELER    -> "Two-Wheeler"
         TransportModeType.AUTO_RICKSHAW  -> "Auto"
         TransportModeType.FLIGHT         -> "Flight"
+    }
+
+/** Google Distance Matrix travel mode for auto-calculating distance. Null skips auto-calc (e.g. flights have no road/transit route). */
+private val TransportModeType.distanceMatrixMode: String?
+    get() = when (this) {
+        TransportModeType.DRIVING, TransportModeType.CAB,
+        TransportModeType.TWO_WHEELER, TransportModeType.AUTO_RICKSHAW -> "driving"
+        TransportModeType.CYCLING                                     -> "bicycling"
+        TransportModeType.WALKING                                     -> "walking"
+        TransportModeType.PUBLIC_TRANSIT, TransportModeType.BUS,
+        TransportModeType.METRO, TransportModeType.TRAIN               -> "transit"
+        TransportModeType.FLIGHT                                      -> null
     }
 
 // ── Formatting ────────────────────────────────────────────────────────────────
