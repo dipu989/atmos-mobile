@@ -35,8 +35,6 @@ private data class DeleteAccountRequest(
 private data class UpdatePreferencesRequest(
     @SerialName("daily_goal_kg_co2e")         @EncodeDefault(EncodeDefault.Mode.NEVER) val dailyGoalKgCo2e: Double? = null,
     @SerialName("push_notifications_enabled") @EncodeDefault(EncodeDefault.Mode.NEVER) val pushNotificationsEnabled: Boolean? = null,
-    @SerialName("weekly_report_enabled")      @EncodeDefault(EncodeDefault.Mode.NEVER) val weeklyReportEnabled: Boolean? = null,
-    @SerialName("data_sharing_enabled")       @EncodeDefault(EncodeDefault.Mode.NEVER) val dataSharingEnabled: Boolean? = null,
     @SerialName("distance_unit")              @EncodeDefault(EncodeDefault.Mode.NEVER) val distanceUnit: String? = null,
     @SerialName("home_address")               @EncodeDefault(EncodeDefault.Mode.NEVER) val homeAddress: String? = null,
     @SerialName("home_lat")                   @EncodeDefault(EncodeDefault.Mode.NEVER) val homeLat: Double? = null,
@@ -51,8 +49,6 @@ private data class UpdatePreferencesRequest(
 data class UserPreferencesDto(
     @SerialName("daily_goal_kg_co2e")         val dailyGoalKgCo2e: Double? = null,
     @SerialName("push_notifications_enabled") val pushNotificationsEnabled: Boolean? = null,
-    @SerialName("weekly_report_enabled")      val weeklyReportEnabled: Boolean? = null,
-    @SerialName("data_sharing_enabled")       val dataSharingEnabled: Boolean? = null,
     @SerialName("distance_unit")              val distanceUnit: String? = null,
     @SerialName("home_address")               val homeAddress: String? = null,
     @SerialName("home_lat")                   val homeLat: Double? = null,
@@ -157,8 +153,6 @@ class UserService(
     suspend fun updatePreferences(
         dailyGoalKgCO2e: Double? = null,
         pushNotificationsEnabled: Boolean? = null,
-        weeklyReportEnabled: Boolean? = null,
-        dataSharingEnabled: Boolean? = null,
         distanceUnit: String? = null,
         homeAddress: String? = null,
         homeLat: Double? = null,
@@ -177,8 +171,6 @@ class UserService(
             setBody(UpdatePreferencesRequest(
                 dailyGoalKgCo2e          = dailyGoalKgCO2e,
                 pushNotificationsEnabled = pushNotificationsEnabled,
-                weeklyReportEnabled      = weeklyReportEnabled,
-                dataSharingEnabled       = dataSharingEnabled,
                 distanceUnit             = distanceUnit,
                 homeAddress              = homeAddress,
                 homeLat                  = homeLat,
