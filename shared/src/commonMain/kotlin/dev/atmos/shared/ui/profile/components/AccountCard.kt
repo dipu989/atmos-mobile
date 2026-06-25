@@ -46,12 +46,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.atmos.shared.ui.common.AtmosCard
+import dev.atmos.shared.ui.common.PolicyWebViewDialog
 import dev.atmos.shared.ui.theme.AlertRed
 import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
@@ -66,9 +66,9 @@ fun AccountCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
-    val uriHandler = LocalUriHandler.current
     var showSignOutDialog  by remember { mutableStateOf(false) }
     var showDeleteSheet    by remember { mutableStateOf(false) }
+    var showPrivacyPolicy  by remember { mutableStateOf(false) }
 
     AtmosCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
         Text(
@@ -98,7 +98,7 @@ fun AccountCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { uriHandler.openUri(PolicyUrls.PRIVACY_POLICY) }
+                .clickable { showPrivacyPolicy = true }
                 .padding(vertical = 12.dp),
         ) {
             Icon(imageVector = Icons.Outlined.Description, contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(20.dp))
@@ -158,6 +158,15 @@ fun AccountCard(
         DeleteAccountSheet(
             onConfirm  = { confirmation, onError -> onDeleteAccount(confirmation, onError) },
             onDismiss  = { showDeleteSheet = false },
+        )
+    }
+
+    // ── Privacy policy ────────────────────────────────────────────────────────
+    if (showPrivacyPolicy) {
+        PolicyWebViewDialog(
+            url       = PolicyUrls.PRIVACY_POLICY,
+            title     = "Privacy Policy",
+            onDismiss = { showPrivacyPolicy = false },
         )
     }
 }
