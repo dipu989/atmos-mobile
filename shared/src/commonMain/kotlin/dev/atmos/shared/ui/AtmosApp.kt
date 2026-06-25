@@ -461,8 +461,6 @@ fun AtmosApp() {
     var gmailIsLoading    by remember { mutableStateOf(false) }
     var isDeletingAccount by remember { mutableStateOf(false) }
     var notificationsJob:  Job? by remember { mutableStateOf(null) }
-    var weeklyReportJob:   Job? by remember { mutableStateOf(null) }
-    var dataSharingJob:    Job? by remember { mutableStateOf(null) }
     var homeAddressJob:    Job? by remember { mutableStateOf(null) }
     var workAddressJob:    Job? by remember { mutableStateOf(null) }
     var transportJob:      Job? by remember { mutableStateOf(null) }
@@ -501,8 +499,6 @@ fun AtmosApp() {
         )
     }
     var notificationsEnabled by remember { mutableStateOf(settings.getBoolean("notifications_enabled", true)) }
-    var weeklyReportEnabled  by remember { mutableStateOf(settings.getBoolean("weekly_report", true)) }
-    var dataSharingEnabled   by remember { mutableStateOf(settings.getBoolean("data_sharing", false)) }
 
     // FCM push token — updated reactively by FcmTokenStore (seeded by MainActivity on cold start,
     // updated by AtmosFirebaseMessagingService on token rotation). Null on iOS (FCM is Android-only).
@@ -613,14 +609,6 @@ fun AtmosApp() {
                     notificationsEnabled = prefs.pushNotificationsEnabled
                     settings.putBoolean("notifications_enabled", prefs.pushNotificationsEnabled)
                 }
-                if (prefs.weeklyReportEnabled != null) {
-                    weeklyReportEnabled = prefs.weeklyReportEnabled
-                    settings.putBoolean("weekly_report", prefs.weeklyReportEnabled)
-                }
-                if (prefs.dataSharingEnabled != null) {
-                    dataSharingEnabled = prefs.dataSharingEnabled
-                    settings.putBoolean("data_sharing", prefs.dataSharingEnabled)
-                }
                 // distance_unit is always non-null on backend (defaults to "km") — always authoritative.
                 val backendUnitsLabel = prefs.distanceUnit?.toUnitsLabel() ?: "Metric (km)"
                 unitsLabel = backendUnitsLabel
@@ -659,8 +647,6 @@ fun AtmosApp() {
                 // before the request completes, preventing a write against a stale token.
                 val needsBootstrap = prefs.dailyGoalKgCo2e == null ||
                     prefs.pushNotificationsEnabled == null ||
-                    prefs.weeklyReportEnabled == null ||
-                    prefs.dataSharingEnabled == null ||
                     (prefs.homeAddress == null && commuteHome.isNotBlank()) ||
                     (prefs.workAddress == null && commuteWork.isNotBlank()) ||
                     prefs.defaultTransport == null
@@ -669,8 +655,6 @@ fun AtmosApp() {
                         userService.updatePreferences(
                             dailyGoalKgCO2e          = if (prefs.dailyGoalKgCo2e == null) dailyGoalKgCO2.toDouble() else null,
                             pushNotificationsEnabled = if (prefs.pushNotificationsEnabled == null) notificationsEnabled else null,
-                            weeklyReportEnabled      = if (prefs.weeklyReportEnabled == null) weeklyReportEnabled else null,
-                            dataSharingEnabled       = if (prefs.dataSharingEnabled == null) dataSharingEnabled else null,
                             homeAddress              = if (prefs.homeAddress == null && commuteHome.isNotBlank()) commuteHome else null,
                             workAddress              = if (prefs.workAddress == null && commuteWork.isNotBlank()) commuteWork else null,
                             defaultTransport         = if (prefs.defaultTransport == null) defaultTransport else null,
@@ -1393,8 +1377,6 @@ fun AtmosApp() {
                         work        = CommuteLocation("Work", commuteWork.takeIf { it.isNotBlank() }, commuteWorkLat, commuteWorkLng),
                         preferences = previewProfileUiState.preferences.copy(
                             pushNotificationsEnabled = notificationsEnabled,
-                            weeklyReportEnabled      = weeklyReportEnabled,
-                            dataSharingEnabled       = dataSharingEnabled,
                             appearanceMode           = appearanceMode,
                             defaultTransportLabel    = defaultTransport,
                             unitsLabel               = unitsLabel,
@@ -1442,32 +1424,6 @@ fun AtmosApp() {
                             userService.updatePreferences(pushNotificationsEnabled = enabled).onFailure {
                                 notificationsEnabled = prev
                                 settings.putBoolean("notifications_enabled", prev)
-                                onError("Could not save preference — please try again")
-                            }
-                        }
-                    },
-                    onWeeklyReportToggle   = { enabled, onError ->
-                        weeklyReportJob?.cancel()
-                        val prev = weeklyReportEnabled
-                        weeklyReportEnabled = enabled
-                        settings.putBoolean("weekly_report", enabled)
-                        weeklyReportJob = scope.launch {
-                            userService.updatePreferences(weeklyReportEnabled = enabled).onFailure {
-                                weeklyReportEnabled = prev
-                                settings.putBoolean("weekly_report", prev)
-                                onError("Could not save preference — please try again")
-                            }
-                        }
-                    },
-                    onDataSharingToggle    = { enabled, onError ->
-                        dataSharingJob?.cancel()
-                        val prev = dataSharingEnabled
-                        dataSharingEnabled = enabled
-                        settings.putBoolean("data_sharing", enabled)
-                        dataSharingJob = scope.launch {
-                            userService.updatePreferences(dataSharingEnabled = enabled).onFailure {
-                                dataSharingEnabled = prev
-                                settings.putBoolean("data_sharing", prev)
                                 onError("Could not save preference — please try again")
                             }
                         }

@@ -125,8 +125,6 @@ fun ProfileScreen(
     onNavigateToActivities: () -> Unit = {},
     onAppearanceChange: (AppearanceMode) -> Unit = {},
     onNotificationsToggle: (Boolean, onError: (String) -> Unit) -> Unit = { _, _ -> },
-    onWeeklyReportToggle: (Boolean, onError: (String) -> Unit) -> Unit = { _, _ -> },
-    onDataSharingToggle: (Boolean, onError: (String) -> Unit) -> Unit = { _, _ -> },
     onGoalChange: (Float) -> Unit = {},
     onAvatarClick: () -> Unit = {},
     onSaveName: (name: String, onSuccess: () -> Unit, onError: () -> Unit) -> Unit = { _, _, _ -> },
@@ -274,16 +272,6 @@ fun ProfileScreen(
                         preferences           = effectivePreferences,
                         onNotificationsToggle = { enabled ->
                             onNotificationsToggle(enabled) { msg ->
-                                scope.launch { snackbarHostState.showSnackbar(msg) }
-                            }
-                        },
-                        onWeeklyReportToggle  = { enabled ->
-                            onWeeklyReportToggle(enabled) { msg ->
-                                scope.launch { snackbarHostState.showSnackbar(msg) }
-                            }
-                        },
-                        onDataSharingToggle   = { enabled ->
-                            onDataSharingToggle(enabled) { msg ->
                                 scope.launch { snackbarHostState.showSnackbar(msg) }
                             }
                         },
