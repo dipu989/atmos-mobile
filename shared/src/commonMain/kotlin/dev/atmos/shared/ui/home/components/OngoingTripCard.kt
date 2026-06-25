@@ -43,6 +43,9 @@ import dev.atmos.shared.ui.home.TransportModeType
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
+import dev.atmos.shared.util.LocalDistanceUnit
+import dev.atmos.shared.util.formatDistance
+import dev.atmos.shared.util.formatDistanceValue
 
 /**
  * Live trip card shown on HomeScreen while a session is being tracked.
@@ -141,6 +144,7 @@ private fun ActiveCard(
     modifier: Modifier = Modifier,
 ) {
     val colors  = LocalAtmosColors.current
+    val unit = LocalDistanceUnit.current
     val dotAlpha by PulsingAlpha()
     val mode = (state.phase as? SessionPhase.Active)?.currentMode
         ?: state.currentLeg?.mode
@@ -190,8 +194,8 @@ private fun ActiveCard(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
         ) {
             StatCell(
-                value = state.totalDistKm.toDisplayString(),
-                unit  = "km",
+                value = state.totalDistKm.formatDistanceValue(unit),
+                unit  = unit.label,
             )
             VerticalDividerLine()
             StatCell(
@@ -201,7 +205,7 @@ private fun ActiveCard(
             if (state.currentLeg != null) {
                 VerticalDividerLine()
                 StatCell(
-                    value = state.currentLeg.distanceKm.toDisplayString(),
+                    value = state.currentLeg.distanceKm.formatDistanceValue(unit),
                     unit  = "${mode?.emoji ?: "📍"} leg",
                 )
             }
@@ -218,7 +222,7 @@ private fun ActiveCard(
             ) {
                 state.completedLegs.forEach { leg ->
                     Text(
-                        text = "${leg.mode.emoji} ${leg.distanceKm.toDisplayString()} km",
+                        text = "${leg.mode.emoji} ${leg.distanceKm.formatDistance(unit)}",
                         fontSize = 12.sp,
                         color = colors.textSecondary,
                     )
@@ -245,6 +249,7 @@ private fun LegEndingCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
+    val unit = LocalDistanceUnit.current
     val dotAlpha by PulsingAlpha()
 
     Column(
@@ -320,7 +325,7 @@ private fun LegEndingCard(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 16.dp),
         ) {
-            StatCell(value = state.totalDistKm.toDisplayString(), unit = "km")
+            StatCell(value = state.totalDistKm.formatDistanceValue(unit), unit = unit.label)
             VerticalDividerLine()
             StatCell(value = "${state.elapsedMin}", unit = "min")
         }
@@ -335,7 +340,7 @@ private fun LegEndingCard(
             ) {
                 state.completedLegs.forEach { leg ->
                     Text(
-                        text = "${leg.mode.emoji} ${leg.distanceKm.toDisplayString()} km",
+                        text = "${leg.mode.emoji} ${leg.distanceKm.formatDistance(unit)}",
                         fontSize = 12.sp,
                         color = colors.textSecondary,
                     )
@@ -462,10 +467,3 @@ private val TransportModeType.emoji: String
         TransportModeType.CYCLING        -> "🚲"
         TransportModeType.FLIGHT         -> "✈️"
     }
-
-private fun Float.toDisplayString(): String {
-    if (this == 0f) return "0"
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    return "$intPart.${((this - intPart) * 10).toInt()}"
-}

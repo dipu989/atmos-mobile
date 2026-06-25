@@ -58,6 +58,8 @@ import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
+import dev.atmos.shared.util.LocalDistanceUnit
+import dev.atmos.shared.util.formatDistance
 
 // KMP-safe decimal formatters (no String.format / JVM dependency)
 private fun Float.fmt1dp(): String {
@@ -281,6 +283,7 @@ private fun PeriodNavigator(
 @Composable
 private fun SummaryCard(summary: StatsSummary, period: StatsPeriod) {
     val colors = LocalAtmosColors.current
+    val unit = LocalDistanceUnit.current
 
     AtmosCard(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -319,7 +322,7 @@ private fun SummaryCard(summary: StatsSummary, period: StatsPeriod) {
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            MetaStat(label = "Distance", value = "${summary.totalDistKm.fmt1dp()} km")
+            MetaStat(label = "Distance", value = summary.totalDistKm.formatDistance(unit))
             MetaStat(label = "Trips",    value = summary.activityCount.toString())
             if (summary.prevTotalKgCo2 > 0f) {
                 MetaStat(label = "Prev period", value = "${summary.prevTotalKgCo2.fmt1dp()} kg")
@@ -451,6 +454,7 @@ private fun BreakdownCard(breakdown: List<TransportModeEntry>) {
 @Composable
 private fun BreakdownRow(entry: TransportModeEntry, maxDist: Float) {
     val colors = LocalAtmosColors.current
+    val unit = LocalDistanceUnit.current
     val barColor = when {
         entry.mode.isHighEmission -> AlertRed
         entry.mode.isZeroEmission -> Sage
@@ -473,7 +477,7 @@ private fun BreakdownRow(entry: TransportModeEntry, maxDist: Float) {
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "${entry.distanceKm.fmt1dp()} km",
+                    text = entry.distanceKm.formatDistance(unit),
                     fontSize = 12.sp,
                     color = colors.textSecondary,
                 )

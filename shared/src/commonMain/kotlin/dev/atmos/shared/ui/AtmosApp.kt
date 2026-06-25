@@ -6,6 +6,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,6 +84,9 @@ import dev.atmos.shared.ui.profile.ProfileScreen
 import dev.atmos.shared.ui.profile.previewProfileUiState
 import dev.atmos.shared.ui.profile.toInitials
 import dev.atmos.shared.util.toDisplayString
+import dev.atmos.shared.util.LocalDistanceUnit
+import dev.atmos.shared.util.asDistanceUnit
+import dev.atmos.shared.util.formatDistance
 import dev.atmos.shared.ui.stats.StatsPeriod
 import dev.atmos.shared.ui.stats.StatsScreen
 import dev.atmos.shared.ui.stats.StatsSummary
@@ -491,6 +495,7 @@ fun AtmosApp() {
     // "Bus" is the label that profileTransportOptions assigns to PUBLIC_TRANSIT — must match exactly.
     var defaultTransport by remember { mutableStateOf(settings.getString("default_transport", "Bus")) }
     var unitsLabel       by remember { mutableStateOf(settings.getString("units_label", "Metric (km)")) }
+    val currentDistanceUnit = remember(unitsLabel) { unitsLabel.toDistanceUnit().asDistanceUnit() }
     var appearanceMode   by remember {
         mutableStateOf(
             settings.getStringOrNull("appearance_mode")
@@ -1151,7 +1156,7 @@ fun AtmosApp() {
             source      = "auto_detect",
         )
         val result = snackbarHostState.showSnackbar(
-            message     = "Trip saved · ${saved.totalDistKm.toDisplayString()} km",
+            message     = "Trip saved · ${saved.totalDistKm.formatDistance(currentDistanceUnit)}",
             actionLabel = "Edit",
             withDismissAction = false,
         )
@@ -1200,6 +1205,7 @@ fun AtmosApp() {
         }
     }
 
+    CompositionLocalProvider(LocalDistanceUnit provides currentDistanceUnit) {
     AtmosTheme(appearanceMode = appearanceMode) {
         val colors = LocalAtmosColors.current
 
@@ -1781,5 +1787,6 @@ fun AtmosApp() {
                 )
             }
         }
+    }
     }
 }

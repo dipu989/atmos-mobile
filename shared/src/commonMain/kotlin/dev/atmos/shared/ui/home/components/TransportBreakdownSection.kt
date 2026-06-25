@@ -50,6 +50,8 @@ import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
+import dev.atmos.shared.util.LocalDistanceUnit
+import dev.atmos.shared.util.formatDistance
 
 // ── Color mappings ────────────────────────────────────────────────────────────
 
@@ -182,6 +184,7 @@ private fun TransportModeRow(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
+    val unit = LocalDistanceUnit.current
     val rowBg = if (entry.mode.isZeroEmission) colors.subtleGreenBg else Color.Transparent
 
     Column(
@@ -224,7 +227,7 @@ private fun TransportModeRow(
                 )
                 Spacer(Modifier.height(1.dp))
                 Text(
-                    text = "${entry.distanceKm.toDistanceString()} km",
+                    text = entry.distanceKm.formatDistance(unit),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Normal,
                     color = colors.textSecondary,
@@ -304,12 +307,6 @@ private fun AnimatedProgressBar(
 
 private fun Float.toKgString(): String {
     if (this == 0f) return "0"
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    return "$intPart.${((this - intPart) * 10).toInt()}"
-}
-
-private fun Float.toDistanceString(): String {
     if (this % 1f == 0f) return toInt().toString()
     val intPart = toInt()
     return "$intPart.${((this - intPart) * 10).toInt()}"

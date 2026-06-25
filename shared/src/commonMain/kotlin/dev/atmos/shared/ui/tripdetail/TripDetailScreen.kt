@@ -75,6 +75,8 @@ import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
+import dev.atmos.shared.util.LocalDistanceUnit
+import dev.atmos.shared.util.formatDistance
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -92,6 +94,7 @@ fun TripDetailScreen(
     onDelete: () -> Unit = {},
 ) {
     val colors      = LocalAtmosColors.current
+    val unit        = LocalDistanceUnit.current
     val scrollState = rememberScrollState()
     val heroColor   = entry.mode.themeColor
 
@@ -227,7 +230,7 @@ fun TripDetailScreen(
                 // Distance · Duration pills
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (entry.distanceKm > 0f) {
-                        HeroPill("${entry.distanceKm.toDisplayString()} km")
+                        HeroPill(entry.distanceKm.formatDistance(unit))
                     }
                     HeroPill("${entry.durationMin} min")
                 }
