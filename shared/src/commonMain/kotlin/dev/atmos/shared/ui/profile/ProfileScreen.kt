@@ -113,6 +113,11 @@ private val profileTransportOptions = listOf(
     ProfileTransportOption(TransportModeType.WALKING,        "Walk",          Icons.AutoMirrored.Outlined.DirectionsWalk, Sage,        Color(0xFFE8F7F0)),
 )
 
+/** Maps a saved `default_transport` label (e.g. "Cab / Taxi") back to its [TransportModeType]. */
+fun transportModeFromLabel(label: String): TransportModeType =
+    profileTransportOptions.firstOrNull { it.label.equals(label, ignoreCase = true) }?.mode
+        ?: TransportModeType.PUBLIC_TRANSIT
+
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -152,11 +157,7 @@ fun ProfileScreen(
     var workAddressLat    by remember { mutableStateOf(state.work.lat) }
     var workAddressLng    by remember { mutableStateOf(state.work.lng) }
     var selectedTransport by remember(state.preferences.defaultTransportLabel) {
-        mutableStateOf(
-            profileTransportOptions
-                .firstOrNull { it.label.equals(state.preferences.defaultTransportLabel, ignoreCase = true) }
-                ?.mode ?: TransportModeType.PUBLIC_TRANSIT,
-        )
+        mutableStateOf(transportModeFromLabel(state.preferences.defaultTransportLabel))
     }
     var selectedUnits by remember(state.preferences.unitsLabel) {
         mutableStateOf(

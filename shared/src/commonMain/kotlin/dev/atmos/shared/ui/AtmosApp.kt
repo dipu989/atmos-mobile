@@ -83,6 +83,7 @@ import dev.atmos.shared.ui.profile.CommuteLocation
 import dev.atmos.shared.ui.profile.ProfileScreen
 import dev.atmos.shared.ui.profile.previewProfileUiState
 import dev.atmos.shared.ui.profile.toInitials
+import dev.atmos.shared.ui.profile.transportModeFromLabel
 import dev.atmos.shared.util.toDisplayString
 import dev.atmos.shared.util.LocalDistanceUnit
 import dev.atmos.shared.util.asDistanceUnit
@@ -1676,6 +1677,7 @@ fun AtmosApp() {
             // ── Log Activity sheet — global, shown over any screen ───────────
             if (showLogActivity) {
                 LogActivitySheet(
+                    defaultMode = transportModeFromLabel(defaultTransport),
                     prefill   = tripToEdit?.let { t ->
                         LogActivityPrefill(
                             origin      = t.origin,

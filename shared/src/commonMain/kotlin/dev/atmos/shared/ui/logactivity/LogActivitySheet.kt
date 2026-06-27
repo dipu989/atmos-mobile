@@ -106,6 +106,7 @@ fun LogActivitySheet(
     onDismiss: () -> Unit,
     onTripLogged: (LoggedTrip) -> Unit = {},
     prefill: LogActivityPrefill? = null,
+    defaultMode: TransportModeType = TransportModeType.DRIVING,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
     val colors = LocalAtmosColors.current
@@ -125,6 +126,7 @@ fun LogActivitySheet(
                 onDismiss = onDismiss,
                 onTripLogged = onTripLogged,
                 prefill = prefill,
+                defaultMode = defaultMode,
                 modifier = Modifier.height(sheetHeight),
             )
         }
@@ -138,11 +140,12 @@ private fun LogActivityContent(
     onDismiss: () -> Unit,
     onTripLogged: (LoggedTrip) -> Unit,
     prefill: LogActivityPrefill? = null,
+    defaultMode: TransportModeType = TransportModeType.DRIVING,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
     val unit = LocalDistanceUnit.current
-    var selectedMode by remember { mutableStateOf(prefill?.mode ?: TransportModeType.DRIVING) }
+    var selectedMode by remember { mutableStateOf(prefill?.mode ?: defaultMode) }
     var origin by remember { mutableStateOf(prefill?.origin ?: "") }
     var destination by remember { mutableStateOf(prefill?.destination ?: "") }
     // Resolved coordinates from Google Places autocomplete.
