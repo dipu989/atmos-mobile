@@ -77,6 +77,7 @@ import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
 import dev.atmos.shared.util.LocalDistanceUnit
 import dev.atmos.shared.util.formatDistance
+import dev.atmos.shared.util.toDisplayString
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -820,10 +821,3 @@ private val Float.co2Color: Color
         this < 2f   -> Peach
         else        -> AlertRed
     }
-
-private fun Float.toDisplayString(): String {
-    if (this == 0f) return "0"
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    return "$intPart.${((this - intPart) * 10).toInt()}"
-}

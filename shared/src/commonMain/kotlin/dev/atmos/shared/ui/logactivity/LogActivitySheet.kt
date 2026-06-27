@@ -79,6 +79,7 @@ import dev.atmos.shared.util.LocalDistanceUnit
 import dev.atmos.shared.util.formatDistance
 import dev.atmos.shared.util.formatDistanceValue
 import dev.atmos.shared.util.fromDisplayUnit
+import dev.atmos.shared.util.toDisplayString
 
 private val placeSearchService = PlaceSearchService()
 
@@ -164,11 +165,15 @@ private fun LogActivityContent(
     var distanceError by remember { mutableStateOf(false) }
 
     // Distance: user-editable; pre-filled when editing an existing trip.
-    // The field always shows/accepts the active display unit — distanceKm (canonical,
-    // backend-facing) is converted from it below and back again wherever it's set.
-    val prefillDistStr = prefill?.distanceKm?.let { if (it > 0f) it.formatDistanceValue(unit) else "" } ?: ""
-    var distanceText by remember(prefill) { mutableStateOf(prefillDistStr) }
-    val distanceKm = (distanceText.toFloatOrNull() ?: 0f).fromDisplayUnit(unit)
+    // distanceKm is the only canonical (backend-facing) source of truth — it's set
+    // directly from prefill/autofill (full precision) or from parsing the user's own
+    // typed input. distanceText is purely a display-unit projection of it; re-deriving
+    // distanceKm FROM distanceText on every recomposition would round-trip an untouched
+    // value through its truncated display text and silently drift it on save.
+    var distanceKm by remember(prefill) { mutableStateOf(prefill?.distanceKm ?: 0f) }
+    var distanceText by remember(prefill) {
+        mutableStateOf(if (distanceKm > 0f) distanceKm.formatDistanceValue(unit) else "")
+    }
     val estimatedCO2 = distanceKm * selectedMode.emissionFactor
 
     // Auto-calculated once origin + destination are both selected; re-armed whenever
@@ -190,7 +195,8 @@ private fun LogActivityContent(
                 .distance(originPlace.lat, originPlace.lng, destPlace.lat, destPlace.lng, mode)
                 .onSuccess { result ->
                     if (result.found) {
-                        distanceText = result.distanceKm.toFloat().formatDistanceValue(unit)
+                        distanceKm = result.distanceKm.toFloat()
+                        distanceText = distanceKm.formatDistanceValue(unit)
                         distanceError = false
                     }
                 }
@@ -292,6 +298,7 @@ private fun LogActivityContent(
                 val dotCount = filtered.count { it == '.' }
                 if (dotCount <= 1) {
                     distanceText = filtered
+                    distanceKm = (filtered.toFloatOrNull() ?: 0f).fromDisplayUnit(unit)
                     distanceError = false
                     distanceAutoFillEnabled = false
                 }
@@ -686,12 +693,3 @@ private val TransportModeType.distanceMatrixMode: String?
         TransportModeType.FLIGHT                                      -> null
     }
 
-// ── Formatting ────────────────────────────────────────────────────────────────
-
-private fun Float.toDisplayString(): String {
-    if (this == 0f) return "0"
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    val dec = ((this - intPart) * 10).toInt()
-    return "$intPart.$dec"
-}
