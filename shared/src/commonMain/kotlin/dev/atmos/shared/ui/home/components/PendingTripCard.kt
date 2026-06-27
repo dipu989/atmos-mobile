@@ -44,6 +44,8 @@ import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
+import dev.atmos.shared.util.LocalDistanceUnit
+import dev.atmos.shared.util.formatDistance
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 
@@ -63,6 +65,7 @@ fun PendingTripCard(
     modifier: Modifier = Modifier,
 ) {
     val colors      = LocalAtmosColors.current
+    val unit        = LocalDistanceUnit.current
     val primaryMode = session.legs.firstOrNull()?.mode ?: TransportModeType.DRIVING
     val isMultiLeg  = session.legs.size > 1
 
@@ -132,7 +135,7 @@ fun PendingTripCard(
                     // "🚗 8.6 km  ·  🚶 0.6 km"
                     Text(
                         text = session.legs.joinToString("  ·  ") { leg ->
-                            "${leg.mode.emoji} ${leg.distanceKm.toDisplayString()} km"
+                            "${leg.mode.emoji} ${leg.distanceKm.formatDistance(unit)}"
                         },
                         fontSize   = 14.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -148,7 +151,7 @@ fun PendingTripCard(
                 }
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    text     = "${session.totalDistKm.toDisplayString()} km · ${session.totalDurationMin} min",
+                    text     = "${session.totalDistKm.formatDistance(unit)} · ${session.totalDurationMin} min",
                     fontSize = 13.sp,
                     color    = colors.textSecondary,
                 )
@@ -265,9 +268,3 @@ private val TransportModeType.icon: ImageVector
         TransportModeType.WALKING        -> Icons.AutoMirrored.Outlined.DirectionsWalk
         TransportModeType.TWO_WHEELER    -> Icons.AutoMirrored.Outlined.DirectionsBike
     }
-
-private fun Float.toDisplayString(): String {
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    return "$intPart.${((this - intPart) * 10).toInt()}"
-}

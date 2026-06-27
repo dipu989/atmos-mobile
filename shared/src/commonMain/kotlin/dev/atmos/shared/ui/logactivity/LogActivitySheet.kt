@@ -75,6 +75,11 @@ import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
 import dev.atmos.shared.util.currentDateLabel
 import dev.atmos.shared.util.currentTimeLabel
+import dev.atmos.shared.util.LocalDistanceUnit
+import dev.atmos.shared.util.formatDistance
+import dev.atmos.shared.util.formatDistanceValue
+import dev.atmos.shared.util.fromDisplayUnit
+import dev.atmos.shared.util.toDisplayString
 
 private val placeSearchService = PlaceSearchService()
 
@@ -136,6 +141,7 @@ private fun LogActivityContent(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAtmosColors.current
+    val unit = LocalDistanceUnit.current
     var selectedMode by remember { mutableStateOf(prefill?.mode ?: TransportModeType.DRIVING) }
     var origin by remember { mutableStateOf(prefill?.origin ?: "") }
     var destination by remember { mutableStateOf(prefill?.destination ?: "") }
@@ -159,9 +165,15 @@ private fun LogActivityContent(
     var distanceError by remember { mutableStateOf(false) }
 
     // Distance: user-editable; pre-filled when editing an existing trip.
-    val prefillDistStr = prefill?.distanceKm?.let { if (it > 0f) it.toDisplayString() else "" } ?: ""
-    var distanceKmText by remember(prefill) { mutableStateOf(prefillDistStr) }
-    val distanceKm = distanceKmText.toFloatOrNull() ?: 0f
+    // distanceKm is the only canonical (backend-facing) source of truth — it's set
+    // directly from prefill/autofill (full precision) or from parsing the user's own
+    // typed input. distanceText is purely a display-unit projection of it; re-deriving
+    // distanceKm FROM distanceText on every recomposition would round-trip an untouched
+    // value through its truncated display text and silently drift it on save.
+    var distanceKm by remember(prefill) { mutableStateOf(prefill?.distanceKm ?: 0f) }
+    var distanceText by remember(prefill) {
+        mutableStateOf(if (distanceKm > 0f) distanceKm.formatDistanceValue(unit) else "")
+    }
     val estimatedCO2 = distanceKm * selectedMode.emissionFactor
 
     // Auto-calculated once origin + destination are both selected; re-armed whenever
@@ -183,7 +195,8 @@ private fun LogActivityContent(
                 .distance(originPlace.lat, originPlace.lng, destPlace.lat, destPlace.lng, mode)
                 .onSuccess { result ->
                     if (result.found) {
-                        distanceKmText = result.distanceKm.toFloat().toDisplayString()
+                        distanceKm = result.distanceKm.toFloat()
+                        distanceText = distanceKm.formatDistanceValue(unit)
                         distanceError = false
                     }
                 }
@@ -276,15 +289,16 @@ private fun LogActivityContent(
         }
 
         // ── Distance ──────────────────────────────────────────────────────────
-        SectionLabel("Distance (km)")
+        SectionLabel("Distance (${unit.label})")
         InputField(
-            value        = distanceKmText,
+            value        = distanceText,
             onValueChange = { input ->
                 // Allow digits and at most one decimal point
                 val filtered = input.filter { it.isDigit() || it == '.' }
                 val dotCount = filtered.count { it == '.' }
                 if (dotCount <= 1) {
-                    distanceKmText = filtered
+                    distanceText = filtered
+                    distanceKm = (filtered.toFloatOrNull() ?: 0f).fromDisplayUnit(unit)
                     distanceError = false
                     distanceAutoFillEnabled = false
                 }
@@ -566,6 +580,7 @@ private fun Co2EstimateCard(
     modeName: String,
 ) {
     val colors = LocalAtmosColors.current
+    val unit = LocalDistanceUnit.current
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -609,7 +624,7 @@ private fun Co2EstimateCard(
 
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "${distanceKm.toDisplayString()} km",
+                text = distanceKm.formatDistance(unit),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 color = colors.textSecondary,
@@ -678,12 +693,3 @@ private val TransportModeType.distanceMatrixMode: String?
         TransportModeType.FLIGHT                                      -> null
     }
 
-// ── Formatting ────────────────────────────────────────────────────────────────
-
-private fun Float.toDisplayString(): String {
-    if (this == 0f) return "0"
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    val dec = ((this - intPart) * 10).toInt()
-    return "$intPart.$dec"
-}

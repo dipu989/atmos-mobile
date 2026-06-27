@@ -58,16 +58,21 @@ import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
+import dev.atmos.shared.util.LocalDistanceUnit
+import dev.atmos.shared.util.formatDistance
 
-// KMP-safe decimal formatters (no String.format / JVM dependency)
+// KMP-safe decimal formatters (no String.format / JVM dependency).
+// Truncating (not rounding) to match the toDisplayString() convention used for
+// every other numeric display in the app, so this screen doesn't show CO2/kg
+// rounded one way and distance rounded another.
 private fun Float.fmt1dp(): String {
-    val rounded = ((this * 10f) + 0.5f).toInt()
-    return "${rounded / 10}.${rounded % 10}"
+    val scaled = (this * 10f).toInt()
+    return "${scaled / 10}.${scaled % 10}"
 }
 
 private fun Float.fmt2dp(): String {
-    val rounded = ((this * 100f) + 0.5f).toInt()
-    return "${rounded / 100}.${(rounded % 100).toString().padStart(2, '0')}"
+    val scaled = (this * 100f).toInt()
+    return "${scaled / 100}.${(scaled % 100).toString().padStart(2, '0')}"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -281,6 +286,7 @@ private fun PeriodNavigator(
 @Composable
 private fun SummaryCard(summary: StatsSummary, period: StatsPeriod) {
     val colors = LocalAtmosColors.current
+    val unit = LocalDistanceUnit.current
 
     AtmosCard(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -319,7 +325,7 @@ private fun SummaryCard(summary: StatsSummary, period: StatsPeriod) {
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            MetaStat(label = "Distance", value = "${summary.totalDistKm.fmt1dp()} km")
+            MetaStat(label = "Distance", value = summary.totalDistKm.formatDistance(unit))
             MetaStat(label = "Trips",    value = summary.activityCount.toString())
             if (summary.prevTotalKgCo2 > 0f) {
                 MetaStat(label = "Prev period", value = "${summary.prevTotalKgCo2.fmt1dp()} kg")
@@ -451,6 +457,7 @@ private fun BreakdownCard(breakdown: List<TransportModeEntry>) {
 @Composable
 private fun BreakdownRow(entry: TransportModeEntry, maxDist: Float) {
     val colors = LocalAtmosColors.current
+    val unit = LocalDistanceUnit.current
     val barColor = when {
         entry.mode.isHighEmission -> AlertRed
         entry.mode.isZeroEmission -> Sage
@@ -473,7 +480,7 @@ private fun BreakdownRow(entry: TransportModeEntry, maxDist: Float) {
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "${entry.distanceKm.fmt1dp()} km",
+                    text = entry.distanceKm.formatDistance(unit),
                     fontSize = 12.sp,
                     color = colors.textSecondary,
                 )

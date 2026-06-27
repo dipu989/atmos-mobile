@@ -75,6 +75,9 @@ import dev.atmos.shared.ui.theme.HorizonBlue
 import dev.atmos.shared.ui.theme.LocalAtmosColors
 import dev.atmos.shared.ui.theme.Peach
 import dev.atmos.shared.ui.theme.Sage
+import dev.atmos.shared.util.LocalDistanceUnit
+import dev.atmos.shared.util.formatDistance
+import dev.atmos.shared.util.toDisplayString
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -92,6 +95,7 @@ fun TripDetailScreen(
     onDelete: () -> Unit = {},
 ) {
     val colors      = LocalAtmosColors.current
+    val unit        = LocalDistanceUnit.current
     val scrollState = rememberScrollState()
     val heroColor   = entry.mode.themeColor
 
@@ -227,7 +231,7 @@ fun TripDetailScreen(
                 // Distance · Duration pills
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (entry.distanceKm > 0f) {
-                        HeroPill("${entry.distanceKm.toDisplayString()} km")
+                        HeroPill(entry.distanceKm.formatDistance(unit))
                     }
                     HeroPill("${entry.durationMin} min")
                 }
@@ -817,10 +821,3 @@ private val Float.co2Color: Color
         this < 2f   -> Peach
         else        -> AlertRed
     }
-
-private fun Float.toDisplayString(): String {
-    if (this == 0f) return "0"
-    if (this % 1f == 0f) return toInt().toString()
-    val intPart = toInt()
-    return "$intPart.${((this - intPart) * 10).toInt()}"
-}
