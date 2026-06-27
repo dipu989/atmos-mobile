@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Warning
@@ -115,6 +116,8 @@ fun AccountCard(
                 .clickable { showSignOutDialog = true }
                 .padding(vertical = 12.dp),
         ) {
+            Icon(imageVector = Icons.AutoMirrored.Outlined.Logout, contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(12.dp))
             Text(text = "Sign Out", fontSize = 15.sp, color = colors.textSecondary)
         }
 
